@@ -80,9 +80,10 @@ function Kopf() {
 
 export default function SanitaetsdienstRechnerSeite() {
   return (
-    // Die Klasse rechner-seite holt den Systemzeiger zurück und begrenzt die
-    // Zusätze für diese Route. Die Startseite bleibt davon unberührt.
-    <div className="rechner-seite min-h-dvh">
+    // systemzeiger holt den Mauszeiger zurück, den die Startseite global
+    // ausblendet; rechner-seite begrenzt den Rest auf diese Route.
+    // Die Startseite bleibt von beidem unberührt.
+    <div className="rechner-seite systemzeiger min-h-dvh">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

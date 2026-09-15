@@ -140,7 +140,9 @@ function Bereich({
 
 export default function IvrAnerkennungSeite() {
   return (
-    <div className="min-h-dvh">
+    // systemzeiger holt den Mauszeiger zurück, den die Startseite global
+    // ausblendet, weil sie ihn selbst zeichnet.
+    <div className="systemzeiger min-h-dvh">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

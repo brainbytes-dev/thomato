@@ -324,47 +324,52 @@
   }
 }
 
-/* Der eigene Mauszeiger gehört zur Startseite, die ihn selbst zeichnet. Auf
-   einer Bedienoberfläche wäre ein verstecktes Zeigegerät eine
-   Verschlechterung, deshalb kommt hier der Systemzeiger zurück. */
+/* Der eigene Mauszeiger gehört zur Startseite, die ihn selbst zeichnet.
+   Überall sonst ist ein verstecktes Zeigegerät eine Verschlechterung: die
+   Startseite blendet den Systemzeiger global aus, also muss jede Seite,
+   die den eigenen nicht zeichnet, ihn zurückholen.
+
+   Dafür ist .systemzeiger da. Er hing vorher am Namen des Rechners und
+   damit an einer einzelnen Seite; die nächste Unterseite hatte deshalb
+   gar keinen Zeiger. */
 @media (pointer: fine) {
   /* html und body liegen oberhalb des Wrappers und werden deshalb eigens
      angesprochen, sonst bliebe der Zeiger auf der Seitenfläche versteckt. */
-  html:has(.rechner-seite),
-  html:has(.rechner-seite) body,
-  .rechner-seite,
-  .rechner-seite *,
-  .rechner-seite *::before,
-  .rechner-seite *::after {
+  html:has(.systemzeiger),
+  html:has(.systemzeiger) body,
+  .systemzeiger,
+  .systemzeiger *,
+  .systemzeiger *::before,
+  .systemzeiger *::after {
     cursor: auto !important;
   }
 
-  .rechner-seite a,
-  .rechner-seite button,
-  .rechner-seite summary,
-  .rechner-seite label,
-  .rechner-seite select,
-  .rechner-seite [role="button"] {
+  .systemzeiger a,
+  .systemzeiger button,
+  .systemzeiger summary,
+  .systemzeiger label,
+  .systemzeiger select,
+  .systemzeiger [role="button"] {
     cursor: pointer !important;
   }
 
-  .rechner-seite input:not([type="radio"]):not([type="checkbox"]),
-  .rechner-seite textarea {
+  .systemzeiger input:not([type="radio"]):not([type="checkbox"]),
+  .systemzeiger textarea {
     cursor: text !important;
   }
 }
 
 /* Die Flächen, die der Browser stellt, gehören zur Gestaltung. */
-.rechner-seite ::selection {
+.systemzeiger ::selection {
   background: var(--brand);
   color: oklch(0.99 0.004 252);
 }
 
-.rechner-seite * {
+.systemzeiger * {
   caret-color: var(--brand);
 }
 
-.rechner-seite a {
+.systemzeiger a {
   text-underline-offset: 0.2em;
   text-decoration-thickness: 1px;
 }
