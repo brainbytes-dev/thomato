@@ -107,7 +107,7 @@
   {% if schreiben %}
   <div class="mangel-aktionen">
     <details class="phasen">
-      <summary>Kommentar eintragen</summary>
+      <summary class="als-knopf">Anmerkung eintragen</summary>
       <form method="post" action="/kriterium/{{ m.nummer }}/kommentar">
         <input type="hidden" name="zurueck" value="{{ zurueck }}">
         <label for="kt{{ m.nummer | replace('.', '-') }}">Was ist seither geschehen</label>
@@ -117,7 +117,7 @@
       </form>
     </details>
     <details class="phasen">
-      <summary>Auflage eintragen</summary>
+      <summary class="als-knopf">Auflage eintragen</summary>
       <form method="post" action="/kriterium/{{ m.nummer }}/auflage">
         <input type="hidden" name="zurueck" value="{{ zurueck }}">
         <label for="at{{ m.nummer | replace('.', '-') }}">Wortlaut der Auflage</label>

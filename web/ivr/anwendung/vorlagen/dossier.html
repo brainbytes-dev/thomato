@@ -88,6 +88,18 @@
 
 <h2>Fristen</h2>
 <div class="diagrammrahmen zeitstrahl" tabindex="0">{{ zeitstrahl | safe }}</div>
+{# Der Strahl zeigt Datum und Restzeit, aber nicht, wofür ein Punkt steht;
+   das stand nur im Tooltip und in der Tabelle darunter. Die Farbe ist
+   dieselbe wie auf dem Strahl: rot heisst knapp, grün heisst Zeit. #}
+<ul class="legende fristlegende">
+  <li><span class="fristpunkt heute" aria-hidden="true"></span>
+    <span class="legendentext">heute</span></li>
+  {% for p in uhr %}{% if p.tage >= 0 %}
+  <li><span class="fristpunkt {{ p.stufe }}" aria-hidden="true"></span>
+    <span class="legendentext"><span class="legendenzahl">{{ p.datum }}</span>
+      {{ p.beschriftung }}</span></li>
+  {% endif %}{% endfor %}
+</ul>
 {% set schreiben = darf_schreiben(request) %}
 <details id="fristen"{% if meldung %} open{% endif %}>
   <summary>Termine als Tabelle{% if schreiben %}, ändern und eintragen{% endif %}</summary>

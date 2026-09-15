@@ -599,6 +599,27 @@
   }
   .mangel-aktionen form { margin: 0; }
   .mangel-aktionen > details > summary { padding: 5px 0; }
+  /* «Anmerkung eintragen» und «Auflage eintragen» sind Handlungen und
+     sehen jetzt aus wie welche. Ein details/summary bleibt es trotzdem:
+     das Formular klappt ohne eine Zeile Javascript auf. Das Zeichen davor
+     wechselt beim Aufklappen, damit man den Weg zurück sieht. */
+  summary.als-knopf {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 5px 12px; border: 1px solid var(--linie);
+    border-radius: var(--rund-feld); background: transparent;
+    color: var(--akzent); font-size: var(--schrift-meta); font-weight: 590;
+    list-style: none; cursor: pointer;
+    transition: background var(--takt) var(--kurve), color var(--takt) var(--kurve);
+  }
+  .mangel-aktionen > details > summary.als-knopf { padding: 5px 12px; }
+  summary.als-knopf::-webkit-details-marker { display: none; }
+  summary.als-knopf::before {
+    content: "+"; font-weight: 620; line-height: 1;
+    font-size: calc(var(--schrift-meta) + 2px);
+  }
+  details[open] > summary.als-knopf::before { content: "\2212"; }
+  summary.als-knopf:hover { background: var(--flaeche); color: var(--akzent-tief); }
+  details[open] > summary.als-knopf { background: var(--flaeche); }
   .mangel-aktionen > details[open] { flex-basis: 100%; }
   .mangel-aktionen > details[open] > summary { border-bottom: 0; margin-bottom: 0; }
   .mangel-aktionen > details > form {
@@ -776,6 +797,25 @@
      die Wörter und rutscht beim Umbruch nicht ans Zeilenende. */
   .legende .legendentext { min-width: 0; }
   .legende .legendenzahl { color: var(--text); font-weight: 590; }
+
+  /* Die Legende zum Zeitstrahl: je Punkt eine Zeile, weil die Beschriftung
+     ein Satz ist und nicht ein Wort. Der Punkt trägt dieselbe Farbe wie auf
+     dem Strahl, damit man ihn dort wiederfindet. */
+  .legende.fristlegende {
+    display: grid; gap: 4px 20px; margin-top: 8px;
+    /* Zwei Spalten statt drei: die Beschriftungen sind Sätze, und in
+       drei Spalten springt das Auge beim Lesen. */
+    grid-template-columns: repeat(auto-fit, minmax(26rem, 1fr));
+  }
+  .fristpunkt {
+    width: 9px; height: 9px; flex: 0 0 auto; border-radius: 50%;
+    background: var(--leise);
+  }
+  .fristpunkt.rot { background: var(--rot); }
+  .fristpunkt.gelb { background: var(--gelb); }
+  .fristpunkt.gruen { background: var(--gruen); }
+  .fristlegende li { align-items: baseline; }
+  .fristlegende .fristpunkt { position: relative; top: 1px; }
 
   /* Wo die Legende die Zahlen vollständig trägt, lässt der Balken seine
      eingelegten weg: die Legende zählt nach Gruppe, der Balken nach Segment,
