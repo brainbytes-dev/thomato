@@ -129,6 +129,45 @@ export const ivr = {
     ],
   },
 
+  /** Was es kostet. Zwei Stufen, mehr braucht es nicht. */
+  preise: {
+    titel: "Was es kostet",
+    vorspann:
+      "Zwei Stufen. Die eine ist die Anwendung, betrieben und gewartet, für einen Betrieb, der sie so nehmen kann, wie sie ist. Die andere ist alles, was darüber hinausgeht.",
+    stufen: [
+      {
+        name: "Standard",
+        preis: "CHF 190",
+        takt: "im Monat",
+        text: "Alles, was auf dieser Seite steht, betriebsbereit und gepflegt.",
+        punkte: [
+          "Die Anwendung mit Dossier, Handbuch und Qualitätskreisläufen",
+          "Betrieb und Sicherung, Sie brauchen keinen eigenen Server",
+          "Aktualisierungen und neue Funktionen inbegriffen",
+          "Beliebig viele Konten in den drei Rechtestufen",
+          "Eine feste Ansprechperson, kein Ticketsystem",
+        ],
+        hervor: true,
+      },
+      {
+        name: "Enterprise",
+        preis: "Auf Anfrage",
+        takt: "",
+        text: "Wenn die Anwendung sich nach Ihrem Betrieb richten soll und nicht umgekehrt.",
+        punkte: [
+          "Betrieb auf Ihrem eigenen Server, im eigenen Haus",
+          "Eigene Kriterienliste, etwa für einen Samariterverein",
+          "Prozesslandkarte auf Ihre Abläufe gebaut",
+          "Übernahme des bestehenden Dossiers bei der Einführung",
+          "Anbindung an vorhandene Systeme, wo es sich lohnt",
+        ],
+        hervor: false,
+      },
+    ],
+    fussnote:
+      "Die Einführung mit dem eigenen Dossier kommt einmalig dazu und hängt davon ab, wie das Dossier heute geführt wird. Was das für Sie heisst, sage ich Ihnen nach einem Blick darauf, bevor Sie sich entscheiden.",
+  },
+
   faq: [
     {
       frage: "Ist das auf einen bestimmten Rettungsdienst zugeschnitten?",
@@ -148,7 +187,7 @@ export const ivr = {
     {
       frage: "Kann ich es bekommen?",
       antwort:
-        "Reden wir darüber. Sinnvoll ist eine Einführung mit dem eigenen Dossier: Kriterien einlesen, Prozesslandkarte auf den Betrieb bringen, laufende Kreisläufe eintragen. Danach führt der Betrieb es selbst.",
+        "Ja, für CHF 190 im Monat in der Standardfassung, betrieben und gewartet. Sinnvoll ist eine Einführung mit dem eigenen Dossier: Kriterien einlesen, Prozesslandkarte auf den Betrieb bringen, laufende Kreisläufe eintragen. Danach führt der Betrieb es selbst. Wer einen eigenen Server oder eine eigene Kriterienliste braucht, fragt nach der Enterprise-Fassung.",
     },
   ],
 

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Check } from "lucide-react";
 import { ModeToggle } from "@/components/theme/theme-toggle";
 import { LogoWordmark } from "@/components/ui/logo";
 import { brand } from "@/data/brand";
@@ -138,6 +138,42 @@ function Bereich({
   );
 }
 
+/** Eine Preisstufe. Die erste ist hervorgehoben, weil sie die Antwort für
+    die meisten ist; die zweite steht gleichberechtigt daneben und nicht
+    kleiner. */
+function Stufe({ stufe }: { stufe: (typeof ivr.preise.stufen)[number] }) {
+  return (
+    <div
+      className={`flex flex-col rounded-sm border p-6 sm:p-8 ${
+        stufe.hervor
+          ? "border-brand bg-brand/[0.04]"
+          : "border-border bg-transparent"
+      }`}
+    >
+      <h3 className="text-lg font-medium text-foreground">{stufe.name}</h3>
+      <p className="mt-4 flex items-baseline gap-2">
+        <span className="text-3xl font-light tracking-tight text-foreground sm:text-4xl">
+          {stufe.preis}
+        </span>
+        {stufe.takt ? (
+          <span className="text-sm text-muted-foreground">{stufe.takt}</span>
+        ) : null}
+      </p>
+      <p className="mt-4 max-w-[42ch] text-base leading-relaxed text-muted-foreground">
+        {stufe.text}
+      </p>
+      <ul className="mt-6 space-y-2 text-sm leading-relaxed text-muted-foreground">
+        {stufe.punkte.map((punkt) => (
+          <li key={punkt} className="flex gap-3">
+            <Check aria-hidden className="mt-1 h-3.5 w-3.5 shrink-0 text-brand" />
+            <span>{punkt}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export default function IvrAnerkennungSeite() {
   return (
     // systemzeiger holt den Mauszeiger zurück, den die Startseite global
@@ -267,6 +303,25 @@ export default function IvrAnerkennungSeite() {
                 </li>
               ))}
             </ul>
+          </section>
+
+          <section className="space-y-6">
+            <div className="max-w-[65ch] space-y-4">
+              <h2 className="text-2xl font-medium text-foreground sm:text-3xl">
+                {ivr.preise.titel}
+              </h2>
+              <p className="text-base leading-relaxed text-muted-foreground">
+                {ivr.preise.vorspann}
+              </p>
+            </div>
+            <div className="grid gap-5 lg:grid-cols-2">
+              {ivr.preise.stufen.map((stufe) => (
+                <Stufe key={stufe.name} stufe={stufe} />
+              ))}
+            </div>
+            <p className="max-w-[65ch] text-sm leading-relaxed text-muted-foreground">
+              {ivr.preise.fussnote}
+            </p>
           </section>
 
           <section className="max-w-[65ch] space-y-8">
