@@ -77,7 +77,9 @@ const content = `
 
 export default function DatenschutzPage() {
   return (
-    <div className="min-h-screen bg-background">
+    // systemzeiger holt den Mauszeiger zurück, den die Startseite global
+    // ausblendet, weil sie ihn selbst zeichnet.
+    <div className="systemzeiger min-h-screen bg-background">
       <div className="mx-auto max-w-3xl px-6 py-24 md:px-12">
         {/* Back link */}
         <Link
