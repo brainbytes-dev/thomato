@@ -122,13 +122,6 @@ export default function SanitaetsdienstRechnerSeite() {
           <p className="text-sm leading-relaxed text-muted-foreground">
             Fragen zum Ergebnis?{" "}
             <a
-              href={`tel:${brand.contact.phoneHref}`}
-              className="text-foreground underline decoration-border hover:decoration-brand"
-            >
-              {brand.contact.phone}
-            </a>{" "}
-            oder{" "}
-            <a
               href={`mailto:${brand.contact.email}`}
               className="text-foreground underline decoration-border hover:decoration-brand"
             >

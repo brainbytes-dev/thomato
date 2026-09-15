@@ -58,7 +58,8 @@ const jsonLd = {
   name: brand.name,
   description: brand.description,
   url: brand.meta.url,
-  telephone: brand.contact.phone,
+  // Ohne Telefonnummer: sie steht nur im Impressum, und die
+  // strukturierten Daten gehen an jede Suchmaschine.
   email: brand.contact.email,
   address: {
     "@type": "PostalAddress",

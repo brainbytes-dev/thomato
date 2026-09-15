@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { brand } from "@/data/brand";
-import { ArrowRight, Mail, Phone, MapPin } from "lucide-react";
+import { ArrowRight, Mail, MapPin } from "lucide-react";
 import { useRef } from "react";
 import { useInView } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -81,13 +81,6 @@ export function Footer() {
               >
                 <Mail className="h-4 w-4 flex-shrink-0 transition-colors group-hover:text-brand" />
                 <span className="truncate">{brand.contact.email}</span>
-              </a>
-              <a
-                href={`tel:${brand.contact.phoneHref}`}
-                className="group flex items-center gap-3 text-sm text-foreground/65 transition-all duration-300 hover:text-foreground"
-              >
-                <Phone className="h-4 w-4 flex-shrink-0 transition-colors group-hover:text-brand" />
-                {brand.contact.phone}
               </a>
               <div className="flex items-start gap-3 text-sm text-foreground/65">
                 <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0 text-brand/60" />

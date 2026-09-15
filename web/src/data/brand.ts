@@ -126,7 +126,11 @@ export const brand = {
     owner: "Michael Thoma",
     email: "info@thomato.ch",
     phone: "+41 76 447 68 61",
-    /** Dieselbe Nummer ohne Leerzeichen, für tel:-Links. */
+    /** Dieselbe Nummer ohne Leerzeichen, für tel:-Links.
+     *
+     * Beide stehen seit dem 15.09.2026 nur noch im Impressum. Wer sie
+     * anderswo einbaut, veröffentlicht sie wieder; für den Kontakt gibt es
+     * die E-Mail-Adresse und das Formular. */
     phoneHref: "+41764476861",
     street: "Fichtenweg 4",
     postalCode: "4542",

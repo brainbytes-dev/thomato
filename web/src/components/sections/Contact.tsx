@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Mail, Phone, MapPin, CheckCircle2, AlertCircle } from "lucide-react";
+import { Mail, MapPin, CheckCircle2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -122,13 +122,6 @@ Anlass, Datum und Ort: `
             >
               <Mail className="h-4 w-4 shrink-0 text-brand" />
               {brand.contact.email}
-            </a>
-            <a
-              href={`tel:${brand.contact.phoneHref}`}
-              className="flex items-center gap-3 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <Phone className="h-4 w-4 shrink-0 text-brand" />
-              {brand.contact.phone}
             </a>
             <div className="flex items-center gap-3 text-sm text-muted-foreground">
               <MapPin className="h-4 w-4 shrink-0 text-brand" />

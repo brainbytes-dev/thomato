@@ -318,13 +318,6 @@ export default function IvrAnerkennungSeite() {
           <p className="text-sm leading-relaxed text-muted-foreground">
             Fragen zur Anwendung?{" "}
             <a
-              href={`tel:${brand.contact.phoneHref}`}
-              className="text-foreground underline decoration-border hover:decoration-brand"
-            >
-              {brand.contact.phone}
-            </a>{" "}
-            oder{" "}
-            <a
               href={`mailto:${brand.contact.email}`}
               className="text-foreground underline decoration-border hover:decoration-brand"
             >
