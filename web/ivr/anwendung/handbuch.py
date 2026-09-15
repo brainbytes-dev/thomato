@@ -609,9 +609,15 @@ def nachweise(v, nummer, frist=None):
     braucht es den Knopf zum Uebernehmen nicht mehr, und wann sie zuletzt
     geprueft wurde.
     """
-    schon = {z["dossier_pfad"] for z in v.execute(
-        "SELECT dossier_pfad FROM handbuch_dokument WHERE kriterium = ? "
-        "AND dossier_pfad IS NOT NULL", (nummer,))}
+    heute = date.today()
+    # Nicht nur, dass die Datei im Handbuch liegt, sondern die Zeile selbst:
+    # seit Dossier und Handbuch auf einer Seite stehen, gehoeren Stand,
+    # Bestaetigung und Erinnerung neben die Datei und nicht in eine zweite
+    # Liste darueber.
+    schon = {z["dossier_pfad"]: dict(z, stand=stand(z, heute))
+             for z in v.execute(
+                 "SELECT * FROM handbuch_dokument WHERE kriterium = ? "
+                 "AND dossier_pfad IS NOT NULL", (nummer,))}
     zeilen = v.execute(
         """SELECT d.* FROM dokument d JOIN beleg b ON b.dokument = d.id
            WHERE b.kriterium = ?
@@ -620,16 +626,17 @@ def nachweise(v, nummer, frist=None):
                                   WHEN 'alt' THEN 4 ELSE 3 END,
                     d.datum DESC, d.titel""", (nummer,)).fetchall()
     vermerke = pruefvermerke(v, [d["pfad"] for d in zeilen])
-    heute = date.today()
     ergebnis = []
     for d in zeilen:
         p = vermerke.get(d["pfad"])
+        hb = schon.get(d["pfad"])
         eigene = p["frist"] if p and p["frist"] else None
         gilt = eigene or frist
         ergebnis.append(dict(
             d,
             dateiname=Path(d["pfad"]).name,
-            im_handbuch=d["pfad"] in schon,
+            im_handbuch=bool(hb),
+            handbuch=hb,
             geprueft_am=p["geprueft_am"] if p else None,
             geprueft_von=p["geprueft_von"] if p else None,
             frist=gilt, eigene_frist=eigene,

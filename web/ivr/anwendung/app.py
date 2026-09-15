@@ -1150,7 +1150,15 @@ def mangel_behoben(request: Request, nummer: str, wieder_offen: str = Form(""),
 
 
 @app.get("/kriterium/{nummer}")
-def kriterium(request: Request, nummer: str):
+def kriterium(request: Request, nummer: str, meldung: str = "", art: str = ""):
+    """Ein Kriterium mit allem, was dazugehoert.
+
+    Michael am 15.09.2026: «Es gibt einmal das Dossier und einmal das
+    Handbuch. Beides sieht sich sehr aehnlich.» Es waren zwei Seiten
+    desselben Kriteriums, mit denselben Auflagen, derselben Dateiliste und
+    verteilten Knoepfen. Jetzt ist es eine: Anforderung, Kreislauf,
+    Massnahmen, die Dateien und was davon im Handbuch gilt.
+    """
     v = datenbank.verbindung()
     k = v.execute("SELECT * FROM kriterium WHERE nummer = ?", (nummer,)).fetchone()
     if not k:
@@ -1181,10 +1189,16 @@ def kriterium(request: Request, nummer: str):
         "nachweise": json.loads(k["nachweise"] or "[]"),
         "massnahmen": massnahmen,
         "belege": belege,
-        # Was im Handbuch zu diesem Kriterium liegt, mit dem dringlichsten
-        # Stand. Das Dossier zeigt die SharePoint-Kopie, das Handbuch das
-        # Geltende; beides gehoert auf dieselbe Seite.
-        "im_handbuch": handbuch.uebersicht(v, [nummer])[nummer],
+        # Was im Handbuch gilt, haengt an den Dateien selbst (belege[].handbuch).
+        # Hier stehen nur die, die ohne Dossierdatei abgelegt wurden.
+        "nur_handbuch": [d for d in handbuch.dokumente(v, nummer)
+                         if not d["dossier_pfad"]],
+        "intervalle": handbuch.INTERVALLE,
+        "intervall_namen": dict(handbuch.INTERVALLE),
+        "dossierfrist": einstellungen(v).get("dossier"),
+        "grenze_mb": handbuch.GRENZE_BYTES // 1024 // 1024,
+        "heute": date.today().isoformat(),
+        "meldung": meldung, "art": art,
         "mangel": maengel_laden(v, [nummer]).get(nummer),
         "zyklus": ZYKLEN[zyklus_von(v)],
         "dmaic": zyklus_von(v) == "dmaic",
@@ -1285,13 +1299,13 @@ def massnahmen(request: Request):
 
 @app.get("/handbuch")
 def handbuch_seite(request: Request, q: str = "", meldung: str = "",
-                   art: str = "", kapitel: str = ""):
-    """Das Handbuch führt alle 56 Kriterien, nach Kapiteln gegliedert.
+                   art: str = ""):
+    """Das Handbuch: die Suche, der Prüfstand und die fälligen Prüfungen.
 
-    Hier wird verwaltet, was auf der Übersicht und der Prozesslandkarte
-    angezeigt wird: die Dokumente, die Prüffristen, die Auflagen und die
-    Mängel. Mit Suchwort zwei Trefferlisten, die Kriterien mit ihrem
-    IVR-Text und die abgelegten Dokumente nach Titel, Version und Inhalt.
+    Was gilt, und wann ist es wieder anzuschauen? Die Kriterien selbst
+    führt die Übersicht, die Auflagen ebenso; hier stand beides ein zweites
+    Mal. Mit Suchwort zwei Trefferlisten, die Kriterien mit ihrem IVR-Text
+    und die abgelegten Dokumente nach Titel, Version und Inhalt.
     """
     v = datenbank.verbindung()
     dokument_treffer = []
@@ -1316,58 +1330,30 @@ def handbuch_seite(request: Request, q: str = "", meldung: str = "",
                FROM kriterium WHERE kapitel <> 'Ergebnis'
                ORDER BY sortierung""").fetchall()
 
-    nummern = [z["nummer"] for z in treffer]
-    stand = handbuch.uebersicht(v, nummern)
     dossier = handbuch.dossier_zahlen(v)
-    auflagen_je = auflagen_laden(v, nummern)
-    maengel = maengel_laden(v, nummern)
-
-    # Nach Kapiteln gruppieren, in der Reihenfolge der Richtlinie. Ein
-    # Kapitelfilter hält die Seite bei 56 Kriterien noch lesbar.
-    gruppen, folge = {}, []
-    for z in treffer:
-        kap = z["kapitel"]
-        if kap not in gruppen:
-            gruppen[kap] = []
-            folge.append(kap)
-        m = maengel.get(z["nummer"]) or {}
-        auf = auflagen_je.get(z["nummer"], [])
-        gruppen[kap].append({
-            "nummer": z["nummer"], "titel": z["titel"], "kapitel": kap,
-            "auszug": z["auszug"],
-            # Die Latte der Erneuerung, nicht die der Erstanerkennung: der
-            # Qualitätsbericht 7.1 etwa wechselt von Soll auf Muss.
-            "muss": z["erneuerung_muss"] if "erneuerung_muss" in z.keys() else 0,
-            "soll": z["erneuerung_soll"] if "erneuerung_soll" in z.keys() else 0,
-            "nur_erst": (z["anerkennung_muss"] and not z["erneuerung_muss"]
-                         and not z["erneuerung_soll"])
-                        if "anerkennung_muss" in z.keys() else False,
-            "min_erneuerung": z["min_erneuerung"] if "min_erneuerung" in z.keys() else None,
-            "dokumente": stand[z["nummer"]]["anzahl"],
-            "stand": stand[z["nummer"]]["stand"],
-            "dossier": dossier.get(z["nummer"],
-                                   {"gesamt": 0, "fertig": 0, "geprueft": 0}),
-            "auflagen_offen": [x for x in auf if not x["erfuellt_am"]],
-            "auflagen": auf,
-            "bemaengelt": m.get("bemaengelt"),
-            "behoben_am": m.get("behoben_am"),
-            "kommentare": len(m.get("kommentare") or []),
-            "ablauf": z["nummer"].startswith("7.3."),
-        })
-    kapitel = kapitel if kapitel in gruppen else ""
     plan = handbuch.pruefplan(v, einstellungen(v).get("dossier"))
-    baender = [{"name": k, "kriterien": gruppen[k]} for k in folge
-               if not kapitel or k == kapitel]
+
+    # Nicht eine zweite Kriterienliste - die führt die Übersicht -, sondern
+    # die Frage dieser Seite: wo liegen noch ungeprüfte Dateien? Das
+    # Kriterium mit den meisten zuoberst, und die Liste wird kürzer, je
+    # weiter die Durchsicht kommt.
+    ungeprueft = []
+    for z in treffer:
+        d = dossier.get(z["nummer"])
+        if not d or d["geprueft"] >= d["gesamt"]:
+            continue
+        ungeprueft.append({
+            "nummer": z["nummer"], "titel": z["titel"],
+            "gesamt": d["gesamt"], "fertig": d["fertig"],
+            "geprueft": d["geprueft"], "offen": d["gesamt"] - d["geprueft"]})
+    ungeprueft.sort(key=lambda x: (-x["offen"], x["nummer"]))
 
     antwort = vorlagen.TemplateResponse(request, "handbuch.html", {
         "treffer": treffer,
-        "baender": baender,
-        "kapitelnamen": folge,
-        "kapitel": kapitel,
+        "ungeprueft": ungeprueft,
         "gesamt": len(treffer),
         "dokument_treffer": dokument_treffer,
         "faellige": handbuch.faellige(v),
-        "auflagen": offene_auflagen(v),
         # Bis zum Einreichen muss jede Datei des Dossiers einmal angeschaut
         # sein. Der Plan sagt, wie weit das ist und wie viel Zeit bleibt.
         "plan": plan,
@@ -1471,7 +1457,7 @@ def dossier_geprueft(request: Request, nummer: str, dokument: str = Form(""),
                             f"{'liegt' if bewegt == 1 else 'liegen'} "
                             "jetzt in «Fertig».")
     v.close()
-    return _zum_ablauf(nummer, "gut", meldung, "dossier")
+    return _zum_ablauf(nummer, "gut", meldung, "dokumente")
 
 
 @app.post("/handbuch/{nummer}/prueffrist")
@@ -1493,11 +1479,13 @@ def dossier_prueffrist(request: Request, nummer: str, dokument: str = Form(""),
     meldung = (f"Zu prüfen bis {schweizer_datum(ziel.isoformat())}." if ziel
                else f"Es gilt wieder die Frist des Dossiers, "
                     f"{schweizer_datum(vorgabe)}.")
-    return _zum_ablauf(nummer, "gut", meldung, "dossier")
+    return _zum_ablauf(nummer, "gut", meldung, "dokumente")
 
 
 def _zum_ablauf(nummer, art, meldung, anker=""):
-    ziel = f"/handbuch/{quote(nummer)}?art={art}&meldung={quote(meldung)}"
+    """Zurueck zum Kriterium, mit Meldung. Seit die Handbuchseite je Ablauf
+    in der Kriteriumsseite aufgegangen ist, endet jede Aktion dort."""
+    ziel = f"/kriterium/{quote(nummer)}?art={art}&meldung={quote(meldung)}"
     return RedirectResponse(ziel + (f"#{anker}" if anker else ""),
                             status_code=303)
 
@@ -1623,32 +1611,14 @@ def handbuch_loeschen(kennung: int):
 
 
 @app.get("/handbuch/{nummer}")
-def handbuch_ablauf(request: Request, nummer: str, meldung: str = "",
-                    art: str = ""):
-    """Ein Betriebsablauf mit seinen geltenden Dokumenten."""
-    v = datenbank.verbindung()
-    k = v.execute("SELECT * FROM kriterium WHERE nummer = ?", (nummer,)).fetchone()
-    if not k:
-        v.close()
-        return RedirectResponse("/handbuch", status_code=303)
-    antwort = vorlagen.TemplateResponse(request, "handbuch_ablauf.html", {
-        "k": k,
-        "mangel": maengel_laden(v, [nummer]).get(nummer),
-        "dokumente": handbuch.dokumente(v, nummer),
-        "nachweise": handbuch.nachweise(v, nummer,
-                                        einstellungen(v).get("dossier")),
-        "dossierfrist": einstellungen(v).get("dossier"),
-        "intervalle": handbuch.INTERVALLE,
-        "intervall_namen": dict(handbuch.INTERVALLE),
-        "vorgabe_intervall": handbuch.VORGABE_INTERVALL,
-        "grenze_mb": handbuch.GRENZE_BYTES // 1024 // 1024,
-        "heute": date.today().isoformat(),
-        "meldung": meldung, "art": art,
-        "titel": f"Handbuch {nummer}",
-        "seite": "handbuch",
-    })
-    v.close()
-    return antwort
+def handbuch_ablauf(nummer: str, meldung: str = "", art: str = ""):
+    """Die alte Seite je Betriebsablauf. Sie zeigte dasselbe Kriterium ein
+    zweites Mal; jetzt fuehrt sie dorthin. Der Weg bleibt, damit Lesezeichen
+    und aeltere Verweise nicht ins Leere laufen."""
+    ziel = f"/kriterium/{quote(nummer)}"
+    if meldung:
+        ziel += f"?art={art}&meldung={quote(meldung)}"
+    return RedirectResponse(ziel, status_code=303)
 
 
 @app.post("/handbuch/{nummer}/hochladen")
@@ -1689,7 +1659,7 @@ async def handbuch_hochladen(request: Request, nummer: str,
                "Geprüft ist sie damit nicht")
     meldung += (f"; das muss bis zum {schweizer_datum(frist)} geschehen."
                 if frist else ".")
-    return _zum_ablauf(nummer, "gut", meldung, "dossier")
+    return _zum_ablauf(nummer, "gut", meldung, "dokumente")
 
 
 @app.post("/handbuch/{nummer}/dossier-loeschen")
@@ -1703,7 +1673,7 @@ def dossier_datei_loeschen(request: Request, nummer: str,
         titel = handbuch.dossier_loeschen(v, nummer, int(dokument or 0))
     except (listen.Abgelehnt, ValueError) as e:
         v.close()
-        return _zum_ablauf(nummer, "fehler", str(e), "dossier")
+        return _zum_ablauf(nummer, "fehler", str(e), "dokumente")
     v.close()
     return _zum_ablauf(nummer, "gut", f"«{titel}» ist aus dem Dossier "
                        "entfernt.", "dossier")

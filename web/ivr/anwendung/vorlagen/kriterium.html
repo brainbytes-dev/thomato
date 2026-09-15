@@ -2,7 +2,7 @@
 {% from "_mangel.html" import mangel_block with context %}
 {% block inhalt %}
 
-<p class="meta"><a href="/">Dossier</a> / Kriterium {{ k.nummer }}</p>
+<p class="meta"><a href="/">Übersicht</a> / Kriterium {{ k.nummer }}</p>
 <h1>{{ k.nummer }} {{ k.titel }}</h1>
 
 <p class="meta">
@@ -24,17 +24,8 @@
   {% endif %}
 </p>
 
-{% if im_handbuch.anzahl %}
-<p class="meta">
-  Im Handbuch: {{ im_handbuch.anzahl }} {% if im_handbuch.anzahl == 1 %}Dokument{% else %}Dokumente{% endif %},
-  <span class="{{ im_handbuch.stand.farbe }}">{{ im_handbuch.stand.text }}</span> ·
-  <a href="/handbuch/{{ k.nummer }}">zum Betriebsablauf</a>
-</p>
-{% elif k.nummer.startswith("7.3.") %}
-<p class="meta">
-  Im Handbuch liegt zu diesem Betriebsablauf noch kein Dokument.
-  <a href="/handbuch/{{ k.nummer }}">Ablegen</a>
-</p>
+{% if meldung %}
+<p class="hinweis {{ art }}" role="status">{{ meldung }}</p>
 {% endif %}
 
 {% if mangel and (mangel.bemaengelt or mangel.empfehlung or mangel.kommentare or mangel.auflagen or darf_schreiben(request)) %}
@@ -195,90 +186,280 @@
   </form>
 </details>
 
-<h2>Nachweise im Dossier ({{ belege|length }})</h2>
-<p class="meta">
-  Das Datum stammt aus dem Dokument selbst, nicht aus dem Dateisystem: beim
-  Kopieren aus SharePoint wurde dort jeder Zeitstempel überschrieben. Rot
-  heisst älter als 2020, gelb älter als 2023. «Geprüft» sagt, wann die Datei
-  zuletzt jemand durchgesehen hat; gesetzt wird das
-  <a href="/handbuch/{{ k.nummer }}#dossier">im Handbuch</a>.
+{# Eine Liste, nicht zwei. Michael am 15.09.2026: «Es gibt einmal das
+   Dossier und einmal das Handbuch, beides sieht sich sehr ähnlich.» Die
+   Datei gibt es nur einmal; ob sie im Betrieb gilt, ist eine Auszeichnung
+   an ihr und keine zweite Ablage. #}
+<h2 id="dokumente">Dokumente ({{ belege | length }})</h2>
+
+{% if belege or nur_handbuch %}
+<p class="leise">
+  Alles, was zu diesem Kriterium abgelegt ist. Der Ordner sagt den Stand:
+  freigegeben zählt beim Prüfbesuch, alles andere nicht. Ein Klick auf den
+  Namen öffnet die Datei. Das Datum stammt aus dem Dokument selbst, nicht
+  aus dem Dateisystem: beim Kopieren aus SharePoint wurde dort jeder
+  Zeitstempel überschrieben.
 </p>
+<p class="leise">
+  <strong>Geprüft</strong> hält fest, dass jemand die Datei angeschaut hat
+  und sie so gilt. Bis zum Einreichen{% if dossierfrist %} am
+  {{ dossierfrist | datum }}{% endif %} soll das für jede zutreffen. Eine
+  geprüfte Datei wandert nach «Fertig», denn dort zählt sie; wird die
+  Prüfung zurückgenommen, geht sie zurück, wo sie herkam. Läuft eine Datei
+  vorher ab, eine Bewilligung etwa, bekommt sie unter «Frist» ihr eigenes
+  Datum.
+</p>
+<p class="leise">
+  <strong>Gilt im Handbuch</strong> heisst: nach dieser Fassung wird im
+  Betrieb gearbeitet. Die Datei bleibt, wo sie liegt, und wird nicht
+  kopiert; das Handbuch führt sie mit Bestätigung und Prüfintervall.
+  Prüfen, Fristen setzen und ins Handbuch nehmen darf die Verwaltung;
+  ablegen darf, wer schreibt.
+</p>
+{% endif %}
+
+{% macro dateiliste(liste, beschriftung, umfang) %}
+{% set ungeprueft = liste | rejectattr("geprueft_am") | list %}
+<h3>{{ beschriftung }} ({{ liste | length }})</h3>
+{% if ungeprueft and darf_verwalten(request) %}
+{# Michael geht ein Kriterium als Ganzes durch, nicht Datei für Datei. Der
+   Knopf gilt für die Liste, unter der er steht, und für keine andere. #}
+<form method="post" action="/handbuch/{{ k.nummer }}/geprueft" class="sammelpruefung">
+  <input type="hidden" name="umfang" value="{{ umfang }}">
+  <button type="submit" class="knopf-leise">
+    Alle {{ liste | length }} als geprüft melden{% if umfang != "fertig" %}
+    und nach «Fertig» verschieben{% endif %}</button>
+  <span class="meta">{{ ungeprueft | length }} noch ungeprüft</span>
+</form>
+{% endif %}
+<ul class="listenbestand">
+  {% for d in liste %}
+  <li id="{% if d.handbuch %}dok-{{ d.handbuch.id }}{% else %}datei-{{ d.id }}{% endif %}">
+    <div class="lb-kopf">
+      <a class="lb-name" href="/nachweis/{{ d.id }}">{{ d.titel }}</a>
+      <span class="marke soll">{{ d.endung | upper }}</span>
+      {% if d.status != "fertig" %}<span class="marke">{{ d.status }}</span>{% endif %}
+      {% if d.im_handbuch %}<span class="marke geschlossen">gilt im Handbuch</span>{% endif %}
+      <span class="meta lb-datum">
+        {% if d.datum %}
+          {% set jahr = d.datum[:4] | int %}
+          <span class="{{ 'rot' if jahr < 2020 else 'gelb' if jahr < 2023 else '' }}">{{ d.datum | datum }}</span>
+        {% else %}ohne Datum{% endif %}
+        · {{ (d.groesse / 1024) | round | int }} KB
+      </span>
+    </div>
+
+    <p class="hb-stand {{ d.pruefstand.stufe }}">
+      <span class="punkt" aria-hidden="true"></span>
+      <span class="{{ d.pruefstand.farbe }}">{{ d.pruefstand.text }}</span>
+      {%- if d.geprueft_von %} von {{ d.geprueft_von }}{% endif %}
+      {%- if d.eigene_frist and not d.geprueft_am %} · eigene Frist{% endif %}
+    </p>
+
+    {% if d.handbuch %}
+    <p class="hb-stand {{ d.handbuch.stand.stufe }}">
+      <span class="punkt" aria-hidden="true"></span>
+      Im Handbuch{% if d.handbuch.version %}, {{ d.handbuch.version }}{% endif %}{% if d.handbuch.bestaetigt_am %},
+      bestätigt am {{ d.handbuch.bestaetigt_am | datum }}{% if d.handbuch.bestaetigt_von %}
+      von {{ d.handbuch.bestaetigt_von }}{% endif %}{% endif %} ·
+      <span class="{{ d.handbuch.stand.farbe }}">{{ d.handbuch.stand.text }}</span>
+      {%- if d.handbuch.intervall %} · geprüft {{ intervall_namen[d.handbuch.intervall] }}{% endif %}
+    </p>
+    {% endif %}
+
+    {% if darf_verwalten(request) or (d.eigen and darf_schreiben(request)) %}
+    <div class="hb-aktionen">
+      {% if darf_verwalten(request) %}
+      <form method="post" action="/handbuch/{{ k.nummer }}/geprueft">
+        <input type="hidden" name="dokument" value="{{ d.id }}">
+        {% if d.geprueft_am %}
+        <input type="hidden" name="zurueck" value="1">
+        <button type="submit" class="knopf-leise">Prüfung zurücknehmen</button>
+        {% else %}
+        <button type="submit" class="knopf-klein">
+          {% if d.status == "fertig" %}Geprüft{% else %}Geprüft, nach «Fertig»{% endif %}</button>
+        {% endif %}
+      </form>
+
+      <details>
+        <summary>Frist</summary>
+        <form method="post" action="/handbuch/{{ k.nummer }}/prueffrist">
+          <input type="hidden" name="dokument" value="{{ d.id }}">
+          <label for="fr{{ d.id }}">Zu prüfen bis</label>
+          <input type="date" id="fr{{ d.id }}" name="frist"
+                 value="{{ d.eigene_frist or '' }}" min="{{ heute }}">
+          <p class="meta">
+            Leer heisst: es gilt die Frist des Dossiers{% if dossierfrist %},
+            der {{ dossierfrist | datum }}{% endif %}.
+          </p>
+          <button type="submit" class="knopf-klein">Frist speichern</button>
+        </form>
+      </details>
+
+      {% if not d.im_handbuch %}
+      {# Ein Knopf, keine Kopie: die Datei bleibt im Dossier, das Handbuch
+         führt sie. Version und Erinnerung kommen danach am Dokument. #}
+      <form method="post" action="/handbuch/{{ k.nummer }}/uebernehmen" class="uebernehmen">
+        <input type="hidden" name="dokument" value="{{ d.id }}">
+        <button type="submit" class="knopf-leise">Als geltend ins Handbuch</button>
+      </form>
+      {% else %}
+      {# Leise, nicht kräftig: in dieser Phase ist «Geprüft» der Schritt,
+         der zählt. Zwei kräftige Knöpfe nebeneinander sagen beide nichts. #}
+      <form method="post" action="/handbuch/dokument/{{ d.handbuch.id }}/bestaetigen">
+        <button type="submit" class="knopf-leise">Als aktuell bestätigen</button>
+      </form>
+
+      <details class="hb-erinnerung">
+        <summary>Erinnerung</summary>
+        <form method="post" action="/handbuch/dokument/{{ d.handbuch.id }}/erinnerung">
+          <div class="paar">
+            <div>
+              <label for="iv{{ d.handbuch.id }}">Prüfen</label>
+              <select id="iv{{ d.handbuch.id }}" name="intervall">
+                {% for wert, name in intervalle %}
+                <option value="{{ wert }}"{% if (d.handbuch.intervall or 0) == wert %} selected{% endif %}>{{ name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div>
+              <label for="np{{ d.handbuch.id }}">Nächste Prüfung am</label>
+              <input type="date" id="np{{ d.handbuch.id }}" name="naechste_pruefung"
+                     value="{{ d.handbuch.naechste_pruefung or '' }}" min="{{ heute }}">
+            </div>
+          </div>
+          <p class="meta">
+            Ein Datum gilt vor dem Intervall. Das Intervall zählt ab jeder
+            Bestätigung neu; wer «keine Erinnerung» wählt und das Datum
+            leert, wird nicht mehr erinnert.
+          </p>
+          <button type="submit" class="knopf-klein">Erinnerung speichern</button>
+        </form>
+      </details>
+
+      <details class="hb-loeschen">
+        <summary>Nicht mehr geltend</summary>
+        <form method="post" action="/handbuch/dokument/{{ d.handbuch.id }}/loeschen">
+          <p class="meta">
+            «{{ d.titel }}» gilt dann nicht mehr im Betrieb. Die Datei
+            bleibt im Dossier liegen.
+          </p>
+          <button type="submit" class="knopf-leise gefahr">Aus dem Handbuch nehmen</button>
+        </form>
+      </details>
+      {% endif %}
+      {% endif %}
+
+      {% if d.eigen and not d.im_handbuch %}
+      {# Nur was über das Werkzeug hierher kam, geht auch wieder weg. Was
+         aus dem SharePoint stammt, wird hier nicht gelöscht. #}
+      <details class="hb-loeschen">
+        <summary>Aus dem Dossier nehmen</summary>
+        <form method="post" action="/handbuch/{{ k.nummer }}/dossier-loeschen">
+          <input type="hidden" name="dokument" value="{{ d.id }}">
+          <p class="meta">
+            «{{ d.titel }}» wird samt Datei aus dem Dossier entfernt. Das
+            geht nur, weil sie hier hochgeladen wurde.
+          </p>
+          <button type="submit" class="knopf-leise gefahr">Endgültig löschen</button>
+        </form>
+      </details>
+      {% endif %}
+    </div>
+    {% endif %}
+  </li>
+  {% endfor %}
+</ul>
+{% endmacro %}
+
 {% set freigegeben = belege | selectattr("status", "equalto", "fertig") | list %}
 {% set uebrige = belege | rejectattr("status", "equalto", "fertig") | list %}
 
 {% if freigegeben %}
-<div class="tabellenrahmen" tabindex="0" role="region" aria-label="Freigegebene Nachweise">
-<table>
-  <caption>Freigegeben, zählt beim Prüfbesuch</caption>
-  <thead><tr><th scope="col">Titel</th><th scope="col">zuletzt geändert</th>
-             <th scope="col">geprüft</th>
-             <th scope="col">Typ</th>
-             <th scope="col" class="zahl">Grösse</th></tr></thead>
-  <tbody>
-  {% for d in freigegeben %}
-    <tr>
-      <td>{{ d.titel }}</td>
-      <td>
-        {% if d.datum %}
-          {% set jahr = d.datum[:4] | int %}
-          <span class="{{ 'rot' if jahr < 2020 else 'gelb' if jahr < 2023 else '' }}">{{ d.datum | datum }}</span>
-        {% else %}
-          <span class="leise" title="{{ d.datum_herkunft }}">unbekannt</span>
-        {% endif %}
-      </td>
-      {# Gesetzt wird das Prüfdatum im Handbuch, wo die Datei auch offen
-         vor einem liegt. Hier steht es, weil hier das Dossier steht. #}
-      <td class="{{ d.pruefstand.farbe }}">
-        {% if d.geprueft_am %}{{ d.geprueft_am | datum }}
-        {% else %}<span class="leise">–</span>{% endif %}
-      </td>
-      <td class="leise">{{ d.endung }}</td>
-      <td class="zahl leise">{{ (d.groesse / 1024)|round|int }} kB</td>
-    </tr>
-  {% endfor %}
-  </tbody>
-</table>
-</div>
+  {{ dateiliste(freigegeben, "Freigegeben, zählt beim Prüfbesuch", "fertig") }}
 {% elif belege %}
-<p class="gelb">Kein Nachweis liegt im Ordner «Fertig».</p>
-{% else %}
-<p class="leise">Noch kein Dokument verknüpft.</p>
+  <p class="gelb">Keine Datei liegt im Ordner «Fertig».</p>
 {% endif %}
 
 {% if uebrige %}
-<details>
-  <summary>{{ uebrige|length }} weitere Dateien: in Bearbeitung, alt oder ohne Statusordner</summary>
-  <div class="tabellenrahmen" tabindex="0" role="region" aria-label="Übrige Dateien">
-  <table>
-    <caption>Zählt beim Prüfbesuch nicht</caption>
-    <thead><tr><th scope="col">Titel</th><th scope="col">Ablage</th>
-               <th scope="col">zuletzt geändert</th>
-               <th scope="col">geprüft</th>
-               <th scope="col" class="zahl">Grösse</th></tr></thead>
-    <tbody>
-    {% for d in uebrige %}
-      <tr>
-        <td>{{ d.titel }}</td>
-        <td class="{{ 'gelb' if d.status == 'in Bearbeitung' else 'leise' }}">{{ d.status }}</td>
-        <td>
-          {% if d.datum %}
-            {% set jahr = d.datum[:4] | int %}
-            <span class="{{ 'rot' if jahr < 2020 else 'gelb' if jahr < 2023 else 'leise' }}">{{ d.datum | datum }}</span>
-          {% else %}
-            <span class="leise">unbekannt</span>
-          {% endif %}
-        </td>
-        <td class="{{ d.pruefstand.farbe }}">
-          {% if d.geprueft_am %}{{ d.geprueft_am | datum }}
-          {% else %}<span class="leise">–</span>{% endif %}
-        </td>
-        <td class="zahl leise">{{ (d.groesse / 1024)|round|int }} kB</td>
-      </tr>
-    {% endfor %}
-    </tbody>
-  </table>
-  </div>
+<details class="weitere">
+  <summary>{{ uebrige | length }} weitere: in Bearbeitung, alt oder ohne Statusordner</summary>
+  {{ dateiliste(uebrige, "Zählt beim Prüfbesuch nicht", "uebrige") }}
 </details>
+{% endif %}
+
+{% if not belege %}
+<p class="leise">
+  Noch keine Datei abgelegt. Hier gehört hin, was diesen Punkt belegt: die
+  Dienstanweisung, das Konzept, die Checkliste, der Bericht.
+</p>
+{% endif %}
+
+{% if nur_handbuch %}
+{# Dokumente aus der Zeit, als das Handbuch eine eigene Ablage hatte. Neue
+   Dateien gehen immer ins Dossier; diese bleiben, solange sie gelten. #}
+<h3>Nur im Handbuch abgelegt ({{ nur_handbuch | length }})</h3>
+<ul class="listenbestand">
+  {% for d in nur_handbuch %}
+  <li id="dok-{{ d.id }}">
+    <div class="lb-kopf">
+      <a class="lb-name" href="/handbuch/dokument/{{ d.id }}">{{ d.titel }}</a>
+      <span class="marke soll">{{ d.endung | upper }}</span>
+      {% if d.version %}<span class="marke">{{ d.version }}</span>{% endif %}
+      <span class="meta lb-datum">
+        abgelegt {{ d.hochgeladen_am | datum }}{% if d.hochgeladen_von %} von {{ d.hochgeladen_von }}{% endif %}
+        · {{ (d.groesse / 1024) | round | int }} KB
+      </span>
+    </div>
+    <p class="hb-stand {{ d.stand.stufe }}">
+      <span class="punkt" aria-hidden="true"></span>
+      {% if d.bestaetigt_am %}Bestätigt am {{ d.bestaetigt_am | datum }} · {% endif %}
+      <span class="{{ d.stand.farbe }}">{{ d.stand.text }}</span>
+    </p>
+    {% if darf_verwalten(request) %}
+    <div class="hb-aktionen">
+      <form method="post" action="/handbuch/dokument/{{ d.id }}/bestaetigen">
+        <button type="submit" class="knopf-klein">Als aktuell bestätigen</button>
+      </form>
+      <details class="hb-loeschen">
+        <summary>Löschen</summary>
+        <form method="post" action="/handbuch/dokument/{{ d.id }}/loeschen">
+          <p class="meta">«{{ d.titel }}» wird samt Datei gelöscht.</p>
+          <button type="submit" class="knopf-leise gefahr">Endgültig löschen</button>
+        </form>
+      </details>
+    </div>
+    {% endif %}
+  </li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+{% if darf_schreiben(request) %}
+{# Michael am 15.09.2026: «hochgeladene dokumente kommen in das dossier».
+   Es gibt nur eine Ablage, und das ist das Dossier. #}
+<h2 id="hochladen">Datei ablegen</h2>
+<form class="einwurf" method="post" enctype="multipart/form-data"
+      action="/handbuch/{{ k.nummer }}/hochladen">
+  <label for="datei">Datei auswählen</label>
+  <div class="paar">
+    <input type="file" id="datei" name="datei" required
+           accept=".pdf,.docx,.doc,.xlsx,.xlsm,.pptx,.odt,.ods,.txt,.md,.png,.jpg,.jpeg">
+  </div>
+  <div class="paar">
+    <div>
+      <label for="titel">Titel</label>
+      <input type="text" id="titel" name="titel" placeholder="sonst der Dateiname">
+    </div>
+  </div>
+  <p class="meta">
+    PDF, Word, Excel, PowerPoint, OpenDocument, Text oder Bild, höchstens
+    {{ grenze_mb }} MB. Die Datei kommt in den Ordner dieses Kriteriums,
+    Unterordner «In Bearbeitung»: abgelegt heisst nicht freigegeben. Das
+    Prüfdatum setzt danach die Verwaltung.
+  </p>
+  <button type="submit">Ins Dossier legen</button>
+</form>
 {% endif %}
 
 {% if nachweise %}
