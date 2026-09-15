@@ -1,0 +1,218 @@
+{% extends "grundgeruest.html" %}
+{% block inhalt %}
+
+<h1>Analysen</h1>
+<p class="leise">
+  Kapitel 8 der Richtlinie verlangt, dass Daten erhoben, bewertet und
+  analysiert werden und dass daraus Massnahmen folgen. Was hier steht, ist
+  gerechnet, nicht abgeschrieben.
+</p>
+
+{% if not daten %}
+<h2>Noch keine Daten</h2>
+<p>Die Auswertung der Einsatzliste liegt noch nicht vor.</p>
+{% else %}
+
+<h2>8.3 Analyse der Zeiterfassung</h2>
+
+{# Der eigene Dienst, wie er in den Daten der Leitstelle heisst. Steht in
+   den Einstellungen; ohne Eintrag gilt der erste Posten der Liste. #}
+{% set g = (daten.nach_dienst | selectattr("dienst", "equalto", eigener_dienst)
+            | list | first) or daten.nach_dienst | first %}
+<p class="kennzahl">
+  <span class="gross gruen">{{ g.u15 }} %</span>
+  <span class="leise">
+    der P1-Einsätze erreichen den Ereignisort unter 15 Minuten.
+    Richtwert {{ daten.richtwert_u15 }} Prozent.
+  </span>
+</p>
+<p class="meta">
+  {{ daten.grundgesamtheit }}. n = {{ g.n }}. Median {{ g.median }} Minuten,
+  unter 10 Minuten {{ g.u10 }} Prozent.
+</p>
+
+<h3>Verlauf über zwölf Monate</h3>
+<div class="diagrammrahmen" tabindex="0">{{ zeichnungen.verlauf | safe }}</div>
+<ul class="legende">
+  <li><span class="strich s1"></span> unter 15 Minuten</li>
+  <li><span class="strich s2"></span> unter 10 Minuten</li>
+</ul>
+
+<details>
+  <summary>Zahlen als Tabelle</summary>
+  <div class="tabellenrahmen" tabindex="0" role="region" aria-label="Hilfsfrist je Monat">
+  <table class="umbrechend">
+    <caption>Hilfsfrist P1 je Monat</caption>
+    <thead>
+      <tr><th scope="col">Monat</th><th scope="col" class="zahl">Einsätze</th>
+          <th scope="col" class="zahl">unter 15 min</th>
+          <th scope="col" class="zahl">unter 10 min</th>
+          <th scope="col" class="zahl">ohne Zeitstempel</th></tr>
+    </thead>
+    <tbody>
+    {% for m in daten.monate %}
+      <tr>
+        <td class="kopf">{{ m.monat }}</td>
+        <td class="zahl" data-spalte="Einsätze">{{ m.n }}</td>
+        <td class="zahl" data-spalte="unter 15 min">{{ m.anteil_u15 }} %</td>
+        <td class="zahl" data-spalte="unter 10 min">{{ m.anteil_u10 }} %</td>
+        <td class="zahl leise" data-spalte="ohne Zeitstempel">{{ m.ohne_zeitstempel }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</details>
+
+<h3>Nach ausrückendem Dienst</h3>
+<div class="diagrammrahmen" tabindex="0">{{ zeichnungen.dienste | safe }}</div>
+<p class="meta">
+  Die entscheidende Unterscheidung: «zuständig» und «gefahren» sind nicht
+  dasselbe. Zuständig ist der eigene Dienst auch dann, wenn ein fremder
+  ausrückt, weil das eigene Fahrzeug gebunden ist. Wer darauf rechnet,
+  mischt fremde Einsätze mit schlechteren Zeiten hinein und misst nicht
+  mehr die eigene Leistung.
+</p>
+
+<h2>8.4 Indikatordiagnosen, First Hour Quintett</h2>
+
+{% if ind %}
+<p class="leise">
+  Die Erneuerung verlangt mindestens <strong>zwei</strong> Indikatordiagnosen,
+  einzeln erhoben, bewertet und analysiert. Die Erstanerkennung verlangte eine.
+</p>
+
+<div class="diagrammrahmen" tabindex="0">{{ zeichnungen.diagnosen | safe }}</div>
+<p class="meta">
+  {{ ind.grundgesamtheit }}. Die Fallzahl steht rechts: Bei kleinen Fallzahlen
+  entscheidet ein einzelner Einsatz über mehrere Prozentpunkte.
+</p>
+
+<details>
+  <summary>Zahlen als Tabelle</summary>
+  <div class="tabellenrahmen" tabindex="0" role="region" aria-label="Hilfsfrist je Indikatordiagnose">
+  <table class="umbrechend">
+    <caption>Hilfsfrist je Indikatordiagnose</caption>
+    <thead>
+      <tr><th scope="col">Diagnose</th><th scope="col" class="zahl">n</th>
+          <th scope="col" class="zahl">unter 15 min</th>
+          <th scope="col" class="zahl">unter 10 min</th>
+          <th scope="col" class="zahl">Median</th></tr>
+    </thead>
+    <tbody>
+    {% for name, e in ind.diagnosen.items() %}
+      {% if e %}
+      <tr>
+        <td class="kopf">{{ name }}</td>
+        <td class="zahl" data-spalte="n">{{ e.n }}</td>
+        <td class="zahl {{ 'gelb' if e.u15 < ind.richtwert_u15 else '' }}"
+            data-spalte="unter 15 min">{{ e.u15 }} %</td>
+        <td class="zahl" data-spalte="unter 10 min">{{ e.u10 }} %</td>
+        <td class="zahl" data-spalte="Median">{{ e.median }}</td>
+      </tr>
+      {% endif %}
+    {% endfor %}
+      <tr>
+        <td class="kopf">First Hour Quintett gesamt</td>
+        <td class="zahl" data-spalte="n">{{ ind.fhq_gesamt.n }}</td>
+        <td class="zahl" data-spalte="unter 15 min">{{ ind.fhq_gesamt.u15 }} %</td>
+        <td class="zahl" data-spalte="unter 10 min">{{ ind.fhq_gesamt.u10 }} %</td>
+        <td class="zahl" data-spalte="Median">{{ ind.fhq_gesamt.median }}</td>
+      </tr>
+      <tr>
+        <td class="kopf">übrige Diagnosen</td>
+        <td class="zahl" data-spalte="n">{{ ind.andere.n }}</td>
+        <td class="zahl" data-spalte="unter 15 min">{{ ind.andere.u15 }} %</td>
+        <td class="zahl" data-spalte="unter 10 min">{{ ind.andere.u10 }} %</td>
+        <td class="zahl" data-spalte="Median">{{ ind.andere.median }}</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+</details>
+
+{% else %}
+<p class="leise">Keine Diagnosedaten eingelesen.</p>
+{% endif %}
+
+<h2 id="reanimation">8.5 Auswertung der Reanimationsdaten</h2>
+{% if meldung %}
+<p class="hinweis {{ art }}" role="status">{{ meldung }}</p>
+{% endif %}
+<p class="leise">
+  {{ swissreca.lang }}. {{ swissreca.hinweis }}
+</p>
+{% if darf_schreiben(request) %}
+<form class="einwurf" method="post" enctype="multipart/form-data"
+      action="/listen/swissreca">
+  <input type="hidden" name="zurueck" value="/analysen">
+  <label for="reca">SWISSRECA-Export hochladen</label>
+  <div class="paar">
+    <input type="file" id="reca" name="datei" required
+           accept=".xlsx,.xlsm,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+    <button type="submit">Einlesen</button>
+  </div>
+  <p class="meta">
+    Excel oder CSV. Die Datei wird abgelegt und gelesen; ausgewertet wird
+    daraus noch nichts. Alle abgelegten Listen stehen unter
+    <a href="/listen">Listen</a>.
+  </p>
+</form>
+{% endif %}
+{% if swissreca_dateien %}
+<ul class="listenbestand">
+  {% for d in swissreca_dateien %}
+  <li>
+    <div class="lb-kopf">
+      <span class="lb-name">{{ d.angezeigt }}</span>
+      <span class="marke soll">{{ d.art }}</span>
+      <span class="meta lb-datum">
+        {{ d.hochgeladen.strftime("%d.%m.%Y") }} ·
+        {{ (d.bytes / 1024) | round | int }} KB
+      </span>
+    </div>
+    {% if d.fehler %}
+      <p class="meta rot">Nicht lesbar: {{ d.fehler }}.</p>
+    {% else %}
+      {% for bl in d.blaetter %}
+      <p class="meta">
+        {% if bl.name %}Blatt «{{ bl.name }}» · {% endif %}{{ bl.zeilen }} Zeilen,
+        {{ bl.spalten }} Spalten
+      </p>
+      {% endfor %}
+    {% endif %}
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="meta">Noch keine Liste hochgeladen.</p>
+{% endif %}
+
+<h2>Die Monitoringbereiche nach 8.1</h2>
+<p>
+  Die fünf Bereiche nach 8.1 haben eigene Seiten, weil dort neben den Daten
+  auch der Kreislauf und die Erfassung stehen:
+</p>
+<ul class="knapp">
+  {% for nr, e in navbereiche.items() %}
+    <li><a href="/bereich/{{ nr }}">{{ nr }} {{ e.kurz }}</a></li>
+  {% endfor %}
+</ul>
+
+<h2>Was daraus ein Qualitätskreislauf wird</h2>
+<p>
+  Diese Zahl ist ein Beleg, aber noch kein Kreislauf. Zum Kreislauf wird sie
+  erst, wenn eine Massnahme daran hängt und danach erneut gemessen wurde.
+  Solange die Hilfsfrist den Richtwert übertrifft, gibt es dafür keinen
+  Anlass, und das ist eine gültige Aussage: gemessen, bewertet, kein
+  Handlungsbedarf.
+</p>
+<p>
+  Verwertbar ist sie damit unter <a href="/kriterium/8.2">8.2 Periodische
+  Überprüfung</a>, nicht unter 8.1. Die Kreisläufe nach 8.1 brauchen einen
+  Bereich, in dem etwas zu verbessern ist.
+</p>
+
+{% endif %}
+
+{% endblock %}

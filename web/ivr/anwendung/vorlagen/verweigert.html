@@ -1,0 +1,16 @@
+{% extends "grundgeruest.html" %}
+{% block inhalt %}
+
+<h1>Dafür fehlt das Recht</h1>
+<p>
+  Dieses Konto hat die Stufe <strong>{{ meine_stufe }}</strong>. Für diese
+  Handlung braucht es <strong>{{ noetige_stufe }}</strong>. Es wurde nichts
+  verändert.
+</p>
+<p class="meta">
+  Wer die Benutzer verwaltet, kann die Stufe unter
+  <a href="/einstellungen#benutzer">Einstellungen</a> ändern.
+</p>
+<p><a href="{{ zurueck }}">Zurück</a></p>
+
+{% endblock %}

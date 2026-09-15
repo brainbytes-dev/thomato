@@ -1,0 +1,258 @@
+{% extends "grundgeruest.html" %}
+{% from "_mangel.html" import mangel_block with context %}
+
+{% macro flusszeile(s, nummer=None, klasse="") %}
+<li class="schritt{% if klasse %} {{ klasse }}{% endif %}">
+  <span class="fl-marke{% if nummer is none and klasse != 'zusammen' %} punkt{% endif %}"
+        aria-hidden="true">
+    {%- if klasse == "zusammen" -%}
+    <svg viewBox="0 0 16 16"><use href="#sym-zusammen"/></svg>
+    {%- elif nummer -%}{{ nummer }}{%- endif -%}
+  </span>
+  <span class="s-name">{{ s.name }}</span>
+  <span class="s-marken">
+    {% for k in s.kriterien %}
+    <a class="nummer" href="/kriterium/{{ k.nummer }}"
+       title="{{ k.nummer }} {{ k.titel }}">{{ k.nummer }}</a>
+    {% endfor %}
+    {% if s.ziel %}
+    <a class="nummer s-ziel" href="{{ s.ziel }}">{{ s.ziel_name }}</a>
+    {% endif %}
+  </span>
+  <span class="s-stand {{ s.stand_farbe }}">{{ s.stand_text }}</span>
+  {% if s.quelle %}<span class="s-quelle">{{ s.quelle }}</span>{% endif %}
+  {% if s.maengel %}
+  {# Was 2024 beanstandet wurde, steht hier und nicht nur als Farbe. #}
+  <details class="mangel-klapp">
+    {# sum() addiert Zahlen; Listen zusammenzuziehen braucht start=[]. #}
+    {% set auflagen_offen = s.maengel | map(attribute="auflagen_offen") | sum(start=[]) %}
+    {% set bemaengelt = s.maengel | selectattr("bemaengelt") | list %}
+    <summary>
+      {%- if auflagen_offen %}{{ auflagen_offen | length }} {% if auflagen_offen | length == 1 %}offene Auflage{% else %}offene Auflagen{% endif %}
+      {%- if bemaengelt %}, {{ bemaengelt | length }} {% if bemaengelt | length == 1 %}Beanstandung{% else %}Beanstandungen{% endif %} 2024{% endif %}
+      {%- else %}{{ bemaengelt | length }} {% if bemaengelt | length == 1 %}Beanstandung{% else %}Beanstandungen{% endif %} 2024
+      {%- set offene = bemaengelt | rejectattr("behoben_am") | list %}{% if not offene %} · behoben{% endif %}{% endif -%}
+    </summary>
+    {% for m in s.maengel %}
+      {{ mangel_block(m, "/landkarte", mit_titel=true) }}
+    {% endfor %}
+  </details>
+  {% endif %}
+</li>
+{% endmacro %}
+{% block inhalt %}
+
+<h1>
+  {% if zahl.gedeckt == zahl.kriterien %}
+    Alle {{ zahl.kriterien }} Kriterien liegen auf {{ zahl.schritte }} Prozessen
+  {% else %}
+    {{ zahl.gedeckt }} von {{ zahl.kriterien }} Kriterien liegen auf
+    {{ zahl.schritte }} Prozessen
+  {% endif %}
+</h1>
+<p class="leise">
+  {{ zahl.baender }} Bänder, {{ zahl.prozesse }} übergeordnete Prozesse,
+  {{ zahl.schritte }} Teilprozesse. Jeder Teilprozess trägt die Kriterien, aus
+  denen er stammt, und erbt von ihnen seinen Stand; wo kein Kriterium
+  dahintersteht, nennt er die Quelle. Gezählt werden Teilprozesse und nicht
+  Kriterien — ein Kriterium wirkt oft an mehreren Stellen im Betrieb.
+</p>
+
+<div class="diagrammrahmen lagekarte" tabindex="0" role="region"
+     aria-label="Lage der {{ zahl.schritte }} Teilprozesse">{{ lagebalken | safe }}</div>
+<ul class="legende">
+  {% for g in legende %}
+  <li><span class="{{ g.klasse }}"></span>
+    <span class="legendentext">{{ g.text }}
+      <span class="legendenzahl">{{ g.zahl }}</span></span></li>
+  {% endfor %}
+</ul>
+
+<button type="button" class="klappknopf" id="alle" aria-pressed="false">
+  <svg viewBox="0 0 16 16" aria-hidden="true"><use href="#sym-winkel"/></svg>
+  <span id="alle-wort">Alle Prozesse ausklappen</span>
+</button>
+
+{% for band in baender %}
+<h2>{{ band.name }}</h2>
+<p class="leise">{{ band.rolle }}</p>
+<p class="meta">
+  {{ band.prozesse|length }} übergeordnete Prozesse, {{ band.zahl }} Teilprozesse{% if band.hinweis %},
+  davon <span class="{{ band.hinweis.farbe }}">{{ band.hinweis.zahl }}
+  {{ band.hinweis.text }}</span>{% endif %}.
+</p>
+
+{% if band.schluessel == "kern" %}
+<h3>Die Kette der zehn Zeitpunkte</h3>
+<p class="meta">
+  Die Reihenfolge des Kernprozesses ist nicht gewählt, sie steht in Kriterium
+  7.4. Der Export der soH liefert {{ zahl.zeitpunkte_da }} der
+  {{ zahl.zeitpunkte }} Zeitpunkte; damit sind {{ zahl.intervalle_da }} der
+  {{ zahl.intervalle }} Intervalle berechenbar. Die Richtlinie nummeriert erst
+  ab dem Alarm, die beiden Zeitpunkte davor tragen deshalb einen Punkt statt
+  einer Nummer. Die Abstände sind Ablaufschritte und keine Dauern; eine
+  gefüllte Verbindung heisst, dass beide Zeitpunkte vorliegen und die Spanne
+  dazwischen messbar ist. Geprüft am Einsatzexport der Leitstelle; kommt
+  eine andere Liste, ist das hier nachzuführen.
+</p>
+<div class="diagrammrahmen breit" tabindex="0" role="region"
+     aria-label="Einsatzkette nach Kriterium 7.4">{{ kette | safe }}</div>
+<ul class="legende">
+  <li><span class="strich s1"></span> im Export vorhanden</li>
+  <li><span class="strich offen"></span> fehlt im Export</li>
+</ul>
+<details>
+  <summary>Zeitpunkte und Intervalle als Tabelle</summary>
+  <div class="tabellenrahmen" tabindex="0" role="region"
+       aria-label="Zeitpunkte nach Kriterium 7.4">
+  <table class="umbrechend">
+    <caption>Die zehn Zeitpunkte nach Kriterium 7.4</caption>
+    <colgroup><col class="c-nr"><col class="c-titel"><col class="c-nachweise"></colgroup>
+    <thead>
+      <tr><th scope="col">Nr.</th><th scope="col">Zeitpunkt</th>
+          <th scope="col">Im Export</th></tr>
+    </thead>
+    <tbody>
+    {% for z in zeitpunkte %}
+      <tr>
+        <td class="kopf">{{ z.nr or "ohne" }}</td>
+        <td class="kopf">{{ z.voll }}</td>
+        <td data-spalte="Im Export">
+          {% if z.spalte %}<span class="leise">Spalte {{ z.spalte }}</span>
+          {% else %}<span class="gelb">fehlt</span>{% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <div class="tabellenrahmen" tabindex="0" role="region"
+       aria-label="Intervalle nach Kriterium 7.4">
+  <table class="umbrechend">
+    <caption>Die sechs Intervalle, die die Richtlinie daraus rechnet</caption>
+    <colgroup><col class="c-nachweise"><col class="c-titel"><col class="c-titel">
+      <col class="c-kreislauf"></colgroup>
+    <thead>
+      <tr><th scope="col">Intervall</th><th scope="col">von</th>
+          <th scope="col">bis</th><th scope="col">berechenbar</th></tr>
+    </thead>
+    <tbody>
+    {% for i in intervalle %}
+      <tr>
+        <td class="kopf">{{ i.name }}</td>
+        <td data-spalte="von">{{ i.von_name }}</td>
+        <td data-spalte="bis">{{ i.bis_name }}</td>
+        <td data-spalte="berechenbar">
+          {% if i.berechenbar %}<span class="leise">ja</span>
+          {% else %}<span class="gelb">nein</span>{% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</details>
+{% endif %}
+
+<ol class="landkarte">
+  {% for p in band.prozesse %}
+  <li>
+    <details class="prozess">
+      <summary>
+        <span class="pr-name">{{ p.name }}</span>
+        <span class="pr-meta">
+          <span>{{ p.zahl }} Teilprozesse</span>
+          {% if p.hinweis %}
+          <span class="{{ p.hinweis.farbe }}">{{ p.hinweis.zahl }} {{ p.hinweis.text }}</span>
+          {% endif %}
+        </span>
+      </summary>
+      <p class="pr-zweck">{{ p.zweck }}</p>
+      {% if p.ablauf == "buendel" %}
+      <p class="fl-art">Nebeneinander, ohne feste Reihenfolge</p>
+      {% elif p.ablauf == "kreis" %}
+      <p class="fl-art">Ein Kreislauf: der letzte Schritt führt zum ersten zurück</p>
+      {% endif %}
+
+      {# Der Ablauf als Fluss. Nummern, Spindel und Pfeile gibt es nur,
+         wo die Reihenfolge wirklich gilt. Ein Bündel bekommt keine
+         Verbindung: eine Linie durch lauter gleichzeitige Aufgaben wäre
+         eine Behauptung über den Betrieb. Und es ist eine ul, damit auch
+         die Sprachausgabe nicht «1 von 5» zählt. #}
+      {% set gefuehrt = p.ablauf in ("kette", "kreis") %}
+      {% set schritte = p.fluss | rejectattr("zusammen") | list %}
+      {% set ziele = p.fluss | selectattr("zusammen") | list %}
+      {% if gefuehrt %}
+      <ol class="schritte fluss {{ p.ablauf }}">
+        {% for s in schritte %}{{ flusszeile(s, loop.index) }}{% endfor %}
+      </ol>
+      {% if p.ablauf == "kreis" %}
+      <p class="fl-zurueck">
+        <span class="fl-marke rueck" aria-hidden="true">
+          <svg viewBox="0 0 16 16"><use href="#sym-zurueck"/></svg>
+        </span>
+        und wieder von vorn
+      </p>
+      {% endif %}
+      {% else %}
+      <ul class="schritte fluss {{ p.ablauf }}">
+        {% for s in schritte %}{{ flusszeile(s) }}{% endfor %}
+      </ul>
+      {% endif %}
+
+      {% if ziele %}
+      <p class="fl-zielkopf">Daraus muss belegt sein</p>
+      <ul class="schritte fluss ziele">
+        {% for s in ziele %}{{ flusszeile(s, klasse="zusammen") }}{% endfor %}
+      </ul>
+      {% endif %}
+
+      {% if p.dauernd %}
+      <p class="fl-dauerkopf">Gilt durchgehend, ohne feste Stelle im Ablauf</p>
+      <ul class="schritte dauerliste">
+        {% for s in p.dauernd %}{{ flusszeile(s, klasse="dauer") }}{% endfor %}
+      </ul>
+      {% endif %}
+    </details>
+  </li>
+  {% endfor %}
+</ol>
+{% endfor %}
+
+<h2>Woher die Landkarte kommt</h2>
+<p class="quelle">Die {{ zahl.prozesse }} übergeordneten Prozesse stehen in den drei Bändern, in die der Betrieb seine Prozesse teilt: Führungsprozesse steuern, Kernprozesse leisten, Unterstützungsprozesse halten den Betrieb am Laufen. Messen und Verbessern ist kein viertes Band — Kapitel 8 der Richtlinie ist die Art, wie geführt wird, und steht deshalb in der Führung.
+
+Die {{ zahl.schritte }} Teilprozesse stammen aus den {{ zahl.kriterien }} Kriterien der IVR-Richtlinie, aus den zwanzig Betriebsabläufen nach Kriterium 7.3, aus den Ordnern des Dossiers 2024 und aus den Spalten der Einsatzliste 2025. Die Reihenfolge im Kernprozess ist die Kette der zehn Zeitpunkte nach Kriterium 7.4.
+
+Der Stand kommt nicht aus dieser Seite, sondern aus denselben Zahlen wie das Dossier: aus dem Expertenbericht vom 03.04.2024 und aus den Statusordnern der abgelegten Nachweise. Ein Alterskriterium ist daraus nicht ableitbar.</p>
+
+{% endblock %}
+
+{% block skripte %}
+<script>
+  /* Ein Schalter für alle Prozesse. Er sagt, was er tut, und nicht, wo er
+     gerade steht: Sind alle offen, heisst er einklappen. */
+  (function () {
+    var knopf = document.getElementById("alle");
+    var wort = document.getElementById("alle-wort");
+    if (!knopf || !wort) return;
+    var alle = Array.prototype.slice.call(
+      document.querySelectorAll("details.prozess"));
+
+    function anschreiben() {
+      var offen = alle.every(function (d) { return d.open; });
+      knopf.setAttribute("aria-pressed", offen ? "true" : "false");
+      wort.textContent = offen ? "Alle Prozesse einklappen"
+                               : "Alle Prozesse ausklappen";
+    }
+
+    knopf.addEventListener("click", function () {
+      var aufklappen = knopf.getAttribute("aria-pressed") !== "true";
+      alle.forEach(function (d) { d.open = aufklappen; });
+      anschreiben();
+    });
+    alle.forEach(function (d) { d.addEventListener("toggle", anschreiben); });
+    anschreiben();
+  })();
+</script>
+{% endblock %}

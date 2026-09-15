@@ -1,0 +1,304 @@
+{% extends "grundgeruest.html" %}
+{% from "_mangel.html" import mangel_block with context %}
+{% block inhalt %}
+
+<p class="meta"><a href="/">Dossier</a> / Kriterium {{ k.nummer }}</p>
+<h1>{{ k.nummer }} {{ k.titel }}</h1>
+
+<p class="meta">
+  {{ k.kapitel }}, Seite {{ k.seite }} ·
+  Erneuerung
+  {% if k.erneuerung_muss %}<strong class="rot">Muss</strong>
+  {% elif k.erneuerung_soll %}Soll{% else %}nicht bewertet{% endif %} ·
+  Erstanerkennung
+  {% if k.anerkennung_muss %}Muss{% elif k.anerkennung_soll %}Soll
+  {% else %}nicht bewertet{% endif %}
+  {% if k.min_erneuerung %}
+    · mindestens {{ k.min_erneuerung }} zu belegen
+    {%- if k.min_anerkennung and k.min_anerkennung != k.min_erneuerung %},
+      bei der Erstanerkennung {{ k.min_anerkennung }}{% endif %}
+  {% endif %}
+  {% if k.status_2024 %}
+    · Expertenbericht 03.04.2024
+    <strong class="{{ 'gruen' if k.status_2024 == 'erfüllt' else 'rot' }}">{{ k.status_2024 }}</strong>
+  {% endif %}
+</p>
+
+{% if im_handbuch.anzahl %}
+<p class="meta">
+  Im Handbuch: {{ im_handbuch.anzahl }} {% if im_handbuch.anzahl == 1 %}Dokument{% else %}Dokumente{% endif %},
+  <span class="{{ im_handbuch.stand.farbe }}">{{ im_handbuch.stand.text }}</span> ·
+  <a href="/handbuch/{{ k.nummer }}">zum Betriebsablauf</a>
+</p>
+{% elif k.nummer.startswith("7.3.") %}
+<p class="meta">
+  Im Handbuch liegt zu diesem Betriebsablauf noch kein Dokument.
+  <a href="/handbuch/{{ k.nummer }}">Ablegen</a>
+</p>
+{% endif %}
+
+{% if mangel and (mangel.bemaengelt or mangel.empfehlung or mangel.kommentare or mangel.auflagen or darf_schreiben(request)) %}
+<h2>{% if mangel.auflagen_offen %}Auflagen{% elif mangel.bemaengelt %}Mangel und was daraus wurde{% else %}Auflagen und Anmerkungen{% endif %}</h2>
+{{ mangel_block(mangel, "/kriterium/" ~ k.nummer) }}
+{% endif %}
+
+{% if k.beschreibung %}
+<h2>Anforderung</h2>
+<p>{{ k.beschreibung }}</p>
+{% endif %}
+
+{% if ist_monitoring %}
+<h2>Der Kreislauf</h2>
+{% if kreislauf_bild %}
+  {{ kreislauf_bild | safe }}
+{% endif %}
+
+{% if fuehrung %}
+<div class="fuehrung">
+  <h3>So wird daraus ein Kreislauf</h3>
+  <dl class="schrittliste">
+    <dt>Auslöser</dt>
+    <dd>{{ fuehrung["auslöser"] }}</dd>
+    <dt>{{ zyklus.dt_zahl }}</dt>
+    <dd>{{ fuehrung.zahl }}</dd>
+    {% if fuehrung.ursache %}
+      <dt>{% if dmaic %}Analyze: {% endif %}Ursache statt Schuld</dt>
+      <dd>{{ fuehrung.ursache }}</dd>
+    {% endif %}
+    <dt>Zielvorgabe</dt>
+    <dd>{{ fuehrung.ziel }}</dd>
+    {% if fuehrung.rueckfluss %}
+      <dt>Rückfluss ins Team</dt>
+      <dd>{{ fuehrung.rueckfluss }}</dd>
+    {% endif %}
+    <dt>{{ zyklus.dt_check }}</dt>
+    <dd>
+      Dieselbe Messung erneut, mit derselben Zählweise. Besser geworden heisst
+      Massnahme behalten und dokumentieren. Nicht besser heisst, die
+      Ursachenannahme war falsch; die zweite Runde ist ebenfalls ein gültiger
+      Nachweis.
+    </dd>
+  </dl>
+  <p class="meta">
+    Grundlage ist das IVR-Handbuch zu 8.1: eine genügend hohe Fallzahl muss
+    vorhanden sein, und die Ergebnisse müssen mit der Zielvorgabe verglichen
+    werden. Ein Einzelfall erfüllt beides nicht.
+  </p>
+</div>
+{% endif %}
+{% endif %}
+
+<h2>Massnahmen und Kreislauf</h2>
+{% for m in massnahmen %}
+<fieldset>
+  <legend>{% if m.nachgemessen_am %}geschlossen{% else %}offen{% endif %}{% if m.frist %}, Frist {{ m.frist | datum }}{% endif %}</legend>
+  {% if m.definition %}<p><strong>Define:</strong> {{ m.definition }}</p>{% endif %}
+  <p>{% if dmaic %}<strong>Improve:</strong> {% endif %}{{ m.beschreibung }}</p>
+  {% if m.analyse %}<p><strong>Analyze, die Ursache:</strong> {{ m.analyse }}</p>{% endif %}
+  <p class="meta">
+    {% if m.ausloeser %}Auslöser: {{ m.ausloeser }}. {% endif %}
+    {% if m.verantwortlich %}Zuständig: {{ m.verantwortlich }}. {% endif %}
+    {% if m.gemessen_am %}Erste Messung {{ m.gemessen_am | datum }}: {{ m.messwert }}.{% endif %}
+  </p>
+  {% if m.nachgemessen_am %}
+    <p class="gruen">Nachgemessen am {{ m.nachgemessen_am | datum }}: {{ m.nachmessung_ergebnis }}</p>
+  {% elif not m.gemessen_am %}
+    <p class="meta">
+      Zum Schliessen fehlt die erste Messung. Ohne Ausgangswert lässt sich
+      keine Wirksamkeit belegen, und genau das prüft das IVR.
+    </p>
+  {% else %}
+    <form method="post" action="/massnahme/{{ m.id }}/nachmessung">
+      <div class="paar">
+        <div>
+          <label for="nm{{ m.id }}">Nachgemessen am</label>
+          <input type="date" id="nm{{ m.id }}" name="nachgemessen_am"
+                 min="{{ m.gemessen_am }}" required>
+        </div>
+        <div>
+          <label for="ne{{ m.id }}">Ergebnis der Nachmessung</label>
+          <input type="text" id="ne{{ m.id }}" name="nachmessung_ergebnis" required
+                 placeholder="z.B. 4,1 statt 3,52 bei 19 Antworten">
+        </div>
+      </div>
+      <p class="meta">
+        Schliesst den Kreislauf gegen den Ausgangswert vom {{ m.gemessen_am | datum }}.
+      </p>
+      <button type="submit">Kreislauf schliessen</button>
+    </form>
+  {% endif %}
+</fieldset>
+{% else %}
+<p class="leise">Noch keine Massnahme erfasst.</p>
+{% endfor %}
+
+<details>
+  <summary>Massnahme erfassen</summary>
+  {% macro feld_define() %}
+      <label for="definition">Define: Problem und Ziel</label>
+      <textarea id="definition" name="definition"
+                placeholder="Was ist das Problem, und was soll am Ende anders sein?"></textarea>
+  {% endmacro %}
+  {% macro feld_messung() %}
+      <div class="paar">
+        <div>
+          <label for="gemessen_am">{% if dmaic %}Measure: erste{% else %}Erste{% endif %} Messung am</label>
+          <input type="date" id="gemessen_am" name="gemessen_am">
+        </div>
+        <div>
+          <label for="messwert">Messwert</label>
+          <input type="text" id="messwert" name="messwert"
+                 placeholder="z.B. 3,52 bei 21 Antworten">
+        </div>
+      </div>
+  {% endmacro %}
+  {% macro feld_analyse() %}
+      <label for="analyse">Analyze: die Ursache</label>
+      <textarea id="analyse" name="analyse"
+                placeholder="Woran liegt es? Ursache, nicht Schuld."></textarea>
+  {% endmacro %}
+  {% macro feld_massnahme() %}
+      <label for="beschreibung">{% if dmaic %}Improve: was{% else %}Was{% endif %} wird getan</label>
+      <textarea id="beschreibung" name="beschreibung" required></textarea>
+      <div class="paar">
+        <div>
+          <label for="ausloeser">Auslöser</label>
+          <select id="ausloeser" name="ausloeser">
+            <option value="Analyse">Analyse</option>
+            <option value="Ereignis">Ereignis</option>
+            <option value="Beschwerde">Beschwerde</option>
+            <option value="Umfrage">Umfrage</option>
+            <option value="Prüfung">Prüfung</option>
+          </select>
+        </div>
+        <div>
+          <label for="verantwortlich">Zuständig</label>
+          <input type="text" id="verantwortlich" name="verantwortlich">
+        </div>
+        <div>
+          <label for="frist">Frist</label>
+          <input type="date" id="frist" name="frist">
+        </div>
+      </div>
+  {% endmacro %}
+  <form method="post" action="/kriterium/{{ k.nummer }}/massnahme">
+    <fieldset>
+      <legend>{{ zyklus.legende }}</legend>
+      {% if dmaic %}
+        {{ feld_define() }}{{ feld_messung() }}{{ feld_analyse() }}{{ feld_massnahme() }}
+        <p class="meta">Control, die Nachmessung, kommt später am offenen Kreislauf.</p>
+      {% else %}
+        {{ feld_massnahme() }}{{ feld_messung() }}
+      {% endif %}
+      <button type="submit">Massnahme anlegen</button>
+    </fieldset>
+  </form>
+</details>
+
+<h2>Nachweise im Dossier ({{ belege|length }})</h2>
+<p class="meta">
+  Das Datum stammt aus dem Dokument selbst, nicht aus dem Dateisystem: beim
+  Kopieren aus SharePoint wurde dort jeder Zeitstempel überschrieben. Rot
+  heisst älter als 2020, gelb älter als 2023. «Geprüft» sagt, wann die Datei
+  zuletzt jemand durchgesehen hat; gesetzt wird das
+  <a href="/handbuch/{{ k.nummer }}#dossier">im Handbuch</a>.
+</p>
+{% set freigegeben = belege | selectattr("status", "equalto", "fertig") | list %}
+{% set uebrige = belege | rejectattr("status", "equalto", "fertig") | list %}
+
+{% if freigegeben %}
+<div class="tabellenrahmen" tabindex="0" role="region" aria-label="Freigegebene Nachweise">
+<table>
+  <caption>Freigegeben, zählt beim Prüfbesuch</caption>
+  <thead><tr><th scope="col">Titel</th><th scope="col">zuletzt geändert</th>
+             <th scope="col">geprüft</th>
+             <th scope="col">Typ</th>
+             <th scope="col" class="zahl">Grösse</th></tr></thead>
+  <tbody>
+  {% for d in freigegeben %}
+    <tr>
+      <td>{{ d.titel }}</td>
+      <td>
+        {% if d.datum %}
+          {% set jahr = d.datum[:4] | int %}
+          <span class="{{ 'rot' if jahr < 2020 else 'gelb' if jahr < 2023 else '' }}">{{ d.datum | datum }}</span>
+        {% else %}
+          <span class="leise" title="{{ d.datum_herkunft }}">unbekannt</span>
+        {% endif %}
+      </td>
+      {# Gesetzt wird das Prüfdatum im Handbuch, wo die Datei auch offen
+         vor einem liegt. Hier steht es, weil hier das Dossier steht. #}
+      <td class="{{ d.pruefstand.farbe }}">
+        {% if d.geprueft_am %}{{ d.geprueft_am | datum }}
+        {% else %}<span class="leise">–</span>{% endif %}
+      </td>
+      <td class="leise">{{ d.endung }}</td>
+      <td class="zahl leise">{{ (d.groesse / 1024)|round|int }} kB</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% elif belege %}
+<p class="gelb">Kein Nachweis liegt im Ordner «Fertig».</p>
+{% else %}
+<p class="leise">Noch kein Dokument verknüpft.</p>
+{% endif %}
+
+{% if uebrige %}
+<details>
+  <summary>{{ uebrige|length }} weitere Dateien: in Bearbeitung, alt oder ohne Statusordner</summary>
+  <div class="tabellenrahmen" tabindex="0" role="region" aria-label="Übrige Dateien">
+  <table>
+    <caption>Zählt beim Prüfbesuch nicht</caption>
+    <thead><tr><th scope="col">Titel</th><th scope="col">Ablage</th>
+               <th scope="col">zuletzt geändert</th>
+               <th scope="col">geprüft</th>
+               <th scope="col" class="zahl">Grösse</th></tr></thead>
+    <tbody>
+    {% for d in uebrige %}
+      <tr>
+        <td>{{ d.titel }}</td>
+        <td class="{{ 'gelb' if d.status == 'in Bearbeitung' else 'leise' }}">{{ d.status }}</td>
+        <td>
+          {% if d.datum %}
+            {% set jahr = d.datum[:4] | int %}
+            <span class="{{ 'rot' if jahr < 2020 else 'gelb' if jahr < 2023 else 'leise' }}">{{ d.datum | datum }}</span>
+          {% else %}
+            <span class="leise">unbekannt</span>
+          {% endif %}
+        </td>
+        <td class="{{ d.pruefstand.farbe }}">
+          {% if d.geprueft_am %}{{ d.geprueft_am | datum }}
+          {% else %}<span class="leise">–</span>{% endif %}
+        </td>
+        <td class="zahl leise">{{ (d.groesse / 1024)|round|int }} kB</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</details>
+{% endif %}
+
+{% if nachweise %}
+<details>
+  <summary>Was das IVR als Nachweis akzeptiert</summary>
+  <ul class="knapp">
+    {% for n in nachweise %}<li>{{ n }}</li>{% endfor %}
+  </ul>
+</details>
+{% endif %}
+
+{% if k.handbuch %}
+<details>
+  <summary>Auszug aus dem IVR-Handbuch</summary>
+  <div class="quelle">{{ k.handbuch }}</div>
+  <p class="meta">
+    Handbuch Rettungsdienst 2022, Fassung 08/2025. Abdruck nur mit
+    Bewilligung des IVR, bleibt im Betrieb.
+  </p>
+</details>
+{% endif %}
+
+{% endblock %}

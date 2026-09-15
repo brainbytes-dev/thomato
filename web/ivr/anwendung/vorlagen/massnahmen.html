@@ -1,0 +1,61 @@
+{% extends "grundgeruest.html" %}
+{% block inhalt %}
+
+<h1>{{ stand.offen }} offen, {{ stand.geschlossen }} geschlossen</h1>
+<p class="leise">
+  Eine Massnahme ohne Nachmessung ist unvollständig. Erst die zweite Messung
+  belegt die Wirksamkeit, und nur das zählt bei der Erneuerung.
+</p>
+
+{% if massnahmen %}
+<div class="tabellenrahmen" tabindex="0" role="region" aria-label="Alle Massnahmen">
+<table>
+  <caption>Offene zuerst, danach die geschlossenen</caption>
+  <thead>
+    <tr><th scope="col">Kriterium</th><th scope="col">Massnahme</th>
+        <th scope="col">Zuständig</th><th scope="col">Frist</th>
+        <th scope="col">Stand</th></tr>
+  </thead>
+  <tbody>
+  {% for m in massnahmen %}
+    <tr>
+      <td>
+        {% if m.kriterium %}
+          <a class="nummer" href="/kriterium/{{ m.kriterium }}">{{ m.kriterium }}</a>
+        {% else %}<span class="leise">—</span>{% endif %}
+      </td>
+      <td class="text">{{ m.beschreibung }}
+        {% if m.nachgemessen_am %}
+          <div class="meta">Nachgemessen {{ m.nachgemessen_am | datum }}: {{ m.nachmessung_ergebnis }}</div>
+        {% elif m.gemessen_am %}
+          <div class="meta">Ausgangswert {{ m.gemessen_am | datum }}: {{ m.messwert }}</div>
+        {% endif %}
+      </td>
+      <td>{{ m.verantwortlich or "" }}</td>
+      <td>{{ m.frist | datum }}</td>
+      <td class="{{ 'gruen' if m.nachgemessen_am else 'gelb' }}">
+        {% if m.nachgemessen_am %}geschlossen{% else %}offen{% endif %}
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+<p class="meta">
+  Zum Erfassen oder Schliessen einer Massnahme das Kriterium öffnen.
+</p>
+{% else %}
+<h2>Noch keine Massnahme erfasst</h2>
+<p>
+  Massnahmen entstehen an einem Kriterium. Die dringendsten sind die fünf
+  Monitoringbereiche nach 8.1, von denen drei einen vollständigen Kreislauf
+  brauchen.
+</p>
+<ul class="sprungliste">
+  {% for nummer, name in monitoring.items() %}
+    <li><a href="/kriterium/{{ nummer }}"><span class="navnr">{{ nummer }}</span>{{ name }}</a></li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+{% endblock %}

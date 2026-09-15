@@ -1,0 +1,228 @@
+{% extends "grundgeruest.html" %}
+{% block inhalt %}
+
+<h1>Einstellungen</h1>
+
+{% if meldung %}
+<p class="hinweis {{ art }}" role="status">{{ meldung }}</p>
+{% endif %}
+
+<h2>Erscheinungsbild</h2>
+<p class="leise">
+  Hell ist die Voreinstellung, auch auf einem dunkel eingestellten Rechner.
+  Die Wahl gilt für diesen Browser.
+</p>
+<div class="schemaschalter einstellung" role="group" aria-label="Erscheinungsbild">
+  <button type="button" data-schema="hell" aria-pressed="true">
+    <svg viewBox="0 0 16 16" aria-hidden="true"><use href="#sym-hell"/></svg>
+    Hell</button>
+  <button type="button" data-schema="dunkel" aria-pressed="false">
+    <svg viewBox="0 0 16 16" aria-hidden="true"><use href="#sym-dunkel"/></svg>
+    Dunkel</button>
+</div>
+
+<h2 id="zyklus">Vorgehenszyklus</h2>
+<p class="leise">
+  Wie die Qualitätskreisläufe gezeigt werden. Die Daten sind dieselben,
+  DMAIC verlangt zusätzlich Define (Problem und Ziel) und Analyze (die
+  Ursache) je Kreislauf.
+</p>
+{% if darf_schreiben(request) %}
+<form class="einwurf" method="post" action="/einstellungen/zyklus">
+  <fieldset class="haken">
+    <legend>Kreisläufe zeigen als</legend>
+    {% for schluessel, z in zyklen.items() %}
+    <label class="kasten">
+      <input type="radio" name="zyklus" value="{{ schluessel }}"{% if schluessel == zyklus %} checked{% endif %}>
+      <strong>{{ z.kurz }}</strong> · {{ z.name }}<br>
+      <span class="meta">{{ z.erklaerung }}</span>
+    </label>
+    {% endfor %}
+  </fieldset>
+  <button type="submit">Speichern</button>
+</form>
+{% else %}
+<p class="meta">Eingestellt: <strong>{{ zyklen[zyklus].kurz }}</strong>, {{ zyklen[zyklus].name }}.</p>
+{% endif %}
+
+<h2 id="tragend">Tragende Bereiche</h2>
+<p class="leise">
+  Zur Erneuerung müssen drei der fünf Monitoringbereiche nach 8.1 einen
+  geschlossenen Kreislauf zeigen. Welche drei, entscheidet der Betrieb.
+  Die gewählten tragen auf der Übersicht die Marke «tragend».
+</p>
+{% if darf_schreiben(request) %}
+<form class="einwurf" method="post" action="/einstellungen/tragende">
+  <fieldset class="haken">
+    <legend>Zählt zur Erneuerung</legend>
+    {% for b in bereiche %}
+    <label class="kasten">
+      <input type="checkbox" name="tragend" value="{{ b.nummer }}"{% if b.tragend %} checked{% endif %}>
+      {{ b.nummer }} {{ b.name }}
+    </label>
+    {% endfor %}
+  </fieldset>
+  <button type="submit">Speichern</button>
+</form>
+{% else %}
+<ul class="knapp">
+  {% for b in bereiche %}
+  <li>{{ b.nummer }} {{ b.name }}: {% if b.tragend %}tragend{% else %}<span class="leise">nicht tragend</span>{% endif %}</li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+{# Michael am 15.09.2026: «nichts soll auf dem rechner laufen, alles auf
+   dem proxmox, die dossiers müssen auch auf den proxmox verschoben
+   werden.» Das Dossier liegt auf dem Server, und gelesen wird es hier. #}
+<h2 id="dossier">Dossier</h2>
+<p class="leise">
+  Das Dossier liegt auf dem Server unter <code>{{ dossier_stand.pfad }}</code>.
+  Neu einlesen heisst: den Ordner durchgehen und die Dateiliste neu
+  schreiben. Prüfdaten und selbst hochgeladene Dateien bleiben dabei
+  erhalten, die Zuordnung zu den Kriterien wird neu gebildet.
+</p>
+{% if dossier_stand.da %}
+<ul class="knapp">
+  <li>{{ dossier_stand.dateien }} Dateien in {{ dossier_stand.ordner }} Ordnern,
+    {{ (dossier_stand.bytes / 1024 / 1024) | round | int }} MB</li>
+  <li>{{ dossier_stand.in_der_datenbank }} davon in der Datenbank{% if dossier_stand.eigene %},
+    {{ dossier_stand.eigene }} über das Werkzeug hochgeladen{% endif %}</li>
+  <li>{% if dossier_stand.gelesen %}zuletzt eingelesen am {{ dossier_stand.gelesen }}
+    {% else %}noch nie über diese Seite eingelesen{% endif %}</li>
+</ul>
+{% else %}
+<p class="hinweis warnung">Der Ordner ist nicht da.</p>
+{% endif %}
+{% if darf_verwalten(request) and dossier_stand.da %}
+<form method="post" action="/dossier/einlesen">
+  <button type="submit">Dossier neu einlesen</button>
+</form>
+{% endif %}
+
+<h2 id="konto">Mein Konto</h2>
+<p class="meta">
+  {{ ich.name }} · Kennung «{{ ich.kennung }}» · {{ ich.recht_name }}
+  {% if ich.gesetzt %} · Passwort gesetzt am {{ ich.gesetzt[:10] | datum }}{% endif %}
+</p>
+<form class="einwurf immer" method="post" action="/einstellungen/konto/passwort">
+  <div class="paar">
+    <div>
+      <label for="aktuell">Aktuelles Passwort</label>
+      <input type="password" id="aktuell" name="aktuell"
+             autocomplete="current-password"{% if ich.hat_passwort %} required{% endif %}>
+    </div>
+    <div>
+      <label for="neu">Neues Passwort</label>
+      <input type="password" id="neu" name="neu" autocomplete="new-password"
+             required minlength="10">
+    </div>
+    <div>
+      <label for="wiederholung">Neues Passwort wiederholen</label>
+      <input type="password" id="wiederholung" name="wiederholung"
+             autocomplete="new-password" required minlength="10">
+    </div>
+  </div>
+  <p class="meta">Mindestens zehn Zeichen. Die Sitzung bleibt bestehen.</p>
+  <button type="submit">Passwort ändern</button>
+</form>
+
+{% if darf_verwalten(request) %}
+<h2 id="benutzer">Benutzer</h2>
+<p class="leise">
+  Drei Stufen: <strong>Lesen</strong> sieht alles, <strong>Schreiben</strong>
+  erfasst und legt ab, <strong>Verwalten</strong> führt dazu die Benutzer.
+  Ein neues Konto hat noch kein Passwort; die Person legt es bei der ersten
+  Anmeldung selbst fest. Zurücksetzen macht dasselbe bei einem bestehenden
+  Konto.
+</p>
+{% if tuerwaechter %}
+<p class="meta">
+  Vor dieser Tür steht {{ tuerwaechter }}. Eine neue Person kommt erst bis
+  hierher, wenn sie dort freigeschaltet ist.
+</p>
+{% endif %}
+
+<ul class="listenbestand">
+  {% for b in benutzer %}
+  <li id="b-{{ b.kennung }}">
+    <form method="post" action="/einstellungen/benutzer/{{ b.kennung }}"
+          id="bz-{{ b.kennung }}">
+      <div class="lb-kopf">
+        <span class="lb-name">{{ b.kennung }}</span>
+        <span class="marke {{ 'monitoring' if b.recht == 'verwalten' else 'soll' }}">{{ b.recht_name }}</span>
+        {% if b.kennung == ich.kennung %}<span class="meta">das bin ich</span>{% endif %}
+        <span class="meta lb-datum">
+          {% if b.hat_passwort %}Passwort gesetzt {{ b.gesetzt[:10] | datum }}
+          {% else %}noch kein Passwort, wird bei der ersten Anmeldung festgelegt{% endif %}
+        </span>
+      </div>
+      <div class="paar">
+        <div>
+          <label for="n-{{ b.kennung }}">Name</label>
+          <input type="text" id="n-{{ b.kennung }}" name="name"
+                 value="{{ b.name }}" required>
+        </div>
+        <div>
+          <label for="r-{{ b.kennung }}">Recht</label>
+          <select id="r-{{ b.kennung }}" name="recht">
+            {% for wert, name in rechte %}
+            <option value="{{ wert }}"{% if wert == b.recht %} selected{% endif %}>{{ name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </form>
+    <div class="hb-aktionen">
+      <button type="submit" form="bz-{{ b.kennung }}" class="knopf-klein">Speichern</button>
+      <form method="post" action="/einstellungen/benutzer/{{ b.kennung }}/passwort">
+        <button type="submit" class="knopf-leise">Passwort zurücksetzen</button>
+      </form>
+      {% if b.kennung != ich.kennung %}
+      <details class="hb-loeschen">
+        <summary>Entfernen</summary>
+        <form method="post" action="/einstellungen/benutzer/{{ b.kennung }}/entfernen">
+          <p class="meta">
+            «{{ b.name }}» kann sich danach nicht mehr anmelden. Was die
+            Person erfasst hat, bleibt.
+          </p>
+          <button type="submit" class="knopf-leise gefahr">Endgültig entfernen</button>
+        </form>
+      </details>
+      {% endif %}
+    </div>
+  </li>
+  {% endfor %}
+</ul>
+
+<h3>Benutzer hinzufügen</h3>
+<form class="einwurf" method="post" action="/einstellungen/benutzer/neu">
+  <div class="paar">
+    <div>
+      <label for="kennung">Kennung</label>
+      <input type="text" id="kennung" name="kennung" required
+             pattern="[a-z][a-z0-9._-]{1,30}" autocapitalize="none"
+             spellcheck="false" placeholder="z.B. vorname">
+    </div>
+    <div>
+      <label for="name">Name</label>
+      <input type="text" id="name" name="name" required placeholder="Vorname Nachname">
+    </div>
+    <div>
+      <label for="recht">Recht</label>
+      <select id="recht" name="recht">
+        {% for wert, name in rechte %}
+        <option value="{{ wert }}"{% if wert == 'lesen' %} selected{% endif %}>{{ name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+  <p class="meta">
+    Die Kennung ist das Wort, das die Person bei der Anmeldung tippt:
+    Kleinbuchstaben, Ziffern, Punkt und Strich.
+  </p>
+  <button type="submit">Konto anlegen</button>
+</form>
+{% endif %}
+
+{% endblock %}

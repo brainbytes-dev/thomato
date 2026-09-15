@@ -29,7 +29,7 @@ export const ivr = {
 
   /** Die Demo mit erfundenen Daten. Leer lassen, solange keine läuft. */
   demo: {
-    url: "",
+    url: "/ivr-anerkennung/demo",
     label: "Demo ansehen",
     hinweis:
       "Alle Daten in der Demo sind erfunden. Der Betrieb «Rettungsdienst Musterstadt» existiert nicht, die Fälle, Messwerte und Dokumente ebenso wenig.",

@@ -1,0 +1,112 @@
+{% extends "grundgeruest.html" %}
+{% block inhalt %}
+
+<h1>Listen</h1>
+<p class="leise">
+  Alle hochgeladenen Listen an einer Stelle. Hochgeladen werden sie dort, wo
+  sie ausgewertet werden: der EMRIS-Export bei
+  <a href="/bereich/8.1.2">8.1.2 Ereignisse</a>, die Befragungen bei
+  <a href="/bereich/8.1.4">8.1.4 Zufriedenheit</a>, die Reanimationsdaten
+  unter <a href="/analysen#reanimation">Analysen</a>. Diese Seite zeigt den
+  Bestand und nimmt weiterhin Dateien entgegen.
+</p>
+
+{% if meldung %}
+<p class="hinweis {{ art }}" role="status">{{ meldung }}</p>
+{% endif %}
+
+{% for g in gruppen %}
+<h2 id="q-{{ g.schluessel }}">{{ g.name }}</h2>
+<p class="leise">{{ g.lang }}. {{ g.hinweis }}</p>
+
+<form class="einwurf" method="post" enctype="multipart/form-data"
+      action="/listen/{{ g.schluessel }}">
+  <label for="datei-{{ g.schluessel }}">Excel- oder CSV-Liste auswählen</label>
+  <div class="paar">
+    <input type="file" id="datei-{{ g.schluessel }}" name="datei" required
+           accept=".xlsx,.xlsm,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+    <button type="submit">Hochladen</button>
+  </div>
+  <p class="meta">Excel (.xlsx, .xlsm) oder CSV, höchstens {{ grenze_mb }} MB.</p>
+</form>
+
+{% if g.dateien %}
+<ul class="listenbestand">
+  {% for d in g.dateien %}
+  <li>
+    <div class="lb-kopf">
+      <span class="lb-name">{{ d.angezeigt }}</span>
+      <span class="marke soll">{{ d.art }}</span>
+      <span class="meta lb-datum">
+        {{ d.hochgeladen.strftime("%d.%m.%Y, %H:%M") }} ·
+        {{ (d.bytes / 1024) | round | int }} KB
+      </span>
+      <form method="post" action="/listen/{{ g.schluessel }}/loeschen">
+        <input type="hidden" name="datei" value="{{ d.datei }}">
+        <button type="submit" class="knopf-leise">Löschen</button>
+      </form>
+    </div>
+
+    {% if d.fehler %}
+      <p class="meta rot">Nicht lesbar: {{ d.fehler }}. Die Datei liegt hier,
+        wird aber nicht ausgewertet.</p>
+    {% else %}
+      {% for b in d.blaetter %}
+      <div class="lb-blatt">
+        <p class="meta">
+          {% if b.name %}Blatt «{{ b.name }}» · {% endif %}
+          {% if b.angestossen %}über {% endif %}{{ b.zeilen }} Zeilen,
+          {{ b.spalten }} Spalten
+          {% if d.technik %} · {{ d.technik }}{% endif %}
+        </p>
+        {# Bei SWISSRECA sind es 104 Spalten, bei den Befragungen ganze
+           Fragen als Spaltenname. Beides ungekürzt wäre die Seite. #}
+        {% if b.kopf %}
+        <ul class="spaltenliste">
+          {% for s in b.kopf[:20] %}<li title="{{ s }}">{{ s }}</li>{% endfor %}
+        </ul>
+        {% if b.kopf|length > 20 %}
+        <details class="weitere">
+          <summary>Die übrigen {{ b.kopf|length - 20 }} Spalten</summary>
+          <ul class="spaltenliste">
+            {% for s in b.kopf[20:] %}<li title="{{ s }}">{{ s }}</li>{% endfor %}
+          </ul>
+        </details>
+        {% endif %}
+        {% endif %}
+      </div>
+      {% endfor %}
+
+      {% if d.direkt %}
+      <p class="hinweis warnung">
+        <strong>Spalten, die eine Person benennen:</strong>
+        {% for n in d.direkt %}{{ n | truncate(46, True, "…") }}{% if not loop.last %}, {% endif %}{% endfor %}.
+        Bei Microsoft Forms entscheidet die Einstellung «Namen erfassen»
+        darüber. Ist sie eingeschaltet, gehört diese Liste nicht ins Werkzeug
+        — die Runde neu exportieren oder die Spalten vorher entfernen.
+      </p>
+      {% endif %}
+      {% if d.mittelbar %}
+      <p class="meta">
+        Mittelbar zuordenbar, zusammen mit Ort und Zeit:
+        {% for n in d.mittelbar %}{{ n | truncate(46, True, "…") }}{% if not loop.last %}, {% endif %}{% endfor %}. Auswertungen daraus bleiben aggregiert.
+      </p>
+      {% endif %}
+    {% endif %}
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="meta">Noch keine Liste hochgeladen.</p>
+{% endif %}
+{% endfor %}
+
+<h2>Was hier nicht passiert</h2>
+<p>
+  Das Werkzeug führt keine Befragung durch und ist kein Meldekanal für
+  Zwischenfälle. EMRIS bleibt das Meldesystem, Microsoft bleibt das
+  Befragungswerkzeug. Hier liegt, was sie ausgeben — damit die Auswertung
+  eine Grundlage hat und beim Prüfbesuch zeigbar ist, woher eine Zahl kommt.
+</p>
+
+{% endblock %}

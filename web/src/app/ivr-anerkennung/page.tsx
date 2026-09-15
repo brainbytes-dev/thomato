@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { ModeToggle } from "@/components/theme/theme-toggle";
 import { LogoWordmark } from "@/components/ui/logo";
 import { brand } from "@/data/brand";
@@ -78,14 +78,14 @@ function DemoZugang() {
   }
   return (
     <div className="space-y-3">
+      {/* Die Demo läuft unter demselben Namen, /ivr-anerkennung/demo.
+          Deshalb kein neues Fenster und kein rel für Fremde. */}
       <a
         href={ivr.demo.url}
-        target="_blank"
-        rel="noopener noreferrer"
         className="inline-flex items-center gap-2 rounded-sm bg-brand-solid px-5 py-3 text-sm font-medium text-brand-solid-foreground transition-opacity hover:opacity-90"
       >
         {ivr.demo.label}
-        <ArrowUpRight aria-hidden className="h-4 w-4" />
+        <ArrowRight aria-hidden className="h-4 w-4" />
       </a>
       <p className="max-w-[60ch] text-sm leading-relaxed text-muted-foreground">
         {ivr.demo.zugang} {ivr.demo.hinweis}

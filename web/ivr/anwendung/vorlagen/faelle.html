@@ -1,0 +1,263 @@
+{% extends "grundgeruest.html" %}
+
+{% macro felder(f, praefix) %}
+  <div class="paar">
+    <div>
+      <label for="dat{{ praefix }}">Datum des Einsatzes</label>
+      <input type="date" id="dat{{ praefix }}" name="datum"
+             value="{{ f.datum if f else '' }}">
+    </div>
+    <div>
+      <label for="ew{{ praefix }}">Eingangsweg</label>
+      <select id="ew{{ praefix }}" name="eingang">
+        <option value="">nicht erfasst</option>
+        {% for w in wege %}
+          <option value="{{ w }}"{% if f and f.eingang == w %} selected{% endif %}>{{ w }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label for="kat{{ praefix }}">Kategorie</label>
+      <select id="kat{{ praefix }}" name="kategorie">
+        <option value="">noch offen</option>
+        {% for k in kategorien %}
+          <option value="{{ k }}"{% if f and f.kategorie == k %} selected{% endif %}>{{ k }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
+  <label for="ma{{ praefix }}">Betroffene Mitarbeitende</label>
+  <input type="text" id="ma{{ praefix }}" name="mitarbeitende"
+         value="{{ f.mitarbeitende if f and f.mitarbeitende else '' }}"
+         placeholder="Kürzel verwenden, z.B. MT, SB">
+  <p class="meta">
+    Kürzel statt Namen, solange die Anwendung ohne Anmeldung erreichbar ist.
+    Die Zuordnung kennst du, für die Auswertung genügt sie.
+  </p>
+
+  <div class="paar">
+    <div>
+      <label for="med{{ praefix }}">Medizinische Massnahmen laut Protokoll</label>
+      <select id="med{{ praefix }}" name="medizinisch">
+        <option value="">noch nicht geprüft</option>
+        {% for m in medizinisch_werte %}
+          <option value="{{ m }}"{% if f and f.medizinisch == m %} selected{% endif %}>{{ m }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label for="tr{{ praefix }}">Transport</label>
+      <select id="tr{{ praefix }}" name="transport">
+        <option value="">nicht erfasst</option>
+        {% for tw in transport_werte %}
+          <option value="{{ tw }}"{% if f and f.transport == tw %} selected{% endif %}>{{ tw }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label for="bw{{ praefix }}">Bewertung der Beschwerde</label>
+      <select id="bw{{ praefix }}" name="bewertung">
+        <option value="">noch offen</option>
+        {% for b in bewertung_werte %}
+          <option value="{{ b }}"{% if f and f.bewertung == b %} selected{% endif %}>{{ b }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
+  <fieldset class="haken">
+    <legend>Zutreffendes ankreuzen</legend>
+    <label class="kasten">
+      <input type="checkbox" name="aus_nichttransport" value="1"
+             {% if f and f.aus_nichttransport %}checked{% endif %}>
+      Die Beschwerde entstand daraus, dass nicht transportiert wurde
+    </label>
+    <label class="kasten">
+      <input type="checkbox" name="angehoerige_aufgebracht" value="1"
+             {% if f and f.angehoerige_aufgebracht %}checked{% endif %}>
+      Aufgebrachte angehörige Person trotz fachlich korrekter Behandlung
+    </label>
+    <label class="kasten">
+      <input type="checkbox" name="massnahme_noetig" value="1"
+             {% if f and f.massnahme_noetig %}checked{% endif %}>
+      Aus diesem Fall folgt eine Massnahme
+    </label>
+  </fieldset>
+
+  <label for="no{{ praefix }}">Notiz, ohne Personendaten</label>
+  <input type="text" id="no{{ praefix }}" name="notiz"
+         value="{{ f.notiz if f and f.notiz else '' }}"
+         placeholder="z.B. Wartezeit bemängelt, Antwort versandt">
+{% endmacro %}
+
+{% block inhalt %}
+
+<h1>{{ faelle|length }} Fälle, {{ mit_protokoll }} mit Protokoll</h1>
+<p class="leise">
+  Rückmeldungen von aussen, Kriterium 8.1.3. Das Handbuch verlangt, dass der
+  Bearbeitungsstand ersichtlich ist und dass ausgewertet wird, um
+  Auffälligkeiten und Systemfehler zu erkennen.
+</p>
+
+{% if meldung %}
+<p class="hinweis {{ art }}" role="status">{{ meldung }}</p>
+{% endif %}
+
+{# Die Haupthandlung steht oben und nicht unter drei Auswertungen: wer eine
+   Rückmeldung erfasst, kommt dafür auf diese Seite und für nichts anderes. #}
+<details class="grossaktion" id="neu">
+  <summary>
+    <svg viewBox="0 0 16 16" aria-hidden="true"><use href="#sym-plus"/></svg>
+    Neuen Fall erfassen
+  </summary>
+  <form method="post" action="/fall/neu">
+    <fieldset>
+      <legend>Rückmeldung von aussen</legend>
+      {{ felder(None, "neu") }}
+      <button type="submit">Fall anlegen</button>
+    </fieldset>
+  </form>
+  <p class="meta">
+    Erfasst wird auch Lob und jede Anregung. Nur so entsteht die
+    Grundgesamtheit, aus der sich ein Muster ablesen lässt.
+  </p>
+</details>
+
+<div class="pruefer">
+  <h2>Stand der Bearbeitung</h2>
+  <p>
+    Von {{ faelle|length }} Fällen trägt {{ mit_protokoll }} das vorgesehene
+    Beschwerdeprotokoll. Beim Prüfbesuch zählt die sichtbare Bearbeitung,
+    nicht die Ablage.
+  </p>
+  {% if ohne_kategorie %}
+  <p>
+    {{ ohne_kategorie }} Fälle haben noch keine Kategorie. Ohne Kategorie
+    lässt sich kein Systemfehler erkennen, und ohne erkannten Systemfehler
+    gibt es keine Massnahme und damit keinen Kreislauf.
+  </p>
+  {% else %}
+  <p>
+    Alle Fälle sind kategorisiert. Damit ist der Schritt getan, der aus einer
+    Ablage eine Auswertung macht; was noch fehlt, ist das Protokoll je Fall.
+  </p>
+  {% endif %}
+</div>
+
+<h2>Fälle je Jahr</h2>
+<div class="diagrammrahmen" tabindex="0">{{ bild | safe }}</div>
+<p class="meta">
+  {% if ohne_datum %}
+    Dazu {{ ohne_datum }} Fälle, bei denen sich kein Datum ermitteln liess;
+    sie stehen nicht im Diagramm.
+  {% endif %}
+  Wer nur Beschwerden erfasst, hat wenig auszuwerten. Wer jede Rückmeldung
+  von aussen erfasst, auch Lob und Anregungen, hat eine Grundgesamtheit.
+</p>
+
+<h2>Fälle je Kategorie</h2>
+<div class="diagrammrahmen" tabindex="0">{{ kat_bild | safe }}</div>
+
+<h2>Die Fälle im Einzelnen</h2>
+<p class="meta">
+  Ohne Personendaten: Namen, Geburtsdaten und Einsatzakten bleiben in der
+  Ablage. Hier stehen Fallnummer, Datum, Kategorie und Stand. Das ist, was
+  beim Prüfbesuch gezeigt wird.
+</p>
+
+{% for f in faelle %}
+<details class="fall" id="fall-{{ f.nr }}">
+  <summary>
+    <span class="fall-nr">Fall {{ f.nr }}</span>
+    <span class="leise">{{ f.datum | datum if f.datum else "ohne Datum" }}</span>
+    <span class="{{ 'gruen' if f.kategorie and f.kategorie != 'Negativ' else 'gelb' }}">
+      {{ f.kategorie if f.kategorie and f.kategorie != 'Negativ' else 'ohne Kategorie' }}
+    </span>
+    <span class="leise">{{ f.stand }}</span>
+    {% if f.protokoll %}<span class="marke monitoring">Protokoll</span>{% endif %}
+  </summary>
+  <form method="post" action="/fall/{{ f.id }}">
+    <fieldset>
+      <legend>Fall {{ f.nr }}, {{ f.dateien }} Dateien in der Ablage</legend>
+      {{ felder(f, f.id) }}
+      <div class="paar">
+        <div>
+          <label for="st{{ f.id }}">Bearbeitungsstand</label>
+          <select id="st{{ f.id }}" name="stand">
+            {% for s in staende %}
+              <option value="{{ s }}"{% if f.stand == s %} selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <button type="submit">Speichern</button>
+    </fieldset>
+  </form>
+
+  {% set liste = anhaenge.get(f.nr) or [] %}
+  <div class="anhaenge">
+    <h3>Anhänge{% if liste %} ({{ liste|length }}){% endif %}</h3>
+    {% if liste %}
+    <ul class="listenbestand">
+      {% for a in liste %}
+      <li>
+        <div class="lb-kopf">
+          <a class="lb-name" href="/fall/anhang/{{ a.id }}">{{ a.titel }}</a>
+          <span class="marke soll">{{ a.endung | upper }}</span>
+          <span class="meta lb-datum">
+            {{ a.hochgeladen_am | datum }}{% if a.hochgeladen_von %} von {{ a.hochgeladen_von }}{% endif %}
+            · {{ (a.groesse / 1024) | round | int }} KB
+          </span>
+          <details class="hb-loeschen">
+            <summary>Löschen</summary>
+            <form method="post" action="/fall/anhang/{{ a.id }}/loeschen">
+              <button type="submit" class="knopf-leise gefahr">Endgültig löschen</button>
+            </form>
+          </details>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="meta">Noch nichts angehängt.</p>
+    {% endif %}
+    <form class="einwurf" method="post" enctype="multipart/form-data"
+          action="/fall/{{ f.nr }}/anhang">
+      <label for="an{{ f.id }}">Datei anhängen</label>
+      <div class="paar">
+        <input type="file" id="an{{ f.id }}" name="datei" required
+               accept=".pdf,.docx,.doc,.xlsx,.xlsm,.pptx,.odt,.ods,.txt,.md,.png,.jpg,.jpeg">
+        <button type="submit">Anhängen</button>
+      </div>
+      <p class="meta">
+        Brief, Protokoll, Antwort; höchstens {{ grenze_mb }} MB. Anhänge
+        enthalten in der Regel Personendaten. Sie liegen nur auf diesem
+        Server und in seiner Sicherung.
+      </p>
+    </form>
+  </div>
+</details>
+{% endfor %}
+
+<p class="meta">
+  Zum Kriterium: <a href="/kriterium/8.1.3">8.1.3 Beschwerdemanagement</a>.
+</p>
+
+{% endblock %}
+
+{% block skripte %}
+<script>
+  /* Nach dem Anhängen führt die Adresse zum Fall zurück. Der Fall soll dann
+     offen sein, sonst steht die Meldung oben und der Anhang liegt unsichtbar
+     in einer zugeklappten Zeile. */
+  (function () {
+    if (!location.hash) return;
+    var ziel = document.getElementById(location.hash.slice(1));
+    if (ziel && ziel.tagName === "DETAILS") {
+      ziel.open = true;
+      ziel.scrollIntoView();
+    }
+  })();
+</script>
+{% endblock %}

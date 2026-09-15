@@ -1,0 +1,1957 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ titel }} — IVR-Anerkennung</title>
+<script>
+  /* Vor dem ersten Zeichnen, sonst blitzt die helle Fläche auf, bevor das
+     gewählte Schema greift. Voreinstellung ist hell, auch wenn der Rechner
+     dunkel steht; erst die Wahl in der Seitenleiste ändert das. */
+  try {
+    var s = localStorage.getItem("schema");
+    if (s === "dunkel") document.documentElement.dataset.schema = "dunkel";
+  } catch (e) {}
+</script>
+<style>
+  /* Zwei Schemata, beide ausgeschrieben. Die Angabe hält Platzhalter,
+     Kalendersymbole und Auswahlpfeile im selben Schema wie die Seite. */
+  :root { color-scheme: light; }
+  :root[data-schema="dunkel"] { color-scheme: dark; }
+
+  :root {
+    /* Zwei Ebenen, wie in den Systemeinstellungen: ein ruhiger Fenstergrund,
+       darauf weisse Gruppen. Rahmen tragen nicht die Trennung, Raum tut es. */
+    --boden: #f2f1ee;
+    --grund: #ffffff;
+    --flaeche: #f5f4f1;
+    --leiste: #f7f6f3;
+
+    --text: #1f1e1d;
+    --leise: #6d6b67;        /* 5,6:1 auf Weiss */
+    --linie: #e6e4e0;        /* Haarlinie innerhalb einer Gruppe */
+    --feldlinie: #918e89;    /* 3,3:1 auf Weiss, SC 1.4.11 */
+
+    --akzent: #0066cc;       /* 5,6:1 auf Weiss, auch als Verweistext */
+    --akzent-tief: #0052a8;
+    --akzent-flaeche: #eaf2fd;
+    --akzent-text: #ffffff;
+
+    --rot: #b3261e;
+    --gelb: #8a5a00;
+    --gruen: #1a6b3c;
+    --violett: #5b46c4;
+    --rot-flaeche: #fbf0ee;
+    --gelb-flaeche: #fbf5e7;
+    --gruen-flaeche: #eef5f0;
+    --violett-flaeche: #f2f0fb;
+    /* Der ruhige Ton für «erledigt» im Lagebalken: die grösste Fläche zeigt
+       den Zustand, der keine Arbeit auslöst, und darf deshalb nicht der
+       lauteste Block der Seite sein. */
+    --gruen-ruhig: #dbebe0;
+    --lage-grau: #dad8d3;
+    /* Schrift auf einer gefüllten Statusfarbe. Im dunklen Schema sind diese
+       Farben hell, dort steht dunkle Schrift darauf. */
+    --auf-farbe: #ffffff;
+
+    /* Die Flächen, die kein Merkmal trägt: Auswahl, Fokus, Zeilenanfassung,
+       Segmentgrund, Rollbalken. Sie gehören zum Schema wie jede andere. */
+    --auswahl: rgba(0, 102, 204, .18);
+    --fokusring: rgba(0, 102, 204, .22);
+    --zeile-an: rgba(0, 0, 0, .05);
+    --segment-grund: rgba(0, 0, 0, .05);
+    --rollbalken: rgba(0, 0, 0, .26);
+
+    /* Diagrammreihen, geprüft gegen Helligkeitsband, Sättigung,
+       Farbenblindheit und Kontrast auf weissem Grund. */
+    --reihe-1: #0062c4;
+    --reihe-2: #a35e00;
+
+    /* Vier Stufen, fest in rem. Produktoberflächen werden bei gleicher
+       Auflösung gelesen; eine mitwachsende Überschrift hilft hier nicht. */
+    --schrift-display: 1.75rem;
+    --schrift-abschnitt: 1.3125rem;
+    --schrift-text: 0.9375rem;
+    --schrift-meta: 0.8125rem;
+
+    --rund-gruppe: 14px;
+    --rund-feld: 8px;
+    --rund-klein: 6px;
+
+    /* Ein Schatten mit Versatz und weichem Verlauf, dazu eine Haarlinie für
+       die Kante. Nicht ein Schein ohne Versatz. */
+    --hebung: 0 1px 2px rgba(0, 0, 0, .05), 0 8px 24px -14px rgba(0, 0, 0, .18);
+    /* Die kleine Schwester für das gewählte Segment eines Schalters: dieselbe
+       Sprache, nur flacher. Als Merkmal, damit sie im dunklen Schema nicht
+       wirkungslos gegen eine dunkle Fläche gezeichnet wird. */
+    --hebung-klein: 0 1px 2px rgba(0, 0, 0, .12);
+    /* Und die dritte: die Fläche, die sich beim Anfassen hebt. Nur das
+       Brettfeld benutzt sie; mehr als diese drei Stufen gibt es nicht. */
+    --hebung-an: 0 2px 4px rgba(0, 0, 0, .06), 0 14px 32px -14px rgba(0, 0, 0, .26);
+    --kante: 1px solid rgba(0, 0, 0, .06);
+
+    --takt: 180ms;
+    --kurve: cubic-bezier(.32, .72, 0, 1);
+  }
+
+  /* Das dunkle Schema ist ein eigener Satz Werte, nicht der helle abgedunkelt.
+     Die Flächen werden nach oben heller statt dunkler, wie es eine dunkle
+     Systemoberfläche macht, und der Schatten trägt die Tiefe nicht mit. */
+  :root[data-schema="dunkel"] {
+    --boden: #1c1c1e;
+    --grund: #2c2c2e;
+    --flaeche: #3a3a3d;
+    --leiste: #232325;
+
+    --text: #f2f2f5;
+    --leise: #a3a3a9;        /* 6,0:1 auf der gehobenen Fläche */
+    --linie: #3d3d41;
+    --feldlinie: #79797f;    /* 3,2:1 auf der gehobenen Fläche */
+
+    --akzent: #64aaff;       /* 6,1:1 auf der gehobenen Fläche */
+    --akzent-tief: #94c4ff;
+    --akzent-flaeche: #16314d;
+    --akzent-text: #0a1f33;
+
+    --rot: #ff9b91;
+    --gelb: #e0b45c;
+    --gruen: #76d3a1;
+    --violett: #b9a5f5;
+    --rot-flaeche: #3a2422;
+    --gelb-flaeche: #35291a;
+    --gruen-flaeche: #1d3529;
+    --violett-flaeche: #2a2442;
+    --gruen-ruhig: #27402f;
+    --lage-grau: #44444a;
+    --auf-farbe: #16161a;
+
+    --reihe-1: #64aaff;
+    --reihe-2: #dba05a;
+
+    --auswahl: rgba(100, 170, 255, .30);
+    --fokusring: rgba(100, 170, 255, .34);
+    --zeile-an: rgba(255, 255, 255, .07);
+    --segment-grund: rgba(255, 255, 255, .07);
+    --rollbalken: rgba(255, 255, 255, .28);
+
+    --hebung: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px -14px rgba(0, 0, 0, .7);
+    --hebung-klein: 0 1px 3px rgba(0, 0, 0, .55);
+    --hebung-an: 0 2px 4px rgba(0, 0, 0, .5), 0 14px 32px -14px rgba(0, 0, 0, .9);
+    --kante: 1px solid rgba(255, 255, 255, .08);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--boden);
+    color: var(--text);
+    font: var(--schrift-text)/1.47 -apple-system, BlinkMacSystemFont,
+          "SF Pro Text", "Segoe UI Variable Text", "Segoe UI", system-ui,
+          sans-serif;
+    /* Zahlen in Spalten müssen untereinander stehen. */
+    font-variant-numeric: tabular-nums;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Die Flächen, die der Browser zeichnet, gehören auch zum Entwurf. */
+  ::selection { background: var(--auswahl); }
+  :focus-visible {
+    outline: 2px solid var(--akzent);
+    outline-offset: 2px;
+    border-radius: var(--rund-klein);
+  }
+  * { scrollbar-color: var(--rollbalken) transparent; scrollbar-width: thin; }
+  input, textarea, select { caret-color: var(--akzent); }
+
+  .sprunglink {
+    position: absolute; left: 12px; top: -52px; z-index: 10;
+    background: var(--grund); color: var(--akzent);
+    padding: 10px 16px; border-radius: var(--rund-feld); text-decoration: none;
+    font-weight: 590; box-shadow: var(--hebung);
+    transition: top var(--takt) var(--kurve);
+  }
+  .sprunglink:focus { top: 12px; }
+
+  /* Seitenleiste in der Art der Systemeinstellungen: eine eigene, leicht
+     kühlere Ebene, Einträge als gerundete Zeilen, die Auswahl gefüllt. */
+  .huelle { display: flex; align-items: flex-start; min-height: 100vh; }
+
+  .seitenleiste {
+    flex: 0 0 15.5rem; position: sticky; top: 0; align-self: stretch;
+    background: var(--leiste); border-right: 1px solid var(--linie);
+    padding: 22px 10px 24px; min-height: 100vh;
+  }
+  .seitenleiste .kopfbereich { padding: 2px 10px 22px; }
+  .wortmarke {
+    display: block; font-size: var(--schrift-text); font-weight: 640;
+    letter-spacing: -0.012em;
+  }
+  .betrieb {
+    display: block; color: var(--leise); font-size: var(--schrift-meta);
+    margin-top: 1px;
+  }
+
+  .navgruppe {
+    margin: 18px 10px 6px; font-size: 0.75rem; font-weight: 600;
+    color: var(--leise); max-width: none;
+  }
+  .seitenleiste nav ul { list-style: none; margin: 0; padding: 0; }
+  .seitenleiste nav a {
+    display: flex; align-items: center; gap: 10px;
+    padding: 7px 10px; border-radius: 7px; margin-bottom: 1px;
+    color: var(--text); text-decoration: none; font-size: var(--schrift-meta);
+    line-height: 1.3; font-weight: 500;
+    transition: background var(--takt) var(--kurve);
+  }
+  .navnr {
+    flex: 0 0 auto; width: 2.4rem; font-size: 0.75rem; font-weight: 600;
+    color: var(--leise); font-variant-numeric: tabular-nums;
+  }
+  .seitenleiste nav a svg {
+    width: 16px; height: 16px; flex: 0 0 auto; color: var(--leise);
+  }
+  .seitenleiste nav a:hover { background: var(--zeile-an); }
+  .seitenleiste nav a[aria-current="page"] {
+    background: var(--akzent); color: var(--akzent-text); font-weight: 590;
+  }
+  .seitenleiste nav a[aria-current="page"] svg,
+  .seitenleiste nav a[aria-current="page"] .navnr { color: currentColor; }
+
+  /* Erscheinungsbild. Derselbe Segmentschalter wie bei den Reitern im Inhalt:
+     zwei Zustände, der gewählte gehoben. Vom Rest trennt ihn Raum und keine
+     Linie, dieselbe Regel wie überall sonst auf dieser Oberfläche. */
+  .schemabereich { margin: 40px 10px 0; }
+  /* Wer angemeldet ist und der Weg hinaus. Leise gesetzt: man braucht es
+     einmal am Tag, es soll nicht mit der Navigation um Aufmerksamkeit
+     ringen. */
+  .angemeldet {
+    margin: 14px 0 0; font-size: var(--schrift-meta); color: var(--leise);
+    display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+  }
+  .angemeldet .wer { font-weight: 500; color: var(--text); }
+  .angemeldet a { color: var(--akzent); text-decoration: none; }
+  .angemeldet a:hover { text-decoration: underline; }
+  .schemabereich .navgruppe { margin: 0 0 6px; }
+  .schemaschalter {
+    display: flex; gap: 2px; padding: 2px; border-radius: 9px;
+    background: var(--segment-grund);
+  }
+  .schemaschalter button {
+    flex: 1 1 0; min-width: 0; margin: 0;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 6px 8px; border: 1px solid transparent; border-radius: 7px;
+    background: transparent; color: var(--text);
+    font: inherit; font-size: var(--schrift-meta); font-weight: 500;
+    cursor: pointer;
+    transition: background var(--takt) var(--kurve), color var(--takt) var(--kurve);
+  }
+  .schemaschalter button svg { width: 15px; height: 15px; flex: 0 0 auto; color: var(--leise); }
+  .schemaschalter button:hover { background: var(--zeile-an); }
+  .schemaschalter button[aria-pressed="true"] {
+    background: var(--grund); color: var(--text); font-weight: 590;
+    box-shadow: var(--hebung-klein);
+  }
+  .schemaschalter button[aria-pressed="true"] svg { color: var(--akzent); }
+  .schemaschalter button:active { transform: none; }
+
+  main {
+    flex: 1 1 auto; min-width: 0; max-width: 1000px;
+    margin: 0 auto; padding: 34px 40px 96px;
+  }
+
+  h1 {
+    font-size: var(--schrift-display); line-height: 1.18; font-weight: 680;
+    letter-spacing: -0.021em; margin: 0 0 8px; text-wrap: balance;
+  }
+  h2 {
+    font-size: var(--schrift-abschnitt); line-height: 1.28; font-weight: 640;
+    letter-spacing: -0.014em; margin: 52px 0 14px; text-wrap: balance;
+  }
+  /* Nur die erste Überschrift des Inhalts braucht oben keinen Abstand.
+     Ohne die Einschränkung auf das unmittelbare Kind verliert auch jede
+     Überschrift ihre Luft, die als erstes Kind in einem Block steht. */
+  main > h2:first-child { margin-top: 0; }
+  h3 {
+    font-size: 1rem; line-height: 1.35; font-weight: 620;
+    letter-spacing: -0.008em; margin: 32px 0 8px;
+  }
+
+
+  /* Die Übersicht darf breiter sein als eine Leseseite: dort steht ein Brett
+     aus fünf Feldern nebeneinander, und dafür ist der Platz da. */
+  main.seite-dossier { max-width: 1400px; }
+
+  /* Das Brett: fünf Felder, je eines für einen Monitoringbereich. Quadratisch,
+     weil fünf gleich grosse Flächen nebeneinander vergleichbar sein müssen —
+     und weil erst die Fläche den Ring so gross werden lässt, dass man den
+     Stand von der anderen Seite des Schreibtischs sieht. */
+  ol.wuerfel {
+    list-style: none; margin: 16px 0 0; padding: 0;
+    /* So viele Kreisläufe nebeneinander, wie in die Breite passen, jeder
+       mindestens 150 Pixel: auf dem Schreibtisch sind das fünf in einer
+       Reihe, und das Brett bleibt auf dem ersten Bildschirm. Michael am
+       15.09.2026: die Ringe waren zu gross, zwei je Zeile reichten über
+       drei Bildschirmhöhen. Leere Spuren bleiben leer (auto-fill), damit
+       zwei Kreisläufe nicht wieder halbe Seiten füllen. */
+    display: grid; gap: 12px;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  }
+  .wuerfel-feld { display: flex; }
+  .wuerfel-flaeche {
+    flex: 1 1 auto; min-width: 0; position: relative;
+    /* Bezugsgroesse fuer den Ring: er rechnet aus der Kachelbreite, nicht aus
+       dem Bildschirm. Zehn Kacheln nebeneinander tragen kleinere Ringe als
+       drei, ohne dass irgendwo eine Zahl doppelt gepflegt wird. */
+    container-type: inline-size;
+    display: flex; flex-direction: column; gap: 6px;
+    padding: 14px 12px 12px;
+    background: var(--grund); border: var(--kante);
+    border-radius: var(--rund-gruppe); box-shadow: var(--hebung);
+    color: var(--text); text-decoration: none;
+    transition: box-shadow var(--takt) var(--kurve),
+                transform var(--takt) var(--kurve);
+  }
+  .wuerfel-flaeche:hover, .wuerfel-flaeche:focus-visible {
+    transform: translateY(-2px);
+    box-shadow: var(--hebung-an);
+  }
+
+  /* Die Marke «tragend» liegt in der Ecke, damit sie keine eigene Zeile
+     kostet. */
+  .wuerfel-kopf { position: absolute; top: 10px; right: 10px; }
+  .wuerfel-kopf .marke { font-size: 0.6875rem; padding: 1px 7px; }
+  .wuerfel-nr {
+    font-size: 0.75rem; font-weight: 600; color: var(--leise);
+    font-variant-numeric: tabular-nums;
+  }
+  .wuerfel-name {
+    font-size: var(--schrift-meta); font-weight: 620; line-height: 1.25;
+    letter-spacing: -0.01em; text-align: center;
+    /* «Angemessenheitsmonitoring» ist breiter als die Karte. Getrennt wird
+       an der Silbe, nicht an der Kartenkante; anywhere bleibt als Rückfall. */
+    hyphens: auto; overflow-wrap: anywhere;
+    display: -webkit-box; -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical; overflow: hidden;
+  }
+
+  /* Die Mitte gehört dem Ring. */
+  .wuerfel-mitte {
+    display: grid; place-content: center; padding: 8px 0 2px;
+  }
+  /* Die Scheibe ist der Ring samt dem, was in ihm steht. Rückfall für
+     Browser ohne Behältereinheiten: fest. */
+  .wuerfel-scheibe { position: relative; width: 116px; aspect-ratio: 1 / 1; }
+  @container (min-width: 1px) {
+    .wuerfel-scheibe { width: min(76cqi, 124px); }
+  }
+  /* Das Zifferblatt: eine ruhige Scheibe hinter der Schrift, damit der Ring
+     als Rundinstrument liest und nicht als Fortschrittsbalken, den jemand
+     zum Kreis gebogen hat. */
+  .wuerfel-scheibe::before {
+    content: ""; position: absolute; inset: 11%; border-radius: 50%;
+    background: var(--flaeche);
+  }
+  .wuerfel .fortschritt { position: relative; width: 100%; height: 100%; }
+  /* Kräftiger als in der Zeile: ein Instrument hat einen breiten Bogen.
+     8 von 120 Zeicheneinheiten, also rund ein Fünfzehntel des Durchmessers. */
+  .wuerfel .fortschritt .ring { stroke-width: 8; }
+  /* Die Ziffer in der Ringmitte entfällt: dort steht jetzt, welcher
+     Kreislauf das ist. */
+  .wuerfel .fortschritt .ringzahl { display: none; }
+
+  /* Ein Quadrat im Kreis reicht bis 14,6 Prozent an den Rand; 16 Prozent
+     lassen dem Text Luft zur Strichstärke. */
+  .wuerfel-inhalt {
+    position: absolute; inset: 16%;
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 3px; text-align: center;
+  }
+  /* Der Messwert des Instruments: gross genug, um von weiter weg abgelesen zu
+     werden, mit der Einheit klein darunter wie auf einem Zifferblatt. */
+  .wuerfel-schritte {
+    display: block; margin-top: 2px;
+    font-size: 1.25rem; font-weight: 660; line-height: 1;
+    letter-spacing: -0.02em; font-variant-numeric: tabular-nums;
+  }
+  .wuerfel-einheit {
+    display: block; font-size: 0.6875rem; font-weight: 600;
+    letter-spacing: .04em; text-transform: uppercase; color: var(--leise);
+    margin-top: 2px;
+  }
+  .wuerfel-ring.leer .fortschritt .ringzahl { fill: var(--feldlinie); }
+
+  /* Worum es in diesem Kreislauf geht — zwei Zeilen, dann abgeschnitten. */
+  .wuerfel-sache {
+    font-size: 0.75rem; line-height: 1.3; color: var(--leise);
+    min-width: 0; overflow-wrap: anywhere; text-align: center;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .wuerfel-fuss {
+    font-size: 0.6875rem; color: var(--leise); line-height: 1.3;
+    text-align: center; margin-top: auto;
+  }
+
+  /* Am Telefon zwei Kreisläufe je Zeile; der Ring bleibt gedeckelt. */
+  @media (max-width: 700px) {
+    ol.wuerfel { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+  }
+
+  /* Der Zeitstrahl steht zuoberst und über die ganze Breite; so will es
+     Michael (15.09.2026). Das Brett darunter bleibt in der Startansicht,
+     weil seine Karten klein sind. */
+  .diagrammrahmen.zeitstrahl { max-width: none; }
+
+  /* Die Termintabelle lässt sich beschreiben: Felder in den Zellen, so
+     schmal wie die Zelle, Knöpfe rechts in einer Zeile. */
+  table.termine input[type="text"], table.termine input[type="date"] {
+    width: 100%; min-width: 8rem; margin: 0; padding: 5px 8px;
+    font-size: var(--schrift-meta);
+  }
+  table.termine td.kopf input[type="text"] { min-width: 14rem; }
+  table.termine td.aktion { white-space: nowrap; text-align: right; }
+  table.termine td.aktion button + button { margin-left: 6px; }
+  table.termine tr.neu td { border-top: 2px solid var(--linie); }
+  details#fristen > .hinweis { margin: 0 0 12px; }
+  table.termine input[type="number"] {
+    width: 100%; min-width: 5.5rem; margin: 0; padding: 5px 8px;
+    font-size: var(--schrift-meta); text-align: right;
+  }
+  table.themen td.zahl input[type="number"] { min-width: 5rem; }
+  form.filter { max-width: 44rem; margin: 0 0 12px; }
+  form.filter .paar { align-items: end; }
+  form.filter .paar > * { flex: 1 1 10rem; }
+  form.filter .filter-knoepfe {
+    flex: 0 0 auto; display: flex; align-items: center; gap: 12px; padding-bottom: 1px;
+  }
+  form.filter .filter-knoepfe a { font-size: var(--schrift-meta); }
+  table.themen td input[type="date"] { min-width: 8.5rem; }
+  table.themen td.zahl input[type="number"] { width: 5.5rem; min-width: 0; }
+  /* Die Themen-Tabelle: der Name bekommt die Breite, Zahl und Daten nur,
+     was sie brauchen. Feste Spalten, also feste Masse. */
+  table.themen th:first-child { width: auto; }
+  table.themen th.zahl { width: 6rem; }
+  table.themen th:nth-child(3), table.themen th:nth-child(4) { width: 9.5rem; }
+  table.themen th:last-child { width: 12rem; }
+  table.themen td.kopf .marke { margin-left: 6px; vertical-align: 1px; }
+  .tabellenrahmen + .tabellenrahmen { margin-top: 14px; }
+  form.einwurf + .tabellenrahmen, form.einwurf + form.filter,
+  form.einwurf + .diagrammrahmen { margin-top: 16px; }
+  .hinweis + form.einwurf { margin-top: 14px; }
+
+  /* Die Kette. Drei Schritte nebeneinander, ohne eigene Kartenränder: eine
+     Karte in einer Karte wäre eine Ebene zu viel. */
+  ol.ablauf {
+    list-style: none; margin: 0; padding: 0;
+    display: flex; flex-wrap: wrap; align-items: stretch; gap: 0;
+  }
+  .knoten {
+    flex: 1 1 13rem; min-width: 0;
+    display: flex; flex-direction: column;
+  }
+  /* Die Verbindung zwischen zwei Knoten. Sie ist gefüllt, sobald der Schritt
+     davor erledigt ist: der einzige Ort, an dem sich der Stand bewegt. */
+  .knoten + .knoten { position: relative; padding-left: 28px; }
+  .knoten + .knoten::before {
+    content: ""; position: absolute; left: 6px; top: 13px;
+    width: 14px; height: 2px; border-radius: 1px; background: var(--linie);
+  }
+  /* Keine Pfeilspitze: das Sinnbild der Massnahme ist selbst ein Pfeil, und
+     zwei Pfeile nebeneinander lesen sich als Fehler. */
+  .knoten.erledigt + .knoten::before {
+    background: var(--akzent); transform-origin: left center;
+    animation: kette 620ms var(--kurve) both;
+  }
+  .knoten.erledigt + .knoten.erledigt::before { animation-delay: 160ms; }
+  @keyframes kette {
+    from { transform: scaleX(0); } to { transform: scaleX(1); }
+  }
+  .knoten-karte {
+    flex: 1; display: flex; flex-direction: column; gap: 9px;
+    padding: 0 14px 0 0;
+  }
+
+  .knoten-kopf {
+    display: flex; align-items: center; gap: 9px;
+    font-size: var(--schrift-meta); font-weight: 590;
+  }
+  /* Das gerundete Quadrat mit getönter Füllung: das Erkennungszeichen dieser
+     Oberfläche, in jedem Zustand gleich gezeichnet. */
+  .knoten-symbol {
+    display: grid; place-items: center; flex: 0 0 auto;
+    width: 28px; height: 28px; border-radius: 8px;
+    background: var(--flaeche); color: var(--leise);
+  }
+  .knoten-symbol svg { width: 15px; height: 15px; }
+  .knoten.erledigt[data-typ="messung"] .knoten-symbol {
+    background: var(--akzent); color: var(--akzent-text);
+  }
+  .knoten.erledigt[data-typ="massnahme"] .knoten-symbol {
+    background: var(--violett); color: var(--auf-farbe);
+  }
+  .knoten.erledigt[data-typ="nachmessung"] .knoten-symbol {
+    background: var(--gruen); color: var(--auf-farbe);
+  }
+  /* DMAIC: fünf Phasen. Measure, Improve und Control tragen die Farben
+     von Messung, Massnahme und Nachmessung, weil es dieselben Daten sind.
+     Define ist still, Analyze ockerfarben: ein Denkschritt, kein Messwert. */
+  .knoten.erledigt[data-typ="measure"] .knoten-symbol {
+    background: var(--akzent); color: var(--akzent-text);
+  }
+  .knoten.erledigt[data-typ="improve"] .knoten-symbol {
+    background: var(--violett); color: var(--auf-farbe);
+  }
+  .knoten.erledigt[data-typ="control"] .knoten-symbol {
+    background: var(--gruen); color: var(--auf-farbe);
+  }
+  .knoten.erledigt[data-typ="define"] .knoten-symbol {
+    background: var(--leise); color: var(--auf-farbe);
+  }
+  .knoten.erledigt[data-typ="analyze"] .knoten-symbol {
+    background: var(--reihe-2); color: var(--auf-farbe);
+  }
+  /* Balken oder Kuchen, nur beim selbstgewählten Prozesskriterium. Derselbe
+     Segmentschalter wie beim Erscheinungsbild, hier über der Zeichnung. */
+  form.diagrammwahl {
+    display: flex; align-items: center; gap: 12px; margin: 0 0 10px;
+    max-width: 26rem;
+  }
+  form.diagrammwahl .navgruppe { margin: 0; flex: 0 0 auto; }
+  form.diagrammwahl .schemaschalter { flex: 1 1 auto; }
+  form.diagrammwahl button { margin-top: 0; }
+  /* Der Segmentschalter des Erscheinungsbildes trägt den aktiven Zustand
+     im Symbol; hier gibt es keines, also trägt ihn die Schrift. Ohne das
+     sind beide Knöpfe im dunklen Schema kaum zu unterscheiden. */
+  form.diagrammwahl button[aria-pressed="true"] { color: var(--akzent); }
+
+  /* Kuchenstücke: eine Farbe, die Deckkraft ordnet nach Grösse. Die
+     Trennung ist die Grundfarbe, damit angrenzende Flächen nicht
+     ineinanderlaufen. */
+  .diagramm .kuchenstueck {
+    fill: var(--reihe-1); stroke: var(--grund); stroke-width: 2;
+  }
+
+  /* Ein Mangel und was daraus wurde. Die Anmerkung der Prüfer steht als
+     Zitat, der eigene Verlauf darunter als Zeilenliste. Offen trägt einen
+     roten Balken links, behoben einen grünen: die Farbe sagt den Zustand,
+     ohne dass man den Text lesen muss. */
+  .mangel {
+    max-width: 68ch; padding: 2px 0 2px 14px; margin: 10px 0 0;
+    border-left: 3px solid var(--linie);
+  }
+  .mangel.offen { border-left-color: var(--rot); }
+  .mangel.behoben { border-left-color: var(--gruen); }
+  .mangel-kopf { display: flex; align-items: baseline; gap: 8px; margin: 0 0 6px; }
+  .mangel-titel { font-weight: 590; }
+  .mangel-stand {
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px;
+    margin: 0 0 8px;
+  }
+  blockquote.mangel-zitat {
+    margin: 0; padding: 12px 16px; background: var(--flaeche);
+    border-radius: var(--rund-feld); font-size: var(--schrift-meta);
+    white-space: pre-line;
+  }
+  blockquote.mangel-zitat + .meta { margin-top: 6px; }
+  /* Auflagen: Bedingungen mit Frist. Wie die Kommentarliste gebaut, aber
+     der Balken links sagt, ob die Frist drückt. */
+  ul.auflagen {
+    list-style: none; margin: 14px 0 0; padding: 0;
+    background: var(--grund); border: var(--kante);
+    border-radius: var(--rund-gruppe); box-shadow: var(--hebung);
+  }
+  ul.auflagen > li {
+    position: relative; padding: 12px 16px 13px 18px;
+    border-left: 3px solid var(--gruen);
+  }
+  ul.auflagen > li.offen { border-left-color: var(--rot); }
+  ul.auflagen > li + li { border-top: 1px solid var(--linie); }
+  .auflagen .a-kopf {
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px;
+    margin: 0 0 6px;
+  }
+  .auflagen .a-text { margin: 0; max-width: none; white-space: pre-line; }
+  .auflagen .a-fuss {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px;
+    margin: 6px 0 0;
+  }
+  .auflagen .a-fuss form { margin: 0; }
+
+  ul.kommentare {
+    list-style: none; margin: 14px 0 0; padding: 0;
+    background: var(--grund); border: var(--kante);
+    border-radius: var(--rund-gruppe); box-shadow: var(--hebung);
+  }
+  ul.kommentare > li { position: relative; padding: 12px 16px 13px; }
+  ul.kommentare > li + li::before {
+    content: ""; position: absolute; left: 16px; right: 0; top: 0;
+    height: 1px; background: var(--linie);
+  }
+  .kommentare .k-text { margin: 0; max-width: none; white-space: pre-line; }
+  .kommentare .k-fuss {
+    display: flex; align-items: center; gap: 12px; margin: 6px 0 0;
+  }
+  .kommentare .k-fuss form { margin: 0; }
+  .mangel-aktionen {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px;
+    margin-top: 12px;
+  }
+  .mangel-aktionen form { margin: 0; }
+  .mangel-aktionen > details > summary { padding: 5px 0; }
+  .mangel-aktionen > details[open] { flex-basis: 100%; }
+  .mangel-aktionen > details[open] > summary { border-bottom: 0; margin-bottom: 0; }
+  .mangel-aktionen > details > form {
+    margin: 8px 0 4px; padding: 14px 16px; max-width: 44rem;
+    background: var(--flaeche); border-radius: var(--rund-feld);
+  }
+  .mangel-aktionen > details > form > button { margin-top: 12px; }
+  /* Auf der Landkarte hängt der Mangel in der Flusszeile und bleibt
+     zugeklappt, bis jemand ihn aufmacht. */
+  details.mangel-klapp { grid-column: 1 / -1; margin: 6px 0 2px; }
+  details.mangel-klapp > summary {
+    padding: 4px 0; color: var(--rot); font-size: var(--schrift-meta);
+    font-weight: 590;
+  }
+  details.mangel-klapp[open] > summary { border-bottom: 0; margin-bottom: 4px; }
+  details.mangel-klapp .mangel { margin-top: 8px; }
+
+  /* Mehrere laufende Kreisläufe untereinander: jeder ein eigener Block mit
+     Kette, Stand und Formularen, getrennt durch Raum und eine feine Linie. */
+  .kreislauf-block + .kreislauf-block {
+    margin-top: 28px; padding-top: 24px; border-top: 1px solid var(--linie);
+  }
+  h3.kr-kopf {
+    margin: 0 0 14px; font-size: var(--schrift-text); font-weight: 620;
+    max-width: 68ch;
+  }
+  nav.reiter .navzahl { margin-left: 7px; }
+
+  /* Fünf Knoten nebeneinander brauchen schmalere Karten als drei. */
+  ol.ablauf.fuenf .knoten { flex-basis: 9.5rem; }
+  /* Langer Inhalt: sechs Zeilen, dann Schnitt, ein Knopf holt den Rest.
+     Die Karte bleibt so hoch wie die Nachbarn, statt die Kette zu einem
+     Turm zu machen. */
+  .knoten-inhalt {
+    display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .knoten-karte.ausgeklappt .knoten-inhalt {
+    display: block; -webkit-line-clamp: unset; overflow: visible;
+  }
+  button.knoten-mehr {
+    align-self: flex-start; margin: 2px 0 0; padding: 2px 0;
+    background: transparent; color: var(--akzent); border: 0;
+    font-size: var(--schrift-meta); font-weight: 590; cursor: pointer;
+  }
+  button.knoten-mehr:hover { background: transparent; text-decoration: underline; }
+  .knoten-inhalt {
+    font-size: var(--schrift-meta); color: var(--text);
+    background: var(--flaeche); border-radius: var(--rund-feld);
+    padding: 8px 10px; overflow-wrap: anywhere;
+  }
+  .knoten.offen .knoten-inhalt {
+    color: var(--leise); background: transparent; padding: 0;
+  }
+  .knoten-datum { font-size: 0.75rem; color: var(--leise); }
+
+  /* Der Abschluss: geschlossen oder zurück zur Massnahme. */
+  /* Die Trennlinie gehört der Gruppe und läuft deshalb über ihre ganze
+     Breite; nur der Text darin behält seine Lesebreite. */
+  .ablauf-ende {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px;
+    margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--linie);
+    font-size: var(--schrift-meta); max-width: none;
+  }
+  .ablauf-ende .leise { flex: 1 1 22ch; max-width: 58ch; }
+  .pille {
+    display: inline-block; padding: 3px 10px; border-radius: 980px;
+    background: var(--flaeche); color: var(--leise); font-weight: 500;
+  }
+  .pille.ja { background: var(--gruen-flaeche); color: var(--gruen); font-weight: 590; }
+
+  @media (max-width: 780px) {
+    /* In der Spalte ist 13rem eine Mindesthöhe, keine Mindestbreite: die
+       Knoten standen dadurch 208 Pixel auseinander. */
+    ol.ablauf { flex-direction: column; gap: 14px; }
+    .knoten { flex: 0 0 auto; }
+    .knoten-karte { padding-right: 0; gap: 6px; }
+    .knoten + .knoten { padding-left: 0; padding-top: 16px; }
+    .knoten + .knoten::before {
+      left: 13px; top: 2px; width: 2px; height: 12px;
+    }
+    .knoten.erledigt + .knoten::before {
+      transform-origin: center top;
+      animation-name: kette-senkrecht;
+    }
+    @keyframes kette-senkrecht {
+      from { transform: scaleY(0); } to { transform: scaleY(1); }
+    }
+  }
+
+  /* Diagramme. Serverseitiges SVG, Farben aus den Merkmalen, damit Zeichnung
+     und Oberfläche dieselbe Palette tragen. */
+  .diagramm { width: 100%; height: auto; display: block; margin: 4px 0 2px; }
+  .diagramm .raster { stroke: var(--linie); stroke-width: 1; }
+  .diagramm .richtlinie {
+    stroke: var(--feldlinie); stroke-width: 1; stroke-dasharray: 4 3;
+  }
+  .diagramm .achse, .diagramm .richtwert-text {
+    fill: var(--leise); font-size: 13px;
+  }
+  .diagramm .balken-name { fill: var(--text); font-size: 13.5px; }
+  .diagramm .reihe {
+    fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round;
+  }
+  .diagramm .punkt { stroke: var(--grund); stroke-width: 1.5; }
+  .diagramm .direkt { font-size: 13.5px; font-weight: 620; }
+  .diagramm .r1 { stroke: var(--reihe-1); }
+  .diagramm circle.r1, .diagramm rect.r1 { fill: var(--reihe-1); }
+  .diagramm text.r1 { fill: var(--reihe-1); stroke: none; }
+  .diagramm .r2 { stroke: var(--reihe-2); }
+  .diagramm circle.r2, .diagramm rect.r2 { fill: var(--reihe-2); }
+  .diagramm text.r2 { fill: var(--reihe-2); stroke: none; }
+  .diagramm .balken { stroke: none; }
+  /* Unter dem Richtwert wird nicht mit einer zweiten Farbe markiert, sondern
+     mit Gewicht: die gestrichelte Richtwertlinie sagt bereits, wo die Grenze
+     liegt, und die Balkenlänge sagt, wer darunter bleibt. Ocker bleibt damit
+     ausschliesslich die zweite Datenreihe. */
+  .diagramm rect.unter { fill: var(--reihe-1); opacity: .42; }
+  .diagramm text.unter { fill: var(--leise); stroke: none; }
+  /* Nebenkategorien — fremde Dienste, «Sonstiges» — sind nicht die zweite
+     Datenreihe, sondern der Rest. Sie bekommen deshalb keinen eigenen Farbton,
+     sondern einen neutralen: sonst hiesse Ocker auf derselben Seite einmal
+     «unter 10 Minuten» und einmal «fremder Dienst». */
+  .diagramm rect.rest { fill: var(--feldlinie); }
+  .diagramm text.rest { fill: var(--leise); stroke: none; }
+  .diagramm .verbindung { stroke: var(--feldlinie); stroke-width: 2; }
+  .diagramm .punkt-vorher { fill: var(--grund); stroke: var(--reihe-2); stroke-width: 2.5; }
+  .diagramm .punkt-nachher { fill: var(--reihe-1); stroke: var(--grund); stroke-width: 1.5; }
+  .diagramm .null { fill: var(--feldlinie); }
+  .diagramm .messfeld { fill: var(--flaeche); stroke: var(--linie); }
+  .diagramm .messfeld.offen { fill: none; stroke-dasharray: 5 4; stroke: var(--feldlinie); }
+  .diagramm .messfeld.erfuellt { fill: var(--gruen-flaeche); stroke: var(--gruen); }
+  .diagramm .messwert { fill: var(--text); font-size: 15px; font-weight: 600; }
+  .diagramm .messwert.offen { fill: var(--leise); font-weight: 400; }
+  .diagramm .pfeil { fill: none; stroke: var(--feldlinie); stroke-width: 1.4;
+                     stroke-linecap: round; stroke-linejoin: round; }
+
+  .diagramm .heute { fill: var(--leise); }
+  .diagramm .frist { stroke: var(--grund); stroke-width: 2; }
+  .diagramm .frist.rot, .diagramm .marke-rot { fill: var(--rot); stroke: var(--rot); }
+  .diagramm .frist.gelb, .diagramm .marke-gelb { fill: var(--gelb); stroke: var(--gelb); }
+  .diagramm .frist.gruen, .diagramm .marke-gruen { fill: var(--gruen); stroke: var(--gruen); }
+  .diagramm .frist { stroke: var(--grund); }
+  .diagramm .marke-rot, .diagramm .marke-gelb, .diagramm .marke-gruen { stroke-width: 1; }
+  .diagramm .frist-tage { font-size: 12px; font-weight: 620; }
+  .diagramm .frist-tage.rot { fill: var(--rot); }
+  .diagramm .frist-tage.gelb { fill: var(--gelb); }
+  .diagramm .frist-tage.gruen { fill: var(--gruen); }
+  /* Der Lagebalken gewichtet nach Handlungsbedarf, nicht nach Menge: was
+     Arbeit auslöst, steht satt; was erledigt ist, bleibt ein ruhiger Ton. */
+  .diagramm .lage { stroke: none; }
+  .diagramm .lage.l-rot { fill: var(--rot); }
+  .diagramm .lage.l-gelb { fill: var(--gelb); }
+  .diagramm .lage.l-gruen { fill: var(--gruen-ruhig); }
+  .diagramm .lage.l-grau { fill: var(--lage-grau); }
+  .diagramm .lage-zahl { fill: var(--auf-farbe); font-size: 13px; font-weight: 620; }
+  .diagramm .lage-zahl.l-gruen { fill: var(--gruen); }
+  .diagramm .lage-zahl.l-grau { fill: var(--text); }
+  /* Die Farbflächen des Lagebalkens, nicht die Linien einer Datenreihe:
+     darum ein Quadrat als Marke und genau derselbe Ton wie im Balken. */
+  .legende .l-rot { background: var(--rot); }
+  .legende .l-gelb { background: var(--gelb); }
+  .legende .l-gruen { background: var(--gruen-ruhig); }
+  .legende .l-grau { background: var(--lage-grau); }
+  /* Die Legende trägt die Identität mit, damit Farbe nie allein steht. */
+  .legende {
+    display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 2px 0 0;
+    font-size: var(--schrift-meta); color: var(--leise); padding: 0; list-style: none;
+  }
+  .legende li { display: flex; align-items: center; gap: 7px; }
+  .legende .strich { width: 16px; height: 2px; border-radius: 1px; }
+  .legende .s1 { background: var(--reihe-1); }
+  .legende .s2 { background: var(--reihe-2); }
+  /* Die Zahl gehört zum Namen. Sie steht deshalb im selben Flusselement wie
+     die Wörter und rutscht beim Umbruch nicht ans Zeilenende. */
+  .legende .legendentext { min-width: 0; }
+  .legende .legendenzahl { color: var(--text); font-weight: 590; }
+
+  /* Wo die Legende die Zahlen vollständig trägt, lässt der Balken seine
+     eingelegten weg: die Legende zählt nach Gruppe, der Balken nach Segment,
+     und beide Zahlensätze nebeneinander widersprächen sich. Der Balken darf
+     dafür auf jeder Breite laufen, ohne einen Wisch zu kosten. */
+  .lagekarte .lage-zahl { display: none; }
+  .lagekarte .diagramm.lagebalken { min-width: 0; }
+  /* Quadrate, wo im Diagramm Flächen stehen. Diese Wiederholung steht hinter
+     `.strich`, weil der Lagebalken beide Klassen trug und der Strich sonst
+     gewann: die dokumentierte Marke wurde nie gezeichnet. Die Haarlinie
+     kommt dazu, weil «belegt» und «unklar» sonst mit ihrem eigenen, sehr
+     hellen Ton auf dem Grund verschwinden — die Fläche bleibt ehrlich, der
+     Rand macht sie sichtbar. */
+  .legende .l-rot, .legende .l-gelb, .legende .l-gruen, .legende .l-grau {
+    width: 12px; height: 12px; border-radius: 3px;
+    border: 1px solid var(--feldlinie);
+  }
+
+  /* Die Anleitung: Begriff und Erklärung nebeneinander, damit die Schritte
+     als Folge lesbar bleiben und nicht als Fliesstext verschwimmen. */
+  .fuehrung {
+    background: var(--grund); border: var(--kante);
+    border-radius: var(--rund-gruppe); box-shadow: var(--hebung);
+    padding: 18px 20px; max-width: 74ch;
+  }
+  .fuehrung h3 { margin-top: 0; }
+  /* Ohne Spaltenabstand: sonst reisst die Trennlinie zwischen Begriff und
+     Erklärung auf und die Zeile liest sich als zwei Listen. */
+  dl.schrittliste { margin: 0; display: grid; grid-template-columns: 12rem 1fr; gap: 0; }
+  dl.schrittliste dt {
+    font-size: var(--schrift-meta); font-weight: 620; color: var(--text);
+    padding: 11px 20px 0 0; border-top: 1px solid var(--linie);
+  }
+  dl.schrittliste dd {
+    margin: 0; font-size: var(--schrift-meta); color: var(--leise);
+    padding: 11px 0 13px; border-top: 1px solid var(--linie);
+  }
+  dl.schrittliste dt:first-of-type, dl.schrittliste dt:first-of-type + dd {
+    border-top: 0; padding-top: 0;
+  }
+  @media (max-width: 640px) {
+    dl.schrittliste { grid-template-columns: 1fr; }
+    dl.schrittliste dd { border-top: 0; padding-top: 2px; }
+    dl.schrittliste dt:first-of-type + dd { padding-top: 2px; }
+  }
+
+  .pruefer blockquote {
+    margin: 0; padding: 16px 20px; max-width: 74ch;
+    background: var(--grund); border: var(--kante);
+    border-radius: var(--rund-gruppe); box-shadow: var(--hebung);
+    font-size: var(--schrift-text);
+  }
+  .pruefer h2 { margin-bottom: 12px; }
+
+  details.fall { border-bottom: 1px solid var(--linie); }
+  details.fall > summary {
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px;
+    padding: 12px 0; font-size: var(--schrift-text); color: var(--text);
+  }
+  details.fall .fall-nr { font-weight: 620; min-width: 5rem; }
+  details.fall[open] > summary { border-bottom: 0; }
+
+  fieldset.haken { margin: 16px 0; }
+  label.kasten {
+    display: flex; align-items: flex-start; gap: 10px; margin: 10px 0;
+    font-size: var(--schrift-text); color: var(--text); cursor: pointer;
+  }
+  label.kasten input[type=checkbox] {
+    width: 17px; height: 17px; margin: 2px 0 0; flex: 0 0 auto;
+    accent-color: var(--akzent);
+  }
+
+  /* Reiter als Segmentschalter: echte Verweise, keine Umschaltung per Skript,
+     damit jede Auswertung ihre eigene Adresse behält. */
+  nav.reiter {
+    display: inline-flex; flex-wrap: wrap; gap: 2px;
+    background: var(--segment-grund); border-radius: 9px;
+    padding: 2px; margin: 0 0 22px;
+  }
+  nav.reiter a {
+    padding: 5px 14px; text-decoration: none; color: var(--text);
+    font-size: var(--schrift-meta); font-weight: 500; border-radius: 7px;
+    transition: background var(--takt) var(--kurve);
+  }
+  nav.reiter a:hover { background: var(--zeile-an); }
+  nav.reiter a[aria-current="page"] {
+    background: var(--grund); font-weight: 590;
+    box-shadow: var(--hebung-klein);
+  }
+
+  .kennzahl { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; }
+  .kennzahl .gross {
+    font-size: 2.75rem; font-weight: 680; line-height: 1.05;
+    letter-spacing: -0.028em; font-variant-numeric: tabular-nums;
+  }
+
+  /* Ein geschlossener Kreislauf ist erledigte Arbeit: eingeklappt, aber
+     jederzeit nachlesbar und fortführbar. */
+  /* Ein geschlossener Kreislauf ist eine Gruppe wie jede andere: gehobene
+     Fläche mit Kante und Schatten, Rundung von der Leiter. Vorher trug er
+     einen echten Rahmen mit eigener Rundung und widersprach damit als einzige
+     Stelle der Regel «Raum statt Rahmen». */
+  details.kreislauf.zu {
+    border: var(--kante); border-radius: var(--rund-gruppe);
+    box-shadow: var(--hebung);
+    padding: 0 18px; margin: 0 0 12px; background: var(--grund);
+  }
+  details.kreislauf.zu > summary {
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px;
+    padding: 12px 0; color: var(--text); font-size: var(--schrift-meta);
+  }
+  details.kreislauf.zu[open] > summary { margin-bottom: 4px; }
+  details.kreislauf.zu .kr-titel { font-weight: 600; }
+  details.kreislauf.zu > *:last-child { margin-bottom: 14px; }
+  fieldset.kreislauf.offen { margin: 0 0 14px; }
+  details.fortfuehren > summary {
+    color: var(--akzent); font-weight: 600; padding: 8px 0;
+  }
+
+  /* Fortschrittsringe: drei Segmente je Kreislauf, offene Lücken zeigen,
+     welcher Schritt fehlt. */
+  .fortschritt { width: 44px; height: 44px; flex: 0 0 auto; }
+  .fortschritt .ring.leer { stroke: var(--linie); }
+  .fortschritt .ring.voll.t-messung { stroke: var(--akzent); }
+  .fortschritt .ring.voll.t-massnahme { stroke: var(--violett); }
+  .fortschritt .ring.voll.t-nachmessung { stroke: var(--gruen); }
+  .fortschritt .ring.voll.t-define { stroke: var(--leise); }
+  .fortschritt .ring.voll.t-measure { stroke: var(--akzent); }
+  .fortschritt .ring.voll.t-analyze { stroke: var(--reihe-2); }
+  .fortschritt .ring.voll.t-improve { stroke: var(--violett); }
+  .fortschritt .ring.voll.t-control { stroke: var(--gruen); }
+  details.phasen > summary { padding: 6px 0; }
+  details.phasen > form { margin: 4px 0 10px; max-width: 44rem; }
+  details.phasen > form > button { margin-top: 10px; }
+  .fortschritt .ringzahl {
+    fill: var(--leise); font-size: 13px; font-weight: 650;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Fliesstext bekommt eine Lesebreite. Gemessen waren 128 Zeichen. */
+  p { max-width: 68ch; margin: 0 0 14px; }
+  .leise { color: var(--leise); }
+  .meta { font-size: var(--schrift-meta); color: var(--leise); }
+
+  a { color: var(--akzent); text-underline-offset: 2px; text-decoration-thickness: 1px; }
+  a:hover { color: var(--akzent-tief); }
+
+  /* Ein Verweis, der aussieht wie Text. Für lange Titel in Tabellen: sie
+     sollen anklickbar sein, aber die Zeile nicht in einen blauen Block
+     verwandeln. Die Unterstreichung kommt, sobald der Zeiger darauf liegt
+     oder die Tastatur hinkommt, damit erkennbar bleibt, dass es einer ist.
+     Michael am 15.09.2026: «ich will auch den text im handbuch anklicken
+     können.» */
+  a.stiller-verweis { color: inherit; text-decoration: none; }
+  a.stiller-verweis:hover,
+  a.stiller-verweis:focus-visible { color: inherit; text-decoration: underline; }
+  /* Die ganze Zelle ist das Ziel, nicht nur die Buchstaben. Steht eine
+     Marke daneben, bleibt der Verweis im Textfluss; sonst rutschte sie auf
+     die nächste Zeile. */
+  td.kopf > a.stiller-verweis:only-child { display: block; }
+
+  /* Tabellen liegen in einer Gruppe: aussen gerundet, innen Haarlinien. */
+  table {
+    border-collapse: collapse; width: 100%; font-size: var(--schrift-meta);
+    table-layout: fixed; min-width: 44rem;
+  }
+  col.c-nr { width: 4.5rem; }
+  col.c-titel { width: auto; }
+  col.c-pflicht { width: 6rem; }
+  col.c-2024 { width: 9rem; }
+  col.c-nachweise { width: 11rem; }
+  col.c-datum { width: 6.5rem; }
+  col.c-kreislauf { width: 7rem; }
+  /* Die Tabelle der offenen Auflagen: Nummer, Kriterium, Wortlaut,
+     Verfahren, Frist. Der Wortlaut bekommt, was übrig bleibt. */
+  col.c-kriterium { width: 14rem; }
+  col.c-verfahren { width: 9rem; }
+  /* «noch 108 Tage» soll auf eine Zeile passen. */
+  col.c-frist { width: 8.5rem; }
+  /* Die Beschriftung wiederholt sichtbar die Überschrift darüber. Für die
+     Sprachausgabe bleibt sie nötig, also verbergen statt entfernen. */
+  caption {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip-path: inset(50%); white-space: nowrap;
+  }
+  th, td {
+    text-align: left; padding: 11px 14px;
+    border-bottom: 1px solid var(--linie); vertical-align: top;
+  }
+  th {
+    color: var(--leise); font-weight: 590; font-size: 0.75rem;
+    white-space: nowrap; background: var(--flaeche);
+  }
+  tbody tr:last-child td { border-bottom: 0; }
+  tbody tr:hover td, tbody tr:focus-within td { background: var(--akzent-flaeche); }
+  td.zahl, th.zahl { text-align: right; }
+  /* Fliesstext in einer Zelle braucht dieselbe Lesebreite wie ein Absatz,
+     sonst laufen 200 Zeichen über die volle Tabellenbreite. */
+  td.text { max-width: 46ch; }
+
+  .tabellenrahmen {
+    overflow-x: auto; background: var(--grund); border: var(--kante);
+    border-radius: var(--rund-gruppe); box-shadow: var(--hebung);
+  }
+  .tabellenrahmen:focus-visible { outline: 2px solid var(--akzent); outline-offset: 2px; }
+
+  /* Die Kriteriennummer ist das Sprungziel und war 19px hoch. */
+  .nummer {
+    display: inline-block; padding: 4px 7px; margin: -4px 0 -4px -7px;
+    border-radius: var(--rund-klein); font-weight: 590; text-decoration: none;
+    transition: background var(--takt) var(--kurve), color var(--takt) var(--kurve);
+  }
+  .nummer:hover { background: var(--akzent); color: var(--akzent-text); }
+
+  /* Ein Statusvokabular, überall gleich gezeichnet: getönte Fläche, keine
+     Umrandung, dieselbe Höhe. */
+  .marke {
+    display: inline-block; padding: 2px 8px; border-radius: var(--rund-klein);
+    font-size: 0.75rem; font-weight: 590; white-space: nowrap;
+    background: var(--flaeche); color: var(--leise);
+  }
+  .marke.muss { background: var(--rot-flaeche); color: var(--rot); }
+  .marke.soll { background: var(--flaeche); color: var(--leise); font-weight: 500; }
+  .marke.monitoring { background: var(--akzent-flaeche); color: var(--akzent); }
+
+  .rot { color: var(--rot); } .gelb { color: var(--gelb); } .gruen { color: var(--gruen); }
+
+  details > summary {
+    cursor: pointer; padding: 12px 0; color: var(--akzent);
+    font-size: var(--schrift-meta);
+  }
+  details > summary::marker { color: var(--feldlinie); }
+  details[open] > summary { border-bottom: 1px solid var(--linie); margin-bottom: 14px; }
+
+  /* Der Knopf zum Anlegen steht ohne Überschrift direkt unter dem
+     Kreislauf. Als blosse Textzeile ginge er dort zwischen zwei
+     Abschnitten unter, also trägt er denselben ruhigen Rahmen wie der
+     Zweitknopf der Landkarte. */
+  details.anlegen { margin: 20px 0 30px; }
+  details.anlegen > summary {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 9px 14px; border: var(--kante); border-radius: var(--rund-feld);
+    background: var(--grund); color: var(--text); font-weight: 590;
+    box-shadow: var(--hebung-klein); list-style: none;
+    transition: background var(--takt) var(--kurve);
+  }
+  details.anlegen > summary::-webkit-details-marker { display: none; }
+  details.anlegen > summary::before {
+    content: "+"; color: var(--akzent); font-weight: 700; line-height: 1;
+  }
+  details.anlegen > summary:hover { background: var(--flaeche); }
+  details.anlegen > summary:active { transform: scale(.985); }
+  details.anlegen[open] > summary {
+    border: var(--kante); margin-bottom: 4px;
+  }
+
+  form { margin: 18px 0; }
+  fieldset {
+    background: var(--grund); border: var(--kante);
+    border-radius: var(--rund-gruppe); box-shadow: var(--hebung);
+    padding: 16px 20px 20px; margin: 0;
+  }
+  legend { color: var(--leise); font-size: var(--schrift-meta); padding: 0 6px; }
+  label {
+    display: block; font-size: var(--schrift-meta); color: var(--leise);
+    margin: 14px 0 5px; font-weight: 500;
+  }
+
+  input[type=text], input[type=date], textarea, select {
+    width: 100%; padding: 9px 11px;
+    border: 1px solid var(--feldlinie); border-radius: var(--rund-feld);
+    background: var(--grund); color: var(--text); font: inherit;
+    transition: border-color var(--takt) var(--kurve), box-shadow var(--takt) var(--kurve);
+  }
+  input[type=text]:focus, input[type=date]:focus, textarea:focus, select:focus {
+    outline: none; border-color: var(--akzent);
+    box-shadow: 0 0 0 3px var(--fokusring);
+  }
+  input::placeholder, textarea::placeholder { color: var(--leise); }
+  textarea { min-height: 72px; resize: vertical; }
+
+  button {
+    margin-top: 16px; padding: 9px 18px;
+    border: 1px solid transparent; border-radius: var(--rund-feld);
+    background: var(--akzent); color: var(--akzent-text);
+    font: inherit; font-weight: 590; cursor: pointer;
+    transition: background var(--takt) var(--kurve), transform 90ms var(--kurve);
+  }
+  button:hover { background: var(--akzent-tief); }
+  button:active { transform: scale(.985); }
+  button:disabled {
+    background: var(--flaeche); color: var(--leise); cursor: not-allowed;
+    transform: none;
+  }
+
+  .paar { display: flex; flex-wrap: wrap; gap: 16px; }
+  .paar > * { flex: 1 1 190px; }
+
+  /* Die Suche ist ein Feld und keine Seitenbreite. Feld und Knopf stehen
+     nebeneinander, wie in jeder Systemoberfläche. */
+  form[role="search"] { max-width: 34rem; }
+  form[role="search"] .paar { align-items: center; gap: 10px; }
+  form[role="search"] button { margin-top: 0; flex: 0 0 auto; }
+  form[role="search"] > button { margin-top: 12px; }
+
+  .quelle {
+    white-space: pre-wrap; background: var(--grund); border: var(--kante);
+    border-radius: var(--rund-gruppe); box-shadow: var(--hebung);
+    padding: 16px 20px; font-size: var(--schrift-meta); max-width: 78ch;
+  }
+  ul.knapp { margin: 8px 0; padding-left: 20px; max-width: 68ch; }
+  ul.knapp li { margin: 5px 0; }
+
+  /* Eine Liste, die weiterführt, ist in dieser Oberfläche eine Gruppe mit
+     Zeilen: Trennlinien setzen erst hinter dem Textanfang an, und jede Zeile
+     zeigt mit dem Winkel, dass sie irgendwohin führt. */
+  ul.sprungliste {
+    list-style: none; margin: 14px 0 0; padding: 0; max-width: 34rem;
+    background: var(--grund); border: var(--kante);
+    border-radius: var(--rund-gruppe); box-shadow: var(--hebung);
+    overflow: hidden;
+  }
+  ul.sprungliste a {
+    position: relative; display: flex; align-items: center; gap: 10px;
+    padding: 13px 16px; text-decoration: none; color: var(--text);
+    font-size: var(--schrift-text);
+    transition: background var(--takt) var(--kurve);
+  }
+  ul.sprungliste a:hover { background: var(--flaeche); }
+  ul.sprungliste li + li a::before {
+    content: ""; position: absolute; left: 16px; right: 0; top: 0;
+    height: 1px; background: var(--linie);
+  }
+  ul.sprungliste a::after {
+    content: ""; margin-left: auto; flex: 0 0 auto;
+    width: 7px; height: 7px; border-radius: 1px;
+    border-top: 2px solid var(--feldlinie);
+    border-right: 2px solid var(--feldlinie);
+    transform: rotate(45deg);
+  }
+  ul.sprungliste .navnr { width: 2.6rem; color: var(--leise); }
+
+  /* Hochgeladene Listen. Der Einwurf ist eine Gruppe wie jede andere, der
+     Bestand darunter eine Zeilenliste mit eingerückter Trennlinie. */
+  form.einwurf {
+    background: var(--grund); border: var(--kante);
+    border-radius: var(--rund-gruppe); box-shadow: var(--hebung);
+    padding: 16px 20px 18px; margin: 14px 0 0; max-width: 44rem;
+  }
+  form.einwurf label { margin-top: 0; }
+  form.einwurf .paar { align-items: center; gap: 12px; }
+  form.einwurf input[type=file] {
+    flex: 1 1 16rem; min-width: 0; font: inherit;
+    font-size: var(--schrift-meta); color: var(--text);
+    padding: 7px 10px; border: 1px solid var(--feldlinie);
+    border-radius: var(--rund-feld); background: var(--grund);
+  }
+  /* Der Knopf im Feld wird vom Browser gezeichnet und gehört trotzdem zum
+     Entwurf: sonst steht dort ein graues Systemteil in einer weissen Gruppe. */
+  form.einwurf input[type=file]::file-selector-button {
+    font: inherit; font-size: var(--schrift-meta); font-weight: 590;
+    margin: -3px 10px -3px -4px; padding: 5px 12px; cursor: pointer;
+    border: 0; border-radius: var(--rund-klein);
+    background: var(--flaeche); color: var(--text);
+  }
+  form.einwurf input[type=file]:hover::file-selector-button { background: var(--zeile-an); }
+  form.einwurf button { margin-top: 0; flex: 0 0 auto; }
+  form.einwurf .meta { margin: 10px 0 0; }
+
+  ul.listenbestand {
+    list-style: none; margin: 14px 0 0; padding: 0; max-width: 52rem;
+    background: var(--grund); border: var(--kante);
+    border-radius: var(--rund-gruppe); box-shadow: var(--hebung);
+  }
+  ul.listenbestand > li { position: relative; padding: 16px 20px 18px; }
+  ul.listenbestand > li + li::before {
+    content: ""; position: absolute; left: 20px; right: 0; top: 0;
+    height: 1px; background: var(--linie);
+  }
+  .lb-kopf {
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px;
+  }
+  .lb-name { font-weight: 620; overflow-wrap: anywhere; }
+  .lb-datum { margin-left: auto; }
+  .lb-kopf form { margin: 0; flex: 0 0 auto; }
+  form.uebernehmen { margin: 8px 0 0; }
+  .lb-blatt { margin-top: 10px; }
+  .lb-blatt .meta { margin: 0; }
+
+  /* Die Spaltennamen sind das Eigentliche: an ihnen erkennt man, ob die
+     Liste taugt und ob Personendaten drinstehen. */
+  ul.spaltenliste {
+    list-style: none; display: flex; flex-wrap: wrap; gap: 5px;
+    margin: 8px 0 0; padding: 0;
+  }
+  /* Bei den Befragungen ist der Spaltenname die ganze Frage. Sichtbar
+     abgeschnitten, im Text vollständig: die Sprachausgabe und die Suche im
+     Browser finden weiterhin den ganzen Namen. */
+  ul.spaltenliste li {
+    background: var(--flaeche); color: var(--text);
+    border-radius: var(--rund-klein); padding: 3px 9px;
+    font-size: 0.75rem; max-width: 32ch;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  details.weitere > summary { padding: 8px 0 0; }
+  details.weitere[open] > summary { border-bottom: 0; margin-bottom: 0; }
+
+  /* Eine Rückmeldung nach dem Hochladen, in den drei Tönen des
+     Statusvokabulars. Getönte Fläche, kein Rahmen. */
+  .hinweis {
+    max-width: 52rem; margin: 16px 0 0; padding: 12px 16px;
+    border-radius: var(--rund-feld); font-size: var(--schrift-meta);
+    background: var(--flaeche); color: var(--text);
+  }
+  .hinweis.gut { background: var(--gruen-flaeche); }
+  .hinweis.warnung { background: var(--gelb-flaeche); }
+  .hinweis.fehler { background: var(--rot-flaeche); }
+  .hinweis strong { font-weight: 620; }
+
+  /* Die Haupthandlung einer Seite: ein Knopf, der aufklappt, was er ankündigt.
+     Aufgeklappt tritt er zurück, damit er nicht mit dem Absendeknopf im
+     Formular um die Aufmerksamkeit streitet — zwei gefüllte Knöpfe
+     übereinander sagen nicht, welcher der Abschluss ist. */
+  details.grossaktion { margin: 20px 0 0; }
+  details.grossaktion > summary {
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 16px 28px; border-radius: var(--rund-feld);
+    background: var(--akzent); color: var(--akzent-text);
+    font-size: 1rem; font-weight: 640; letter-spacing: -0.008em;
+    cursor: pointer; list-style: none; border: 0;
+    box-shadow: var(--hebung-klein);
+    transition: background var(--takt) var(--kurve),
+                transform 90ms var(--kurve);
+  }
+  details.grossaktion > summary::marker,
+  details.grossaktion > summary::-webkit-details-marker { display: none; content: ""; }
+  details.grossaktion > summary svg { width: 18px; height: 18px; flex: 0 0 auto; }
+  details.grossaktion > summary:hover { background: var(--akzent-tief); }
+  details.grossaktion > summary:active { transform: scale(.985); }
+  details.grossaktion[open] > summary {
+    background: var(--grund); color: var(--akzent);
+    border: var(--kante); padding: 15px 27px; margin-bottom: 4px;
+  }
+  details.grossaktion > form { margin-top: 14px; }
+  details.grossaktion > .meta { max-width: 68ch; }
+
+  /* Ein Knopf, der nicht die Haupthandlung ist: dieselbe Form, ohne Füllung. */
+  button.knopf-leise {
+    margin: 0; padding: 5px 12px;
+    background: transparent; color: var(--akzent);
+    border: 1px solid var(--linie); font-size: var(--schrift-meta);
+  }
+  button.knopf-leise:hover { background: var(--flaeche); color: var(--akzent-tief); }
+
+  /* Handbuch: je Betriebsablauf die geltenden Dokumente. Der Stand steht
+     als Punkt und Satz unter dem Titel, die Handlungen in einer Zeile
+     darunter; eine aufgeklappte Handlung nimmt die ganze Breite. */
+  .hb-stand { margin: 8px 0 0; font-size: var(--schrift-meta); color: var(--leise); }
+  .hb-stand .punkt {
+    display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+    margin-right: 7px; vertical-align: 1px; background: var(--feldlinie);
+  }
+  .hb-stand.faellig .punkt { background: var(--rot); }
+  .hb-stand.bald .punkt { background: var(--gelb); }
+  .hb-stand.aktuell .punkt { background: var(--gruen); }
+  .hb-ausschnitt { margin: 8px 0 0; max-width: 68ch; }
+  .hb-aktionen {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px;
+    margin-top: 12px;
+  }
+  .hb-aktionen form { margin: 0; }
+  /* Der Knopf im Hinweis steht unter dem Satz, nicht daneben: sonst reisst
+     die Zeile, sobald der Satz zwei Zeilen braucht. */
+  .hinweis form { margin: 10px 0 0; }
+  .hinweis form button { margin: 0; }
+  /* Der Prüfplan: die Zahl gross genug, um sie ohne Suchen zu sehen. */
+  .planzahl { margin: 4px 0 10px; }
+  .planzahl strong { font-size: var(--schrift-gross, 1.3rem); font-weight: 620; }
+  .planzahl span { white-space: nowrap; }
+  /* Der Sammelknopf über einer Nachweisliste. */
+  form.sammelpruefung {
+    display: flex; align-items: center; gap: 12px;
+    margin: 0 0 10px; flex-wrap: wrap;
+  }
+  form.sammelpruefung button { margin: 0; }
+  .hb-aktionen > details > summary { padding: 5px 0; }
+  .hb-aktionen > details[open] { flex-basis: 100%; }
+  .hb-aktionen > details[open] > summary { border-bottom: 0; margin-bottom: 0; }
+  .hb-aktionen > details > form {
+    margin: 8px 0 4px; padding: 14px 16px; max-width: 44rem;
+    background: var(--flaeche); border-radius: var(--rund-feld);
+  }
+  .hb-aktionen > details > form .meta { margin: 8px 0 0; }
+  .hb-aktionen > details > form > button { margin-top: 12px; }
+  button.knopf-klein { margin: 0; padding: 6px 14px; font-size: var(--schrift-meta); }
+  button.knopf-leise.gefahr { color: var(--rot); }
+  button.knopf-leise.gefahr:hover { background: var(--rot-flaeche); color: var(--rot); }
+  form.einwurf .paar + .paar { margin-top: 12px; }
+  form.einwurf > button { margin-top: 14px; }
+
+  /* Zwei Tabellen im Handbuch, jede mit ihren eigenen Massen. Beide haben
+     feste Spalten, also feste Masse statt Prozente: sonst teilt der Browser
+     gleichmässig auf, und der Titel bricht viermal um, während «0 von 9» im
+     Leeren steht. Der Titel nimmt, was übrig bleibt; er ist das Einzige,
+     das Platz braucht.
+
+     Die Liste der Kriterien: Nr., Kriterium, Pflicht, Dokumente, Geprüft,
+     Auflagen und Mängel. */
+  table.kriterienliste th:first-child,
+  table.kriterienliste td:first-child { width: 4.5rem; }
+  table.kriterienliste th:nth-child(3),
+  table.kriterienliste td:nth-child(3) { width: 7rem; }
+  table.kriterienliste th:nth-child(4),
+  table.kriterienliste td:nth-child(4) { width: 7.5rem; }
+  table.kriterienliste th:nth-child(5),
+  table.kriterienliste td:nth-child(5) { width: 8rem; }
+  table.kriterienliste th:last-child,
+  table.kriterienliste td:last-child { width: 10.5rem; }
+  /* Die Trefferliste der Suche: Nr., Titel, Auszug. Der Auszug ist lang,
+     der Titel soll trotzdem nicht auf vier Zeilen brechen. */
+  table.suchliste th:first-child,
+  table.suchliste td:first-child { width: 4.5rem; }
+  table.suchliste th:nth-child(2),
+  table.suchliste td:nth-child(2) { width: 17rem; }
+
+  /* Leserecht: alles sehen, nichts verändern. Die Formulare, die etwas
+     schreiben, sind für diese Konten nicht da; der Server weist sie
+     ohnehin ab. Das Passwortformular bleibt, es trägt die Klasse immer. */
+  main.nur-lesen form[method="post"]:not(.immer) { display: none; }
+  main.nur-lesen details:has(> form[method="post"]:not(.immer)) { display: none; }
+  .angemeldet .recht { color: var(--leise); }
+  /* Der Kontobereich unten: erst der Punkt «Einstellungen», dann die
+     Zeile mit Name, Stufe und Abmelden. */
+  .schemabereich nav { margin: 0 -10px; }
+  .schemabereich .angemeldet { margin-top: 10px; padding: 0 10px; }
+  .schemaschalter.einstellung { max-width: 20rem; margin: 0 0 8px; }
+
+  /* Ein geschlossener Kreislauf zeigt seinen vollen Ring und das Geprüfte,
+     ohne dass man ihn aufklappt: die Nachmessung mit Datum, dahinter der
+     Ausgangswert. Aufgeklappt kommt die ganze Beschreibung dazu. */
+  details.kreislauf.zu > summary { align-items: center; gap: 8px 14px; }
+  .kr-ring { flex: 0 0 auto; display: flex; }
+  .kr-ring .fortschritt { width: 40px; height: 40px; }
+  .kr-text { flex: 1 1 24ch; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+  .kr-geprueft { font-size: var(--schrift-meta); color: var(--text); }
+  .kr-geprueft strong { color: var(--gruen); font-weight: 620; }
+  .marke.geschlossen { background: var(--gruen-flaeche); color: var(--gruen); }
+
+  /* Anhänge am Beschwerdefall: eine kleine Zeilenliste unter dem Formular. */
+  .anhaenge { margin: 18px 0 6px; }
+  .anhaenge h3 { margin: 0 0 4px; font-size: var(--schrift-text); }
+  .anhaenge ul.listenbestand { max-width: 44rem; }
+  .anhaenge ul.listenbestand > li { padding: 10px 16px 12px; }
+  .anhaenge form.einwurf { padding: 12px 16px 14px; }
+
+  /* Die Zahl neben «Handbuch» in der Seitenleiste: fällige Prüfungen. */
+  .navzahl {
+    margin-left: auto; padding: 2px 7px; border-radius: 999px;
+    background: var(--rot-flaeche); color: var(--rot);
+    font-size: 0.72rem; font-weight: 620; font-variant-numeric: tabular-nums;
+  }
+  .seitenleiste nav a[aria-current="page"] .navzahl {
+    background: var(--akzent-text); color: var(--akzent);
+  }
+
+  /* Der Stand der fünf Bereiche, auf jeder Seite: grün geschlossen, blau
+     offen, rotes Ausrufezeichen ohne begonnenen Kreislauf. Die Zahl sagt
+     nur Wieviel, die Farbe sagt Was; vorgelesen wird beides. */
+  .navstand { margin-left: auto; display: flex; gap: 4px; flex: 0 0 auto; }
+  .navstand .navzahl { margin-left: 0; min-width: 1.5em; text-align: center; }
+  .navzahl.gruen { background: var(--gruen-flaeche); color: var(--gruen); }
+  .navzahl.blau { background: var(--akzent-flaeche); color: var(--akzent); }
+  .navzahl.rot { background: var(--rot-flaeche); color: var(--rot); }
+  .seitenleiste nav a[aria-current="page"] .navzahl.gruen { color: var(--gruen); }
+  .seitenleiste nav a[aria-current="page"] .navzahl.blau { color: var(--akzent); }
+  .seitenleiste nav a[aria-current="page"] .navzahl.rot { color: var(--rot); }
+  .nur-vorlesen {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip-path: inset(50%); white-space: nowrap;
+  }
+
+  /* Prozesslandkarte: übergeordnete Prozesse als aufklappbare Zeilen einer
+     Gruppe. Keine Karte in der Karte — die Zeile bleibt die Einheit, und die
+     Trennlinie setzt wie überall erst am Textanfang an. */
+  ol.landkarte {
+    list-style: none; margin: 14px 0 0; padding: 0;
+    background: var(--grund); border: var(--kante);
+    border-radius: var(--rund-gruppe); box-shadow: var(--hebung);
+    overflow: hidden;
+  }
+  .landkarte > li { position: relative; }
+  .landkarte > li + li::before {
+    content: ""; position: absolute; left: 20px; right: 0; top: 0;
+    height: 1px; background: var(--linie);
+  }
+  details.prozess > summary {
+    display: grid; grid-template-columns: 1fr auto 10px;
+    align-items: baseline; gap: 3px 14px;
+    padding: 13px 18px 13px 20px; margin: 0;
+    color: var(--text); font-size: var(--schrift-text);
+    cursor: pointer; list-style: none; border-bottom: 0;
+    transition: background var(--takt) var(--kurve);
+  }
+  details.prozess > summary::-webkit-details-marker { display: none; }
+  details.prozess[open] > summary { border-bottom: 0; margin-bottom: 0; }
+  details.prozess > summary:hover { background: var(--zeile-an); }
+  details.prozess > summary::after {
+    content: ""; grid-column: 3; grid-row: 1 / -1; align-self: center;
+    width: 7px; height: 7px; border-radius: 1px;
+    border-top: 2px solid var(--feldlinie);
+    border-right: 2px solid var(--feldlinie);
+    transform: rotate(45deg);
+    transition: transform var(--takt) var(--kurve);
+  }
+  details.prozess[open] > summary::after { transform: rotate(135deg); }
+  .pr-name { grid-column: 1; font-weight: 590; }
+  .pr-meta {
+    grid-column: 2; display: flex; flex-wrap: wrap; gap: 4px 12px;
+    font-size: var(--schrift-meta); color: var(--leise);
+  }
+  .pr-zweck {
+    margin: 0 18px 12px 20px; max-width: 68ch;
+    font-size: var(--schrift-meta); color: var(--leise);
+  }
+
+  /* Die Teilprozesse: Name links, die Kriterien in der Mitte, der Stand
+     rechts in einer eigenen Spalte, damit sich die Zeilen abtasten lassen. */
+  .schritte { list-style: none; margin: 0; padding: 0 18px 16px 20px; }
+  /* Feste Spalten statt mitwachsender: nur so stehen die Kriteriumsnummern
+     und die Stände über alle Prozesse hinweg wirklich untereinander. */
+  .schritt {
+    position: relative; display: grid;
+    grid-template-columns: minmax(0, 1fr) 7.5rem 8.5rem;
+    align-items: baseline; gap: 2px 14px; padding: 9px 0;
+  }
+  .schritt + .schritt::before {
+    content: ""; position: absolute; left: 0; right: 0; top: 0;
+    height: 1px; background: var(--linie);
+  }
+  .s-name { grid-column: 1; font-size: var(--schrift-meta); max-width: 52ch; }
+  .s-marken { grid-column: 2; display: flex; flex-wrap: wrap; gap: 5px; }
+  /* Die Nummernmarke trägt für die Tabelle einen negativen linken Rand.
+     Hier soll nur die erste ihn behalten, sonst rücken die Marken zusammen. */
+  .s-marken .nummer { margin: -4px 0; }
+  .s-marken .nummer:first-child { margin-left: -7px; }
+  .s-stand { grid-column: 3; font-size: 0.75rem; text-align: right; }
+  .s-quelle {
+    grid-column: 1 / -1; font-size: 0.75rem; color: var(--leise);
+    max-width: 58ch;
+  }
+  /* Der Verweis auf eine eigene Seite trägt dieselbe Marke wie eine
+     Kriteriumsnummer: beide führen weiter, also sehen sie gleich aus. */
+  .s-ziel { font-size: 0.75rem; white-space: nowrap; }
+
+  /* Ein ruhiger Zweitknopf: die Landkarte braucht einen Schalter, der neben
+     der Überschrift nicht lauter sein darf als sie. */
+  .klappknopf {
+    display: inline-flex; align-items: center; gap: 8px; margin: 14px 0 0;
+    padding: 8px 13px; border: var(--kante); border-radius: var(--rund-feld);
+    background: var(--grund); color: var(--text);
+    font: inherit; font-size: var(--schrift-meta); font-weight: 590;
+    cursor: pointer; box-shadow: var(--hebung-klein);
+    transition: background var(--takt) var(--kurve);
+  }
+  .klappknopf:hover { background: var(--flaeche); }
+  .klappknopf:active { transform: scale(.985); }
+  .klappknopf svg {
+    width: 13px; height: 13px; flex: 0 0 auto; color: var(--leise);
+    transition: transform var(--takt) var(--kurve);
+  }
+  .klappknopf[aria-pressed="true"] svg { transform: rotate(90deg); }
+
+  /* Der Ablauf eines Prozesses als Fluss. Spindel, Nummern und Pfeile
+     gibt es nur in Kette und Kreislauf. Ein Bündel bekommt nichts davon:
+     eine Verbindung durch lauter gleichzeitige Aufgaben wäre eine
+     Behauptung über den Betrieb, und die Zeile daneben sagt das Gegenteil. */
+  .fluss .schritt, .dauerliste .schritt {
+    grid-template-columns: 28px minmax(0, 1fr) 9rem 8.5rem;
+  }
+  .fluss .s-name, .dauerliste .s-name { grid-column: 2; }
+  .fluss .s-marken, .dauerliste .s-marken { grid-column: 3; }
+  .fluss .s-stand, .dauerliste .s-stand { grid-column: 4; }
+  .fluss .s-quelle, .dauerliste .s-quelle { grid-column: 2 / -1; }
+  /* Der Mangel steht unter dem Namen, nicht unter der Ablaufmarke. */
+  .fluss .mangel-klapp, .dauerliste .mangel-klapp { grid-column: 2 / -1; }
+
+  /* Das wiederkehrende Formzeichen, hier als Knoten des Ablaufs. Die Ziffer
+     trägt dieselbe Grösse und dasselbe Gewicht wie in der Einsatzkette. */
+  .fl-marke {
+    grid-column: 1; grid-row: 1 / -1; align-self: start;
+    position: relative; z-index: 1;
+    display: flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; border-radius: 8px;
+    background: var(--flaeche); color: var(--leise);
+    font-size: 13px; font-weight: 650;
+  }
+  /* Wo es keine Reihenfolge gibt, steht ein gezeichneter Punkt — kein
+     Schriftzeichen in der Rolle eines Sinnbilds. Dieselbe Marke im Bündel
+     wie bei den Dauerbedingungen: dieselbe Aussage, dieselbe Zeichnung. */
+  .fl-marke.punkt { background: none; }
+  .fl-marke.punkt::after {
+    content: ""; width: 7px; height: 7px; border-radius: 980px;
+    background: var(--feldlinie);
+  }
+  .fl-marke.rueck { background: none; }
+  .fl-marke.rueck svg {
+    width: 15px; height: 15px; color: var(--feldlinie);
+  }
+
+  /* Die Spindel ersetzt im Fluss die Trennlinie: zwei Striche übereinander
+     wären einer zu viel. Sie trägt die Feldlinie und nicht die Haarlinie —
+     ein Weg, den man zum Verstehen braucht, ist ein Bedienelementrand nach
+     SC 1.4.11, und die Haarlinie heisst auf dieser Seite «fehlt». */
+  ol.fluss .schritt::before {
+    content: ""; position: absolute; left: 13px; right: auto;
+    top: 0; bottom: 0; width: 2px; height: auto;
+    background: var(--feldlinie);
+  }
+  ol.fluss .schritt:first-child::before { top: 23px; }
+  ol.fluss .schritt:last-child::before { bottom: auto; height: 23px; }
+  ol.fluss.kreis .schritt:last-child::before { bottom: 0; height: auto; }
+  ol.fluss .schritt:only-child::before { display: none; }
+  ol.fluss.kreis .schritt:only-child::before { display: block; top: 23px; }
+
+  ol.fluss .schritt + .schritt::after {
+    content: ""; position: absolute; left: 10px; top: 1px; z-index: 2;
+    border-left: 4px solid transparent; border-right: 4px solid transparent;
+    border-top: 6px solid var(--feldlinie);
+  }
+
+  /* Der Kreislauf schliesst sich sichtbar: der Strang läuft aus dem letzten
+     Knoten weiter und endet im Rückkehrzeichen, nicht im Weissen. */
+  .fl-zurueck {
+    position: relative; display: grid;
+    grid-template-columns: 28px minmax(0, 1fr);
+    align-items: center; gap: 14px;
+    margin: 0 18px 14px 20px; padding: 0 0 6px;
+    font-size: 0.75rem; color: var(--leise);
+  }
+  .fl-zurueck::before {
+    content: ""; position: absolute; left: 13px; top: -2px;
+    width: 2px; height: 16px; background: var(--feldlinie);
+  }
+
+  /* Wo mehrere Stränge zusammenlaufen, ist das Ziel kein weiterer Schritt,
+     sondern der Punkt, an dem sie gemeinsam zählen. Es steht deshalb unter
+     eigener Überschrift und trägt eine Kontur, nicht nur eine Tönung. */
+  .fl-zielkopf, .fl-dauerkopf {
+    margin: 6px 18px 0 20px; font-size: 0.75rem; font-weight: 600;
+    color: var(--leise);
+  }
+  .schritt.zusammen .fl-marke {
+    background: var(--akzent-flaeche); color: var(--akzent);
+  }
+  .schritt.zusammen .fl-marke svg { width: 16px; height: 16px; }
+  /* Der Zielknoten traegt die Kontur, nicht zusaetzlich einen Punkt: er
+     steht gerade nicht fuer «eine unter vielen». */
+  .schritt.zusammen .fl-marke.punkt::after { display: none; }
+  .schritt.zusammen .s-name { font-weight: 590; }
+
+  .fl-art {
+    margin: 6px 18px 0 20px; font-size: 0.75rem; font-weight: 600;
+    color: var(--leise);
+  }
+
+  /* Die Einsatzkette nach Kriterium 7.4. Was der Export liefert, steht
+     durchgezogen, was fehlt, gestrichelt: die Lücke gehört in die Zeichnung
+     und nicht in eine Fussnote darunter. */
+  .diagramm .kettenlinie { stroke: var(--reihe-1); stroke-width: 2; }
+  .diagramm .kettenlinie.offen { stroke: var(--linie); }
+  .diagramm .zeitpunkt {
+    fill: var(--flaeche); stroke: var(--reihe-1); stroke-width: 1.5;
+  }
+  .diagramm .zeitpunkt.offen {
+    fill: none; stroke: var(--feldlinie); stroke-width: 1.4;
+    stroke-dasharray: 4 3.5;
+  }
+  .diagramm .zeitpunkt-nr {
+    fill: var(--reihe-1); font-size: 13px; font-weight: 650;
+  }
+  .diagramm .zeitpunkt-nr.offen { fill: var(--leise); font-weight: 400; }
+  .diagramm .zeitpunkt-name { fill: var(--leise); font-size: 11.5px; }
+  .diagramm .intervall {
+    fill: none; stroke: var(--reihe-1); stroke-width: 1.6;
+  }
+  .diagramm .intervall.offen {
+    stroke: var(--feldlinie); stroke-width: 1.3; stroke-dasharray: 4 3.5;
+  }
+  .diagramm .intervall-name {
+    fill: var(--text); font-size: 12px; font-weight: 590;
+  }
+  .diagramm .intervall-name.offen { fill: var(--leise); font-weight: 400; }
+  /* Die Legende zeigt denselben Strich wie die Zeichnung, auch gestrichelt. */
+  .legende .strich.offen {
+    background: none; height: 0; border-radius: 0;
+    border-top: 2px dashed var(--feldlinie);
+  }
+  .tabellenrahmen + .tabellenrahmen { margin-top: 14px; }
+
+  /* Eine Zeichnung, die breiter ist als die Spalte, rollt in ihrem eigenen
+     Rahmen, statt die Seite waagrecht zu schieben. */
+  .diagrammrahmen.breit { overflow-x: auto; }
+  .diagrammrahmen.breit .diagramm { min-width: 57rem; }
+
+  /* Am Schreibtisch trägt die Seitenleiste alle Ziele offen; der Knopf ist
+     dort überflüssig und bleibt verborgen. */
+  .navknopf { display: none; }
+
+  @media (max-width: 900px) {
+    /* Am Telefon wandert die Leiste nach oben. Dreizehn Ziele passen dort
+       weder nebeneinander noch untereinander: umbrochen fressen sie den
+       halben Bildschirm, in einer Schiebezeile verschwinden neun davon
+       unsichtbar nach rechts. Also zugeklappt, mit dem Namen der aktuellen
+       Seite im Knopf — und aufgeklappt die vollständige Gliederung samt
+       ihren Gruppenbeschriftungen, genau wie am Schreibtisch. */
+    .huelle { display: block; }
+    .seitenleiste {
+      position: static; min-height: 0; border-right: 0;
+      border-bottom: 1px solid var(--linie); padding: 12px 14px;
+      display: flex; flex-wrap: wrap; align-items: center; gap: 0 10px;
+    }
+    .seitenleiste .kopfbereich { flex: 1 1 100%; padding: 0 0 12px; }
+
+    .navknopf {
+      display: inline-flex; align-items: center; gap: 9px;
+      flex: 1 1 0; min-width: 0; margin: 0;
+      padding: 9px 12px; border: var(--kante); border-radius: var(--rund-feld);
+      background: var(--grund); color: var(--text);
+      font: inherit; font-size: var(--schrift-meta); font-weight: 590;
+      text-align: left; cursor: pointer; box-shadow: var(--hebung-klein);
+      transition: background var(--takt) var(--kurve);
+    }
+    .navknopf svg { width: 16px; height: 16px; flex: 0 0 auto; color: var(--leise); }
+    .navknopf-wo {
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .navknopf[aria-expanded="true"] { background: var(--flaeche); }
+    .navknopf[aria-expanded="true"] svg { color: var(--akzent); }
+
+    .seitenleiste nav { display: none; flex: 1 1 100%; padding-top: 14px; }
+    .seitenleiste.offen nav { display: block; }
+    .navgruppe { margin: 14px 0 6px; }
+    .navgruppe:first-child { margin-top: 0; }
+
+    /* Der Schalter bleibt neben dem Knopf sichtbar, auch zugeklappt. Seine
+       Beschriftung nicht: «Hell» und «Dunkel» sagen es selbst, und ein Wort
+       darüber würde die Zeile auf zwei Zeilen auseinanderziehen. Für die
+       Sprachausgabe bleibt sie über aria-labelledby erhalten. */
+    .schemabereich { margin: 0; flex: 0 0 auto; }
+    .schemabereich .navgruppe { display: none; }
+    .angemeldet { margin: 0 0 0 12px; }
+    .angemeldet .wer { display: none; }
+    .schemaschalter { display: inline-flex; }
+    .schemaschalter button { flex: 0 0 auto; white-space: nowrap; }
+  }
+
+  @media (max-width: 640px) {
+    :root { --schrift-display: 1.5rem; --schrift-abschnitt: 1.1875rem; }
+    main { padding: 22px 16px 64px; }
+
+    /* Eine sechsspaltige Tabelle ist am Telefon ein seitlich scrollendes
+       Band. Jede Zeile wird deshalb zu einem Block, und die Spaltennamen
+       wandern als Beschriftung vor den Wert. */
+    /* Keine Tabelle darf am Telefon breiter sein als der Bildschirm. */
+    table { min-width: 0; table-layout: auto; }
+    table.umbrechend { display: block; }
+    table.umbrechend colgroup,
+    table.umbrechend thead { display: none; }
+    table.umbrechend tbody,
+    table.umbrechend tr,
+    table.umbrechend td { display: block; width: auto; }
+    table.umbrechend tr {
+      border-bottom: 1px solid var(--linie);
+      padding: 12px 14px 14px;
+    }
+    table.umbrechend tbody tr:last-child { border-bottom: 0; }
+    table.umbrechend td { border: 0; padding: 1px 0; max-width: none; }
+    table.umbrechend td[data-spalte]::before {
+      content: attr(data-spalte) ": ";
+      color: var(--leise); font-size: 0.75rem;
+    }
+    /* Nummer und Titel tragen die Zeile und brauchen keine Beschriftung. */
+    table.umbrechend td.kopf { font-weight: 590; padding-bottom: 5px; }
+    table.umbrechend td.kopf::before { content: none; }
+    .diagrammrahmen { overflow-x: auto; }
+    .diagrammrahmen .diagramm { min-width: 34rem; }
+
+    /* Die Landkarte stapelt: der Stand wandert unter den Namen, statt sich
+       in eine 9,5rem-Spalte zu quetschen, die hier keinen Platz mehr hat. */
+    details.prozess > summary {
+      grid-template-columns: 1fr 10px; padding: 12px 16px;
+    }
+    .pr-meta { grid-column: 1; grid-row: 2; }
+    details.prozess > summary::after { grid-column: 2; }
+    .pr-zweck { margin: 0 16px 12px; }
+    /* Die Kopfzeilen des Flusses stehen auf derselben Kante wie alles
+       andere. Am Schreibtisch sind beide Werte 20px, hier nicht. */
+    .fl-art, .fl-zielkopf, .fl-dauerkopf, .fl-zurueck {
+      margin-left: 16px; margin-right: 16px;
+    }
+    .landkarte > li + li::before { left: 16px; }
+    .schritte { padding: 0 16px 14px; }
+    .schritt { grid-template-columns: 1fr; gap: 3px 0; }
+    .s-name, .s-marken, .s-stand { grid-column: 1; }
+    .s-stand { text-align: left; }
+    .fluss .schritt, .dauerliste .schritt {
+      grid-template-columns: 28px minmax(0, 1fr);
+    }
+    .fluss .s-name, .dauerliste .s-name,
+    .fluss .s-marken, .dauerliste .s-marken,
+    .fluss .s-stand, .dauerliste .s-stand,
+    .fluss .s-quelle, .dauerliste .s-quelle { grid-column: 2; }
+  }
+
+  /* Ganz zum Schluss und mit derselben Genauigkeit wie die Regeln, die sie
+     aufhebt: eine Medienabfrage zählt für die Gewichtung nicht mit, und eine
+     zu schwach geschriebene Ausnahme hätte die einzige Bewegung der Seite
+     trotz ausgeschalteter Bewegung laufen lassen. */
+  @media (prefers-reduced-motion: reduce) {
+    .knoten.erledigt + .knoten::before {
+      animation: none;
+      transform: none;
+    }
+  }
+</style>
+</head>
+<body>
+<a class="sprunglink" href="#inhalt">Zum Inhalt springen</a>
+<svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
+  <defs>
+    <g id="sym-messung" fill="none" stroke="currentColor" stroke-width="1.6"
+       stroke-linecap="round">
+      <path d="M3 13h10"/><path d="M5 13V9"/><path d="M8 13V5.5"/><path d="M11 13V8"/>
+    </g>
+    <g id="sym-massnahme" fill="none" stroke="currentColor" stroke-width="1.6"
+       stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 8h8"/><path d="M8 5l3 3-3 3"/>
+    </g>
+    <g id="sym-nachmessung" fill="none" stroke="currentColor" stroke-width="1.6"
+       stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 8.4l3.1 3.1L13 4.8"/>
+    </g>
+    <g id="sym-define" fill="none" stroke="currentColor" stroke-width="1.6"
+       stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="8" cy="8" r="4.6"/><circle cx="8" cy="8" r="1.4"/>
+      <path d="M8 1.8v2M8 12.2v2M1.8 8h2M12.2 8h2"/>
+    </g>
+    <g id="sym-analyze" fill="none" stroke="currentColor" stroke-width="1.6"
+       stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="6.8" cy="6.8" r="4"/><path d="M9.8 9.8l3.6 3.6"/>
+    </g>
+    <g id="nav-dossier" fill="none" stroke="currentColor" stroke-width="1.5"
+       stroke-linecap="round" stroke-linejoin="round">
+      <path d="M2.5 4.5a1 1 0 011-1h3l1.2 1.6h5.8a1 1 0 011 1v6.4a1 1 0 01-1 1h-10a1 1 0 01-1-1z"/>
+    </g>
+    <g id="nav-handbuch" fill="none" stroke="currentColor" stroke-width="1.5"
+       stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 3.5h4.2a1.8 1.8 0 011.8 1.8v7.2a1.4 1.4 0 00-1.4-1.4H3z"/>
+      <path d="M13 3.5H8.8A1.8 1.8 0 007 5.3v7.2a1.4 1.4 0 011.4-1.4H13z"/>
+    </g>
+    <g id="nav-analysen" fill="none" stroke="currentColor" stroke-width="1.5"
+       stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 13V3"/><path d="M3 13h10"/>
+      <path d="M5.5 10.5V8"/><path d="M8 10.5V5"/><path d="M10.5 10.5V7"/>
+    </g>
+    <g id="nav-landkarte" fill="none" stroke="currentColor" stroke-width="1.5"
+       stroke-linecap="round" stroke-linejoin="round">
+      <rect x="2.4" y="2.4" width="11.2" height="3.1" rx="1"/>
+      <rect x="2.4" y="6.45" width="11.2" height="3.1" rx="1"/>
+      <rect x="2.4" y="10.5" width="11.2" height="3.1" rx="1"/>
+      <path d="M5.2 8h4.6"/><path d="M8.5 6.9L9.8 8l-1.3 1.1"/>
+    </g>
+    <g id="sym-winkel" fill="none" stroke="currentColor" stroke-width="1.8"
+       stroke-linecap="round" stroke-linejoin="round">
+      <path d="M6 3.5L10.5 8L6 12.5"/>
+    </g>
+    <g id="sym-zusammen" fill="none" stroke="currentColor" stroke-width="1.5"
+       stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 4.2h2.6a2 2 0 012 2V8"/>
+      <path d="M3 11.8h2.6a2 2 0 002-2V8"/>
+      <path d="M7.6 8h4.9"/>
+      <path d="M10.7 6.1L12.6 8l-1.9 1.9"/>
+    </g>
+    <g id="sym-zurueck" fill="none" stroke="currentColor" stroke-width="1.5"
+       stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12.5 3.2v3.4a2.4 2.4 0 01-2.4 2.4H4.2"/>
+      <path d="M6.8 6.6L4.2 9l2.6 2.4"/>
+    </g>
+    <g id="nav-beschwerden" fill="none" stroke="currentColor" stroke-width="1.5"
+       stroke-linecap="round" stroke-linejoin="round">
+      <path d="M13 9.5a1.4 1.4 0 01-1.4 1.4H5.4L3 13.2V4.4A1.4 1.4 0 014.4 3h7.2A1.4 1.4 0 0113 4.4z"/>
+      <path d="M8 5.6v2.2"/><path d="M8 9.4h.01"/>
+    </g>
+    <g id="nav-massnahmen" fill="none" stroke="currentColor" stroke-width="1.5"
+       stroke-linecap="round" stroke-linejoin="round">
+      <path d="M8 2.5a5.5 5.5 0 105.2 3.7"/>
+      <path d="M5.6 8.2l1.9 1.9L13 4.6"/>
+    </g>
+    <g id="sym-hell" fill="none" stroke="currentColor" stroke-width="1.5"
+       stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="8" cy="8" r="3.1"/>
+      <path d="M8 1.6v1.5M8 12.9v1.5M14.4 8h-1.5M3.1 8H1.6"/>
+      <path d="M12.53 3.47l-1.06 1.06M4.53 11.47l-1.06 1.06M12.53 12.53l-1.06-1.06M4.53 4.53L3.47 3.47"/>
+    </g>
+    <g id="sym-dunkel" fill="none" stroke="currentColor" stroke-width="1.5"
+       stroke-linecap="round" stroke-linejoin="round">
+      <path d="M13.2 9.6A5.7 5.7 0 016.4 2.8a5.7 5.7 0 106.8 6.8z"/>
+    </g>
+    <g id="sym-plus" fill="none" stroke="currentColor" stroke-width="1.8"
+       stroke-linecap="round">
+      <path d="M8 3.2v9.6"/><path d="M3.2 8h9.6"/>
+    </g>
+    <g id="sym-menue" fill="none" stroke="currentColor" stroke-width="1.5"
+       stroke-linecap="round">
+      <path d="M2.5 4.5h11"/><path d="M2.5 8h11"/><path d="M2.5 11.5h11"/>
+    </g>
+    <g id="nav-listen" fill="none" stroke="currentColor" stroke-width="1.5"
+       stroke-linecap="round" stroke-linejoin="round">
+      <path d="M2.8 3.5h10.4a.8.8 0 01.8.8v7.4a.8.8 0 01-.8.8H2.8a.8.8 0 01-.8-.8V4.3a.8.8 0 01.8-.8z"/>
+      <path d="M2 6.6h12"/><path d="M6 6.6v5.9"/>
+    </g>
+    <g id="nav-einstellungen" fill="none" stroke="currentColor" stroke-width="1.5"
+       stroke-linecap="round" stroke-linejoin="round">
+      <path d="M2.5 4.5h3.8M9.7 4.5h3.8"/><circle cx="7.75" cy="4.5" r="1.5"/>
+      <path d="M2.5 8h1.3M6.8 8h6.7"/><circle cx="5.05" cy="8" r="1.5"/>
+      <path d="M2.5 11.5h6.2M12.2 11.5h1.3"/><circle cx="10.45" cy="11.5" r="1.5"/>
+    </g>
+  </defs>
+</svg>
+<div class="huelle">
+<aside class="seitenleiste">
+  <div class="kopfbereich">
+    <span class="wortmarke">IVR-Anerkennung</span>
+    <span class="betrieb">{{ betrieb or betrieb_name() }}</span>
+  </div>
+  <button type="button" class="navknopf" aria-expanded="false" aria-controls="hauptnav">
+    <svg viewBox="0 0 16 16" aria-hidden="true"><use href="#sym-menue"/></svg>
+    <span class="navknopf-wo">Navigation</span>
+  </button>
+  <nav id="hauptnav" aria-label="Hauptnavigation">
+    <p class="navgruppe" id="gr-stand">Stand</p>
+    <ul aria-labelledby="gr-stand">
+      <li><a href="/"{% if seite == "dossier" %} aria-current="page"{% endif %}>
+        <svg viewBox="0 0 16 16" aria-hidden="true"><use href="#nav-dossier"/></svg>
+        Übersicht{% set nav_auf = auflagen_offen() %}{% if nav_auf %}
+        <span class="navzahl" title="{{ nav_auf }} offene Auflagen">{{ nav_auf }}</span>{% endif %}</a></li>
+      <li><a href="/landkarte"{% if seite == "landkarte" %} aria-current="page"{% endif %}>
+        <svg viewBox="0 0 16 16" aria-hidden="true"><use href="#nav-landkarte"/></svg>
+        Prozesslandkarte</a></li>
+      <li><a href="/analysen"{% if seite == "analysen" %} aria-current="page"{% endif %}>
+        <svg viewBox="0 0 16 16" aria-hidden="true"><use href="#nav-analysen"/></svg>
+        Analysen</a></li>
+    </ul>
+
+    <p class="navgruppe" id="gr-qm">Qualitätskreisläufe nach 8.1</p>
+    <ul aria-labelledby="gr-qm">
+      {# Eigene Namen: was das Grundgerüst auf oberster Ebene setzt, sieht
+         jede Seite darunter und verdrängt dort gleichnamige Variablen. #}
+      {% set nav_staende = bereich_stand() %}
+      {% for nr, e in navbereiche.items() %}
+      {% set nav_z = nav_staende[nr] %}
+      <li><a href="/bereich/{{ nr }}"{% if seite == "bereich-" ~ nr %} aria-current="page"{% endif %}>
+        <span class="navnr">{{ nr }}</span>
+        {{ e.kurz }}
+        <span class="navstand">
+          {% if nav_z.gesamt == 0 %}
+            <span class="navzahl rot" title="noch kein Kreislauf begonnen">!<span class="nur-vorlesen"> noch kein Kreislauf begonnen</span></span>
+          {% else %}
+            {% if nav_z.zu %}<span class="navzahl gruen" title="{{ nav_z.zu }} geschlossen">{{ nav_z.zu }}<span class="nur-vorlesen"> geschlossen</span></span>{% endif %}
+            {% if nav_z.offen %}<span class="navzahl blau" title="{{ nav_z.offen }} offen">{{ nav_z.offen }}<span class="nur-vorlesen"> offen</span></span>{% endif %}
+          {% endif %}
+        </span></a></li>
+      {% endfor %}
+    </ul>
+
+    <p class="navgruppe" id="gr-betrieb">Betrieb</p>
+    <ul aria-labelledby="gr-betrieb">
+      <li><a href="/faelle"{% if seite == "faelle" %} aria-current="page"{% endif %}>
+        <svg viewBox="0 0 16 16" aria-hidden="true"><use href="#nav-beschwerden"/></svg>
+        Beschwerdemanagement</a></li>
+      <li><a href="/massnahmen"{% if seite == "massnahmen" %} aria-current="page"{% endif %}>
+        <svg viewBox="0 0 16 16" aria-hidden="true"><use href="#nav-massnahmen"/></svg>
+        Massnahmen</a></li>
+      <li><a href="/handbuch"{% if seite == "handbuch" %} aria-current="page"{% endif %}>
+        <svg viewBox="0 0 16 16" aria-hidden="true"><use href="#nav-handbuch"/></svg>
+        Handbuch
+        {# Michael am 15.09.2026: «die zahl der noch nicht geprüften
+           dokumente soll hinter handbuch in der seitenleiste stehen.» Die
+           fälligen Handbuchprüfungen stehen rot daneben, wenn es welche
+           gibt; das ist die dringendere der beiden Zahlen. #}
+        <span class="navstand">
+          {% set nav_ung = dokumente_ungeprueft() %}
+          {% set nav_hf = handbuch_faellig() %}
+          {% if nav_ung %}<span class="navzahl blau" title="{{ nav_ung }} Dokumente noch nicht geprüft">{{ nav_ung }}<span class="nur-vorlesen"> Dokumente noch nicht geprüft</span></span>{% endif %}
+          {% if nav_hf %}<span class="navzahl rot" title="{{ nav_hf }} Prüfungen fällig">{{ nav_hf }}<span class="nur-vorlesen"> Prüfungen fällig</span></span>{% endif %}
+        </span></a></li>
+    </ul>
+  </nav>
+
+  <div class="schemabereich">
+    {# Der Hell/Dunkel-Schalter wohnt seit 15.09.2026 nur noch in den
+       Einstellungen; hier unten steht der Weg dorthin als Punkt wie die
+       übrigen, dazu wer angemeldet ist. #}
+    <nav aria-label="Konto">
+      <ul>
+        <li><a href="/einstellungen"{% if seite == "einstellungen" %} aria-current="page"{% endif %}>
+          <svg viewBox="0 0 16 16" aria-hidden="true"><use href="#nav-einstellungen"/></svg>
+          Einstellungen</a></li>
+      </ul>
+    </nav>
+    {% if angemeldet_als(request) %}
+    <p class=angemeldet>
+      <span class=wer>{{ angemeldet_als(request) }}</span>
+      <span class=recht>{{ recht_name(request) }}</span>
+      <a href=/abmeldung>Abmelden</a>
+    </p>
+    {% endif %}
+  </div>
+</aside>
+<main id="inhalt" class="seite-{{ (seite or 'unbenannt') | replace('.', '-') }}{% if not darf_schreiben(request) %} nur-lesen{% endif %}">
+{% block inhalt %}{% endblock %}
+</main>
+</div>
+<script>
+  /* Die Wahl gilt für diesen Browser und überdauert den Seitenwechsel. Steht
+     nichts gespeichert, bleibt es hell. */
+  (function () {
+    var wurzel = document.documentElement;
+    /* Nur die Knöpfe des Erscheinungsbildes. Die Diagrammwahl bei 8.1.5
+       benutzt dieselbe Form, wird aber vom Server gesetzt; ohne diese
+       Einschränkung stellte das Skript ihren Zustand auf «nicht gewählt». */
+    var knoepfe = document.querySelectorAll(".schemaschalter button[data-schema]");
+    function setzen(schema, merken) {
+      if (schema === "dunkel") wurzel.dataset.schema = "dunkel";
+      else delete wurzel.dataset.schema;
+      knoepfe.forEach(function (k) {
+        k.setAttribute("aria-pressed", k.dataset.schema === schema ? "true" : "false");
+      });
+      if (merken) { try { localStorage.setItem("schema", schema); } catch (e) {} }
+    }
+    setzen(wurzel.dataset.schema === "dunkel" ? "dunkel" : "hell", false);
+    knoepfe.forEach(function (k) {
+      k.addEventListener("click", function () { setzen(k.dataset.schema, true); });
+    });
+
+    /* Lange Kreislauffelder: sechs Zeilen sind sichtbar. Ob etwas
+       abgeschnitten ist, wird gemessen, nicht geschätzt; nur dann
+       erscheint «mehr», und «weniger» klappt wieder zusammen. */
+    document.querySelectorAll(".knoten-mehr").forEach(function (k) {
+      var inhalt = k.previousElementSibling;
+      if (inhalt && inhalt.scrollHeight > inhalt.clientHeight + 1) k.hidden = false;
+      k.addEventListener("click", function () {
+        var karte = k.closest(".knoten-karte");
+        var offen = karte.classList.toggle("ausgeklappt");
+        k.setAttribute("aria-expanded", offen ? "true" : "false");
+        k.textContent = offen ? "weniger" : "mehr";
+      });
+    });
+
+    /* Am Telefon ist die Navigation zugeklappt. Der Knopf sagt, wo man
+       gerade ist, statt nur «Navigation» zu heissen. */
+    var knopf = document.querySelector(".navknopf");
+    var leiste = document.querySelector(".seitenleiste");
+    if (knopf && leiste) {
+      var hier = leiste.querySelector('nav a[aria-current="page"]');
+      if (hier) {
+        knopf.querySelector(".navknopf-wo").textContent =
+          hier.textContent.replace(/\s+/g, " ").trim();
+      }
+      knopf.addEventListener("click", function () {
+        var offen = leiste.classList.toggle("offen");
+        knopf.setAttribute("aria-expanded", offen ? "true" : "false");
+      });
+    }
+  })();
+</script>
+{% block skripte %}{% endblock %}
+</body>
+</html>

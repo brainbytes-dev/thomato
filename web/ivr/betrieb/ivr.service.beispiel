@@ -1,0 +1,30 @@
+# Beispiel für den Betrieb als systemd-Dienst. Anzupassen sind der Pfad,
+# der Benutzer und der Port. Die Anwendung schreibt nur in ihren Datenordner
+# und in den Dossierordner; alles andere bleibt für sie schreibgeschützt.
+
+[Unit]
+Description=IVR-Anerkennung und Betriebshandbuch
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ivr
+Group=ivr
+WorkingDirectory=/opt/ivr/anwendung
+# Steht ein Zugangsschutz davor, nennt ihn die Anmeldemaske.
+# Environment=IVR_TUERWAECHTER=Cloudflare
+# Liegen die Daten woanders als neben der Anwendung:
+# Environment=IVR_DATEN=/var/lib/ivr/daten
+# Environment=IVR_DOSSIER=/var/lib/ivr/dossier
+ExecStart=/opt/ivr/venv/bin/uvicorn app:app --host 0.0.0.0 --port 8000
+Restart=on-failure
+RestartSec=5
+ProtectSystem=strict
+ReadWritePaths=/opt/ivr/anwendung/daten
+ReadWritePaths="/opt/ivr/IVR Dokumente"
+PrivateTmp=yes
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=multi-user.target

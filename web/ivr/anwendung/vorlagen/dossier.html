@@ -1,0 +1,363 @@
+{% extends "grundgeruest.html" %}
+
+{% macro tabelle(liste, beschriftung, zeige_2024=false) %}
+<div class="tabellenrahmen" tabindex="0" role="region" aria-label="{{ beschriftung }}">
+<table class="umbrechend">
+  <caption>{{ beschriftung }}</caption>
+  <colgroup>
+    <col class="c-nr"><col class="c-titel"><col class="c-pflicht">
+    {% if zeige_2024 %}<col class="c-2024">{% endif %}
+    <col class="c-nachweise"><col class="c-datum"><col class="c-kreislauf">
+  </colgroup>
+  <thead>
+    <tr>
+      <th scope="col">Nr.</th>
+      <th scope="col">Kriterium</th>
+      <th scope="col">Pflicht</th>
+      {% if zeige_2024 %}<th scope="col">Stand 2024</th>{% endif %}
+      <th scope="col">Nachweise</th>
+      <th scope="col">jüngster</th>
+      <th scope="col">Kreislauf</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for k in liste %}
+    <tr>
+      <td class="kopf"><a class="nummer" href="/kriterium/{{ k.nummer }}">{{ k.nummer }}</a></td>
+      {# Der Titel führt zum Kriterium wie die Nummer, sieht aber aus wie
+         Text: über sechzig Zeilen hinweg wäre ein blauer, unterstrichener
+         Block nicht mehr zu überfliegen. Die Marken bleiben daneben und
+         gehören nicht mit ins Ziel. #}
+      <td class="kopf">
+        <a class="stiller-verweis" href="/kriterium/{{ k.nummer }}">{{ k.titel }}</a>
+        {% if k.nummer in monitoring %}<span class="marke monitoring">8.1</span>{% endif %}
+        {% if k.min_erneuerung %}<span class="marke soll">min. {{ k.min_erneuerung }}</span>{% endif %}
+      </td>
+      <td data-spalte="Pflicht">
+        {% if k.erneuerung_muss %}<span class="marke muss">Muss</span>
+        {% elif k.erneuerung_soll %}<span class="marke soll">Soll</span>
+        {% else %}<span class="leise">—</span>{% endif %}
+      </td>
+      {# Diese Spalte erscheint nur in der Tabelle der bemaengelten
+         Kriterien. Dort ist jede Zeile bemaengelt, also unterscheidet Rot
+         nichts und markiert nur die ganze Tabelle. #}
+      {% if zeige_2024 %}<td data-spalte="Stand 2024">{{ k.status_2024 }}</td>{% endif %}
+      <td data-spalte="Nachweise">
+        {% if k.belege %}
+          <span class="{{ 'gruen' if k.fertig else 'gelb' }}">{{ k.fertig or 0 }}</span><span
+            class="leise"> von {{ k.belege }} freigegeben</span>
+        {% else %}
+          <span class="leise">keine</span>
+        {% endif %}
+      </td>
+      <td data-spalte="jüngster Nachweis">
+        {% if k.juengster %}
+          {% set jahr = k.juengster[:4] | int %}
+          <span class="{{ 'rot' if jahr < 2020 else 'gelb' if jahr < 2023 else '' }}">{{ k.juengster | datum }}</span>
+        {% else %}
+          <span class="leise">unbekannt</span>
+        {% endif %}
+      </td>
+      <td{% if k.massnahmen %} data-spalte="Kreislauf"{% endif %}>
+        {% if k.massnahmen %}
+          <span class="{{ 'gruen' if k.geschlossen == k.massnahmen else 'gelb' }}">{{ k.geschlossen }} von {{ k.massnahmen }}</span>
+        {% endif %}
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endmacro %}
+
+{% block inhalt %}
+
+{% set start = uhr | selectattr("fuehrend") | first %}
+{# Die Zählung der Kreisläufe steht seit 15.09.2026 in der Seitenleiste bei
+   jedem Bereich; die Überschrift wiederholt sie nicht mehr. #}
+<h1>Übersicht</h1>
+<p class="leise">
+  {% if start.tage > 0 %}
+    Bleiben {{ start.tage }} Tage bis zum letzten sinnvollen Starttag für
+    einen Kreislauf; danach reicht die Zeit für Messung, Massnahme und
+    Nachmessung nicht mehr bis zum Dossier.
+  {% else %}
+    Der letzte sinnvolle Starttag für einen neuen Kreislauf ist überschritten.
+  {% endif %}
+</p>
+
+<h2>Fristen</h2>
+<div class="diagrammrahmen zeitstrahl" tabindex="0">{{ zeitstrahl | safe }}</div>
+{% set schreiben = darf_schreiben(request) %}
+<details id="fristen"{% if meldung %} open{% endif %}>
+  <summary>Termine als Tabelle{% if schreiben %}, ändern und eintragen{% endif %}</summary>
+  {% if meldung %}
+  <p class="hinweis {{ art }}" role="status">{{ meldung }}</p>
+  {% endif %}
+  {# Ein Formular kann keine Tabellenzellen umspannen. Die Formulare stehen
+     deshalb leer vor der Tabelle, und die Felder in den Zellen gehören
+     über das Merkmal form zu ihnen. #}
+  {% if schreiben %}
+    {% for p in uhr %}
+      {% if p.id %}
+        <form id="t-{{ p.id }}" method="post" action="/termine/{{ p.id }}"></form>
+        <form id="tl-{{ p.id }}" method="post" action="/termine/{{ p.id }}/loeschen"></form>
+      {% elif p.schluessel %}
+        <form id="t-{{ p.schluessel }}" method="post" action="/termine/einstellung/{{ p.schluessel }}"></form>
+      {% endif %}
+    {% endfor %}
+    <form id="t-neu" method="post" action="/termine/neu"></form>
+  {% endif %}
+  <div class="tabellenrahmen" tabindex="0" role="region" aria-label="Termine bis zur Erneuerung">
+  <table class="umbrechend termine">
+    <caption>Termine bis zur Erneuerung</caption>
+    <thead>
+      <tr><th scope="col">Termin</th><th scope="col">Datum</th>
+          <th scope="col" class="zahl">Tage</th>
+          {% if schreiben %}<th scope="col"><span class="navknopf-wo">Aktion</span></th>{% endif %}</tr>
+    </thead>
+    <tbody>
+    {% for p in uhr %}
+      {% set ziel = p.id or p.schluessel %}
+      <tr>
+        <td class="kopf">
+          {% if schreiben and p.id %}
+            <input type="text" name="beschriftung" form="t-{{ p.id }}"
+                   value="{{ p.beschriftung }}" required aria-label="Termin">
+          {% else %}
+            {{ p.beschriftung }}
+            {% if p.fuehrend %}<span class="leise">(berechnet: ein Jahr vor dem Dossier)</span>{% endif %}
+          {% endif %}
+        </td>
+        <td data-spalte="Datum">
+          {% if schreiben and ziel %}
+            <input type="date" name="datum" form="t-{{ ziel }}" value="{{ p.iso }}"
+                   required aria-label="Datum">
+          {% else %}{{ p.datum }}{% endif %}
+        </td>
+        <td class="zahl {{ p.stufe }}" data-spalte="Tage">{{ p.tage }}</td>
+        {% if schreiben %}
+        <td class="aktion">
+          {% if ziel %}<button type="submit" form="t-{{ ziel }}" class="knopf-leise">Speichern</button>{% endif %}
+          {% if p.id %}<button type="submit" form="tl-{{ p.id }}" class="knopf-leise gefahr">Löschen</button>{% endif %}
+        </td>
+        {% endif %}
+      </tr>
+    {% endfor %}
+    {% if schreiben %}
+      <tr class="neu">
+        <td class="kopf">
+          <input type="text" name="beschriftung" form="t-neu" required
+                 placeholder="z.B. Besuchstermin der IVR-Experten" aria-label="Neuer Termin">
+        </td>
+        <td data-spalte="Datum">
+          <input type="date" name="datum" form="t-neu" required aria-label="Datum des neuen Termins">
+        </td>
+        <td></td>
+        <td class="aktion"><button type="submit" form="t-neu" class="knopf-klein">Eintragen</button></td>
+      </tr>
+    {% endif %}
+    </tbody>
+  </table>
+  </div>
+  {% if schreiben %}
+  <p class="meta">
+    Die drei festen Fristen tragen ihr Datum aus der Richtlinie; wer sie
+    ändert, verschiebt auch den berechneten letzten Starttag. Eigene Termine
+    stehen auf dem Zeitstrahl, solange sie in der Zukunft liegen.
+  </p>
+  {% endif %}
+  <p class="meta">
+    Wird der Prozess nicht rechtzeitig begonnen, wird die Anerkennung entzogen
+    und die zuständigen Behörden werden informiert. Ein neues Verfahren ist
+    dann frühestens nach einem Jahr möglich.
+  </p>
+</details>
+{% if auflagen %}
+<h2 id="auflagen">Offene Auflagen ({{ auflagen | length }})</h2>
+<p class="leise">
+  Bedingungen aus dem Anerkennungsverfahren. Sie sind zur Frist
+  nachzuweisen; eingetragen und erfüllt gemeldet werden sie am Kriterium.
+</p>
+<div class="tabellenrahmen" tabindex="0" role="region" aria-label="Offene Auflagen">
+<table class="umbrechend">
+  <caption>Offene Auflagen, die dringendste zuerst</caption>
+  {# Nummer und Name des Kriteriums wie in jeder anderen Tabelle der Seite.
+     Vorher stand der Name klein unter dem Wortlaut der Auflage und las
+     sich wie dessen Fortsetzung. #}
+  <colgroup>
+    <col class="c-nr"><col class="c-kriterium"><col class="c-titel">
+    <col class="c-verfahren"><col class="c-frist">
+  </colgroup>
+  <thead>
+    <tr><th scope="col">Nr.</th><th scope="col">Kriterium</th>
+        <th scope="col">Auflage</th>
+        <th scope="col">Verfahren</th><th scope="col">Frist</th></tr>
+  </thead>
+  <tbody>
+  {% for auf in auflagen %}
+    <tr>
+      <td class="kopf"><a class="nummer" href="/kriterium/{{ auf.kriterium }}">{{ auf.kriterium }}</a></td>
+      <td class="kopf">
+        <a class="stiller-verweis" href="/kriterium/{{ auf.kriterium }}">{{ auf.titel }}</a>
+      </td>
+      <td class="text" data-spalte="Auflage">{{ auf.text }}</td>
+      <td class="leise" data-spalte="Verfahren">{{ auf.verfahren or "—" }}</td>
+      <td class="{{ auf.stufe }}" data-spalte="Frist">
+        {% if auf.frist %}{{ auf.frist | datum }}
+          {% if auf.tage is not none %}<div class="meta">{% if auf.tage < 0 %}seit {{ -auf.tage }} Tagen überschritten{% else %}noch {{ auf.tage }} Tage{% endif %}</div>{% endif %}
+        {% else %}<span class="leise">ohne Frist</span>{% endif %}
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endif %}
+{% if handbuch_faellige %}
+<p class="hinweis warnung">
+  <strong>Handbuch:</strong>
+  {% if handbuch_faellige|length == 1 %}ein Dokument ist zur Prüfung fällig oder wird es
+  {% else %}{{ handbuch_faellige|length }} Dokumente sind zur Prüfung fällig oder werden es
+  {% endif %}in den nächsten zwei Monaten.
+  <a href="/handbuch">Zum Handbuch</a>
+</p>
+{% endif %}
+
+<h2>Die fünf Monitoringbereiche nach 8.1</h2>
+<p class="leise">
+  Drei davon müssen zur Erneuerung einen vollständigen Kreislauf zeigen.
+  Beim Besuch 2024 hat kein einziger die Prüfung bestanden.
+</p>
+{# Ein Feld je laufendem Kreislauf, nicht je Bereich: so viele, wie es
+   gerade gibt. Die Beschriftung im Feld sagt, zu welchem Monitoringbereich
+   der Ring gehört, damit er nie ohne sein Feld dasteht. #}
+{% if laufende %}
+<ol class="wuerfel">
+  {% for kr in laufende %}
+  <li class="wuerfel-feld">
+    <a class="wuerfel-flaeche" href="/bereich/{{ kr.bereich }}">
+      <span class="wuerfel-kopf">
+        {% if kr.tragend %}<span class="marke monitoring">tragend</span>{% endif %}
+      </span>
+
+      {# Im Ring stehen Nummer und Stand, der Name darunter: so passen fünf
+         Ringe nebeneinander auf einen Bildschirm, ohne dass der Name im
+         Ring dreizeilig wird. #}
+      <span class="wuerfel-mitte">
+        <span class="wuerfel-scheibe">
+          {{ kr.ring | safe }}
+          <span class="wuerfel-inhalt">
+            <span class="wuerfel-nr">{{ kr.bereich }}</span>
+            <span class="wuerfel-schritte">{{ kr.fertig }}/{{ kr.gesamt }}</span>
+            <span class="wuerfel-einheit">Schritte</span>
+          </span>
+        </span>
+      </span>
+      <span class="wuerfel-name">{{ kr.bereich_name }}{% if kr.strang %} · {{ kr.strang }}{% endif %}</span>
+
+      <span class="wuerfel-sache">{{ kr.titel }}</span>
+      <span class="wuerfel-fuss">
+        {% if kr.frist %}
+          Nachmessung bis {{ kr.frist | datum }}
+        {% else %}
+          Nachmessung steht aus
+        {% endif %}
+      </span>
+    </a>
+  </li>
+  {% endfor %}
+</ol>
+{% else %}
+{% if geschlossene %}
+<p>
+  Kein Kreislauf ist offen: alle {{ geschlossene }} sind geschlossen,
+  nachgemessen und bewertet. Sie stehen unter
+  <a href="/massnahmen">Massnahmen</a>. Sobald eine neue Messung und Massnahme
+  erfasst sind, erscheint hier wieder ein Feld.
+</p>
+{% else %}
+<p>
+  Es läuft gerade kein Kreislauf. Sobald an einem Kriterium eine Messung und
+  eine Massnahme erfasst sind, steht hier ein Feld je Kreislauf mit seinem
+  Ring: gemessen, Massnahme, nachgemessen.
+</p>
+{% endif %}
+<ul class="sprungliste">
+  {% for b in bereiche %}
+  <li><a href="/bereich/{{ b.nummer }}"><span class="navnr">{{ b.nummer }}</span>{{ b.name }}</a></li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+<h2>Lage der {{ kriterienzahl }} Kriterien</h2>
+<div class="diagrammrahmen" tabindex="0">{{ lagebalken | safe }}</div>
+<ul class="legende">
+  <li><span class="strich l-rot"></span> Arbeit nötig</li>
+  <li><span class="strich l-gelb"></span> nichts freigegeben</li>
+  <li><span class="strich l-grau"></span> unklar oder nicht anwendbar</li>
+  <li><span class="strich l-gruen"></span> belegt</li>
+</ul>
+
+<h2>Was Arbeit braucht</h2>
+
+{% if gruppen.bemaengelt %}
+<h3>Vom Experten 2024 bemängelt ({{ gruppen.bemaengelt|length }})</h3>
+{{ tabelle(gruppen.bemaengelt, "Vom Experten 2024 bemängelte Kriterien", true) }}
+{% endif %}
+
+{% if gruppen.ohne_nachweis %}
+<h3>Ohne Nachweis, bei der Erneuerung ein Muss ({{ gruppen.ohne_nachweis|length }})</h3>
+{{ tabelle(gruppen.ohne_nachweis, "Kriterien ohne Nachweis, die ein Muss sind") }}
+{% endif %}
+
+{% if gruppen.nichts_fertig %}
+<h3>Nachweise vorhanden, aber keiner freigegeben ({{ gruppen.nichts_fertig|length }})</h3>
+<p class="meta">
+  Hier wurde die Ablage benutzt, und nichts steht auf «Fertig». Was in
+  Bearbeitung oder im Ordner «Alt» liegt, zählt beim Prüfbesuch nicht.
+</p>
+{{ tabelle(gruppen.nichts_fertig, "Kriterien ohne freigegebenen Nachweis") }}
+{% endif %}
+
+{% if gruppen.unklar %}
+<h3>Ablage ohne Statusordner ({{ gruppen.unklar|length }})</h3>
+<p class="meta">
+  Alle Dateien liegen direkt im Kriteriumsordner. Daraus lässt sich kein
+  Stand ablesen, weder gut noch schlecht. Einmal durchsehen und einordnen,
+  dann fällt diese Gruppe weg.
+</p>
+{{ tabelle(gruppen.unklar, "Kriterien mit Ablage ohne Statusordner") }}
+{% endif %}
+
+<h2>Erledigt</h2>
+{% if gruppen.behoben %}
+<details>
+  <summary>{{ gruppen.behoben|length }} vom Experten 2024 bemängelt, vom Betrieb als behoben vermerkt</summary>
+  <p class="meta">
+    Der Expertenbericht bleibt unverändert. Behoben ist die Antwort des
+    Betriebs darauf; was dazu festgehalten wurde, steht am Kriterium.
+  </p>
+  {{ tabelle(gruppen.behoben, "Behobene Mängel", true) }}
+</details>
+{% endif %}
+<details>
+  <summary>{{ gruppen.belegt|length }} Kriterien sind belegt</summary>
+  {{ tabelle(gruppen.belegt, "Belegte Kriterien") }}
+</details>
+<details>
+  <summary>{{ gruppen.entfaellt|length }} nicht anwendbar oder blosse Überschrift</summary>
+  {{ tabelle(gruppen.entfaellt, "Nicht anwendbare Kriterien und Gliederungszeilen") }}
+</details>
+
+<p class="meta">
+  Grundlage sind {{ dateien }} Dateien aus dem Dossier 2024. Die Spalte
+  «Nachweise» zählt, wie viele davon im Ordner «Fertig» liegen. Ein
+  Alterskriterium ist daraus nicht ableitbar: nach dem Kopieren aus
+  SharePoint tragen alle Dateien dasselbe Änderungsdatum. Was zählt, ist
+  das Prüfdatum: <a href="/handbuch">{{ plan.geprueft }} von {{ plan.gesamt }}</a>
+  Dateien sind durchgesehen{% if plan.frist %}, nötig bis zum
+  {{ plan.frist | datum }}{% endif %}.
+</p>
+
+{% endblock %}

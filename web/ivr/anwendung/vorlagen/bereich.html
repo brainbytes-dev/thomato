@@ -1,0 +1,597 @@
+{% extends "grundgeruest.html" %}
+
+{# Define und Analyze nachtragen, an offenen wie an geschlossenen
+   Kreisläufen. Nur bei DMAIC, sonst gibt es die Felder nicht zu sehen. #}
+{% macro phasen_form(m) %}
+<details class="phasen">
+  <summary>{% if m.definition or m.analyse %}Define und Analyze ändern{% else %}Define und Analyze nachtragen{% endif %}</summary>
+  <form method="post" action="/massnahme/{{ m.id }}/phasen">
+    <input type="hidden" name="zurueck"
+           value="/bereich/{{ nummer }}{% if teil %}?teil={{ teil }}{% endif %}">
+    <label for="pd{{ m.id }}">Define: Problem und Ziel</label>
+    <textarea id="pd{{ m.id }}" name="definition">{{ m.definition or "" }}</textarea>
+    <label for="pa{{ m.id }}">Analyze: die Ursache</label>
+    <textarea id="pa{{ m.id }}" name="analyse">{{ m.analyse or "" }}</textarea>
+    <button type="submit" class="knopf-klein">Speichern</button>
+  </form>
+</details>
+{% endmacro %}
+
+{# Jeder Punkt eines laufenden Kreislaufs, in der Reihenfolge des
+   gewählten Zyklus. Die Nachmessung hat ihr eigenes Formular, sie
+   schliesst den Kreislauf. #}
+{% macro bearbeiten_form(m) %}
+<details class="phasen">
+  <summary>Kreislauf bearbeiten</summary>
+  <form method="post" action="/massnahme/{{ m.id }}/bearbeiten">
+    <input type="hidden" name="zurueck"
+           value="/bereich/{{ nummer }}{% if teil %}?teil={{ teil }}{% endif %}">
+    {% if dmaic %}
+    <label for="bd{{ m.id }}">Define: Problem und Ziel</label>
+    <textarea id="bd{{ m.id }}" name="definition">{{ m.definition or "" }}</textarea>
+    {% endif %}
+    <div class="paar">
+      <div>
+        <label for="bg{{ m.id }}">{% if dmaic %}Measure: erste{% else %}Erste{% endif %} Messung am</label>
+        <input type="date" id="bg{{ m.id }}" name="gemessen_am" value="{{ m.gemessen_am or '' }}">
+      </div>
+      <div>
+        <label for="bm{{ m.id }}">Messwert, der Ausgangswert</label>
+        <input type="text" id="bm{{ m.id }}" name="messwert" value="{{ m.messwert or '' }}">
+      </div>
+    </div>
+    {% if dmaic %}
+    <label for="ba{{ m.id }}">Analyze: die Ursache</label>
+    <textarea id="ba{{ m.id }}" name="analyse">{{ m.analyse or "" }}</textarea>
+    {% endif %}
+    <label for="bb{{ m.id }}">{% if dmaic %}Improve: was{% else %}Was{% endif %} wird getan</label>
+    <textarea id="bb{{ m.id }}" name="beschreibung" required>{{ m.beschreibung }}</textarea>
+    <div class="paar">
+      <div>
+        <label for="bau{{ m.id }}">Auslöser</label>
+        <select id="bau{{ m.id }}" name="ausloeser">
+          {% set wahl = [b.erfassung, "Analyse", "Ereignis", "Beschwerde", "Umfrage", "Prüfung"] %}
+          {% if m.ausloeser and m.ausloeser not in wahl %}<option value="{{ m.ausloeser }}" selected>{{ m.ausloeser }}</option>{% endif %}
+          {% for w in wahl %}<option value="{{ w }}"{% if w == m.ausloeser %} selected{% endif %}>{{ w }}</option>{% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="bv{{ m.id }}">Zuständig</label>
+        <input type="text" id="bv{{ m.id }}" name="verantwortlich" value="{{ m.verantwortlich or '' }}">
+      </div>
+      <div>
+        <label for="bf{{ m.id }}">Frist</label>
+        <input type="date" id="bf{{ m.id }}" name="frist" value="{{ m.frist or '' }}">
+      </div>
+    </div>
+    <button type="submit" class="knopf-klein">Änderungen speichern</button>
+  </form>
+</details>
+{% endmacro %}
+
+{% block inhalt %}
+
+<p class="meta"><a href="/">Übersicht</a> / Monitoringbereich {{ nummer }}</p>
+<h1>{{ nummer }} {{ k.titel }}</h1>
+
+<p class="meta">
+  {% if stand.tragend %}<span class="marke monitoring">tragend</span>{% endif %}
+  {% if stand.status_2024 %}
+    Expertenbericht 03.04.2024
+    <strong class="{{ 'gruen' if stand.status_2024 == 'erfüllt' else 'rot' }}">{{ stand.status_2024 }}</strong>
+  {% endif %}
+  · <a href="/kriterium/{{ nummer }}">Kriterium im Dossier</a>
+</p>
+
+<p>{{ b.erklaerung }}</p>
+
+{% if b.reiter %}
+<nav class="reiter" aria-label="Auswertungen">
+  {% for wert, name in b.reiter %}
+    <a href="/bereich/{{ nummer }}?teil={{ wert }}"
+       {% if teil == wert %}aria-current="page"{% endif %}>{{ name }}{% if reiter_offen.get(wert) %}
+      <span class="navzahl blau" title="{{ reiter_offen[wert] }} offen">{{ reiter_offen[wert] }}</span>{% endif %}</a>
+  {% endfor %}
+</nav>
+<p class="meta">
+  Die beiden Zielgruppen werden getrennt gemessen und haben deshalb eigene
+  Kreisläufe.
+</p>
+{% endif %}
+
+{% set zu = massnahmen | selectattr("nachgemessen_am") | list %}
+{% if zu %}
+<h2>Abgeschlossen ({{ zu|length }})</h2>
+{% for m in zu %}
+  {# Geschlossen: der volle Ring und das Geprüfte sind ohne Aufklappen zu
+     sehen. Aufgeklappt kommen Beschreibung und Fortführung dazu. #}
+  <details class="kreislauf zu">
+    <summary>
+      <span class="kr-ring" aria-hidden="true">{{ ringe_zu[m.id] | safe }}</span>
+      <span class="kr-text">
+        <span class="kr-titel">{{ m.beschreibung | truncate(96, True, "…") }}</span>
+        <span class="kr-geprueft">
+          <strong>Geprüft {{ m.nachgemessen_am | datum }}:</strong>
+          {{ m.nachmessung_ergebnis }}
+          <span class="leise">· Ausgangswert {{ m.gemessen_am | datum }}: {{ m.messwert }}</span>
+        </span>
+      </span>
+      <span class="marke geschlossen">geschlossen</span>
+    </summary>
+    {% if m.definition %}<p><strong>Define:</strong> {{ m.definition }}</p>{% endif %}
+    <p>{% if dmaic %}<strong>Improve:</strong> {% endif %}{{ m.beschreibung }}</p>
+    <p class="meta">
+      {% if m.ausloeser %}Auslöser: {{ m.ausloeser }}. {% endif %}
+      {% if m.verantwortlich %}Zuständig: {{ m.verantwortlich }}.{% endif %}
+    </p>
+    {% if m.analyse %}<p><strong>Analyze, die Ursache:</strong> {{ m.analyse }}</p>{% endif %}
+    <p><strong>{% if dmaic %}Measure, {% endif %}Ausgangswert {{ m.gemessen_am | datum }}:</strong> {{ m.messwert }}</p>
+    <p class="gruen"><strong>{% if dmaic %}Control, {% endif %}Nachmessung {{ m.nachgemessen_am | datum }}:</strong>
+       {{ m.nachmessung_ergebnis }}</p>
+    {% if dmaic %}{{ phasen_form(m) }}{% endif %}
+
+    {% if m.id in fortgefuehrt %}
+      <p class="meta">Dieser Kreislauf wurde bereits fortgeführt.</p>
+    {% else %}
+    <details class="fortfuehren">
+      <summary>Kreislauf fortführen</summary>
+      <form method="post" action="/massnahme/{{ m.id }}/fortfuehren">
+        <input type="hidden" name="zurueck"
+               value="/bereich/{{ nummer }}{% if teil %}?teil={{ teil }}{% endif %}">
+        <fieldset>
+          <legend>{{ zyklus.fortfuehren }}</legend>
+          <p class="meta">
+            Die Nachmessung vom {{ m.nachgemessen_am | datum }} wird zum
+            Ausgangswert der neuen Runde. Das ist der richtige Weg, wenn die
+            Massnahme nichts verändert hat: dieselbe Grösse weiter messen,
+            aber eine andere Ursachenannahme verfolgen.
+          </p>
+          {% if dmaic %}
+          <label for="fa{{ m.id }}">Analyze: die neue Ursachenannahme</label>
+          <textarea id="fa{{ m.id }}" name="analyse"
+                    placeholder="Warum hat die erste Runde nicht gereicht?"></textarea>
+          {% endif %}
+          <label for="fb{{ m.id }}">{% if dmaic %}Improve: was{% else %}Was{% endif %} wird jetzt anders gemacht</label>
+          <textarea id="fb{{ m.id }}" name="beschreibung" required></textarea>
+          <div class="paar">
+            <div>
+              <label for="fv{{ m.id }}">Zuständig</label>
+              <input type="text" id="fv{{ m.id }}" name="verantwortlich"
+                     value="{{ m.verantwortlich or '' }}">
+            </div>
+            <div>
+              <label for="ff{{ m.id }}">Frist für die Nachmessung</label>
+              <input type="date" id="ff{{ m.id }}" name="frist">
+            </div>
+          </div>
+          <button type="submit">Neue Runde anlegen</button>
+        </fieldset>
+      </form>
+    </details>
+    {% endif %}
+  </details>
+{% endfor %}
+{% endif %}
+
+{% set offene = ketten | selectattr("m") | list %}
+<h2>{% if offene | length > 1 %}{{ offene | length }} laufende Kreisläufe{% else %}Der laufende Kreislauf{% endif %}
+  <span class="meta">{{ zyklus.kurz }}{% if b.reiter %} · {{ (b.reiter | selectattr("0", "equalto", teil) | first)[1] }}{% endif %}</span></h2>
+{% if b.reiter %}
+{% set andere = [] %}
+{% for wert, name in b.reiter if wert != teil and reiter_offen.get(wert) %}{% set _ = andere.append(name ~ " (" ~ reiter_offen[wert] ~ ")") %}{% endfor %}
+{% if andere %}
+<p class="meta">
+  Weitere offene Kreisläufe in diesem Bereich:
+  {% for wert, name in b.reiter if wert != teil and reiter_offen.get(wert) %}<a href="/bereich/{{ nummer }}?teil={{ wert }}">{{ name }}, {{ reiter_offen[wert] }} offen</a>{% if not loop.last %}, {% endif %}{% endfor %}.
+</p>
+{% endif %}
+{% endif %}
+
+{% for k in ketten %}
+{% set m = k.m %}
+<div class="kreislauf-block"{% if m %} id="kreislauf-{{ m.id }}"{% endif %}>
+{% if offene | length > 1 and m %}
+<h3 class="kr-kopf">{{ m.beschreibung | truncate(90, True, "…") }}</h3>
+{% endif %}
+<ol class="ablauf{% if k.schritte | length > 3 %} fuenf{% endif %}">
+  {% for s in k.schritte %}
+  <li class="knoten {{ 'erledigt' if s.erledigt else 'offen' }}" data-typ="{{ s.typ }}">
+    <div class="knoten-karte">
+      <span class="knoten-kopf">
+        <span class="knoten-symbol" aria-hidden="true">
+          <svg viewBox="0 0 16 16"><use href="#sym-{{ s.symbol }}"/></svg>
+        </span>
+        {{ s.name }}
+      </span>
+      {# Langer Text klappt auf sechs Zeilen zusammen; der Knopf holt ihn
+         ganz hervor. Michael am 15.09.2026: «die einzelnen kreislauffelder
+         sollen einklappbar sein wenn der text zu lange ist». #}
+      <span class="knoten-inhalt">{{ s.inhalt or "steht aus" }}</span>
+      {% if s.inhalt %}<button type="button" class="knoten-mehr" aria-expanded="false" hidden>mehr</button>{% endif %}
+      {% if s.datum %}<span class="knoten-datum">{{ s.datum | datum }}</span>{% endif %}
+    </div>
+  </li>
+  {% endfor %}
+</ol>
+{% set massnahme_schritt = k.schritte | selectattr("typ", "in", ["massnahme", "improve"]) | first %}
+<p class="ablauf-ende">
+  {% if not m %}
+    <span class="pille">noch nicht begonnen</span>
+    <span class="leise">{{ zyklus.beginn }}</span>
+  {% elif massnahme_schritt.erledigt and m.gemessen_am %}
+    <span class="pille">offen</span>
+    <span class="leise">Ohne zweite Messung zählt der Bereich bei der Erneuerung nicht.{% if m.frist %} Nachmessung bis {{ m.frist | datum }}.{% endif %}{% if m.vorgaenger %} Fortsetzung eines geschlossenen Kreislaufs.{% endif %}</span>
+  {% else %}
+    <span class="pille">offen</span>
+    <span class="leise">Zum Schliessen fehlt die erste Messung. Ohne Ausgangswert lässt sich keine Wirksamkeit belegen.</span>
+  {% endif %}
+</p>
+{% if m %}
+<p class="meta">
+  {% if m.ausloeser %}Auslöser: {{ m.ausloeser }}. {% endif %}
+  {% if m.verantwortlich %}Zuständig: {{ m.verantwortlich }}.{% endif %}
+</p>
+{{ bearbeiten_form(m) }}
+{% if m.gemessen_am %}
+  <form method="post" action="/massnahme/{{ m.id }}/nachmessung">
+    <input type="hidden" name="zurueck"
+           value="/bereich/{{ nummer }}{% if teil %}?teil={{ teil }}{% endif %}">
+    <div class="paar">
+      <div>
+        <label for="nm{{ m.id }}">{% if dmaic %}Control: nachgemessen{% else %}Nachgemessen{% endif %} am</label>
+        <input type="date" id="nm{{ m.id }}" name="nachgemessen_am"
+               min="{{ m.gemessen_am }}" required>
+      </div>
+      <div>
+        <label for="ne{{ m.id }}">Ergebnis der Nachmessung</label>
+        <input type="text" id="ne{{ m.id }}" name="nachmessung_ergebnis" required>
+      </div>
+    </div>
+    <button type="submit">Kreislauf schliessen</button>
+  </form>
+{% endif %}
+{% endif %}
+</div>
+{% endfor %}
+
+<details class="anlegen"{% if not massnahmen %} open{% endif %}>
+  <summary>
+    {% if massnahmen %}Neuen Kreislauf anlegen{% else %}{{ b.erfassung }} und Massnahme eintragen{% endif %}
+  </summary>
+  {# Die Felder als Bausteine, damit sie im gewählten Zyklus in dessen
+     Reihenfolge stehen: bei DMAIC Define, Measure, Analyze, Improve; bei
+     PDCA Massnahme und Messung wie bisher. #}
+  {% macro feld_define() %}
+      <label for="defi">Define: Problem und Ziel</label>
+      <textarea id="defi" name="definition"
+                placeholder="z.B. Das Meldesystem liegt brach, vier Meldungen im Jahr 2024. Ziel: eine Meldung je Monat."></textarea>
+  {% endmacro %}
+  {% macro feld_messung() %}
+      <div class="paar">
+        <div>
+          <label for="gema">{% if dmaic %}Measure: erste{% else %}Erste{% endif %} Messung am</label>
+          <input type="date" id="gema" name="gemessen_am">
+        </div>
+        <div>
+          <label for="mess">Messwert, der Ausgangswert</label>
+          <input type="text" id="mess" name="messwert"
+                 placeholder="z.B. 27 von 117 Rückmeldungen betreffen das Notarztaufgebot">
+        </div>
+      </div>
+  {% endmacro %}
+  {% macro feld_analyse() %}
+      <label for="anal">Analyze: die Ursache</label>
+      <textarea id="anal" name="analyse"
+                placeholder="z.B. Niemand sieht, was aus einer Meldung wird."></textarea>
+  {% endmacro %}
+  {% macro feld_massnahme() %}
+      <label for="bsch">{% if dmaic %}Improve: was{% else %}Was{% endif %} wird getan</label>
+      <textarea id="bsch" name="beschreibung" required></textarea>
+      <div class="paar">
+        <div>
+          <label for="ausl">Auslöser</label>
+          <select id="ausl" name="ausloeser">
+            <option value="{{ b.erfassung }}">{{ b.erfassung }}</option>
+            <option value="Analyse">Analyse</option>
+            <option value="Ereignis">Ereignis</option>
+            <option value="Beschwerde">Beschwerde</option>
+            <option value="Umfrage">Umfrage</option>
+            <option value="Prüfung">Prüfung</option>
+          </select>
+        </div>
+        <div>
+          <label for="vera">Zuständig</label>
+          <input type="text" id="vera" name="verantwortlich">
+        </div>
+        <div>
+          <label for="fris">Frist</label>
+          <input type="date" id="fris" name="frist">
+        </div>
+      </div>
+  {% endmacro %}
+  <form method="post" action="/kriterium/{{ nummer }}/massnahme">
+    <input type="hidden" name="zurueck" value="/bereich/{{ nummer }}{% if teil %}?teil={{ teil }}{% endif %}">
+    {% if b.reiter %}<input type="hidden" name="strang" value="{{ teil }}">{% endif %}
+    <fieldset>
+      <legend>{{ zyklus.legende }}</legend>
+      {% if dmaic %}
+        {{ feld_define() }}{{ feld_messung() }}{{ feld_analyse() }}{{ feld_massnahme() }}
+        <p class="meta">Control, die Nachmessung, kommt später am offenen Kreislauf.</p>
+      {% else %}
+        {{ feld_massnahme() }}{{ feld_messung() }}
+      {% endif %}
+      <button type="submit">Eintragen</button>
+    </fieldset>
+  </form>
+</details>
+
+{% set schreiben = darf_schreiben(request) %}
+{% set filterfelder %}<input type="hidden" name="teil" value="{{ teil }}"><input type="hidden" name="f_von" value="{{ f_von }}"><input type="hidden" name="f_bis" value="{{ f_bis }}">{% endset %}
+<h2 id="daten">Die Daten</h2>
+{% if meldung %}
+<p class="hinweis {{ art }}" role="status">{{ meldung }}</p>
+{% endif %}
+{% if b.upload and schreiben %}
+<form class="einwurf" method="post" enctype="multipart/form-data"
+      action="/bereich/{{ nummer }}/export">
+  {{ filterfelder }}
+  <label for="export">{{ b.upload_name }} hochladen</label>
+  <div class="paar">
+    <input type="file" id="export" name="datei" required
+           accept=".xlsx,.xlsm,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+    <button type="submit">Einlesen</button>
+  </div>
+  <p class="meta">{{ b.upload_hinweis }}</p>
+</form>
+{% endif %}
+{% if b.themen or b.quelle in ("naca", "emris") %}
+<form method="get" action="/bereich/{{ nummer }}" class="filter" role="search">
+  {% if teil %}<input type="hidden" name="teil" value="{{ teil }}">{% endif %}
+  <div class="paar">
+    <div>
+      <label for="fvon">Zeitraum von</label>
+      <input type="date" id="fvon" name="von" value="{{ f_von }}">
+    </div>
+    <div>
+      <label for="fbis">bis</label>
+      <input type="date" id="fbis" name="bis" value="{{ f_bis }}">
+    </div>
+    <div class="filter-knoepfe">
+      <button type="submit" class="knopf-klein">Filtern</button>
+      {% if f_von or f_bis %}<a href="/bereich/{{ nummer }}{% if teil %}?teil={{ teil }}{% endif %}#daten">Alle Zeiträume</a>{% endif %}
+    </div>
+  </div>
+</form>
+{% endif %}
+
+{% if zeichnungen %}
+{% if zeichnungen.verlauf %}
+  <div class="diagrammrahmen" tabindex="0">{{ zeichnungen.verlauf | safe }}</div>
+{% endif %}
+{% if zeichnungen.themen %}
+  {% if b.diagrammwahl and darf_schreiben(request) %}
+  {# Nur beim selbstgewählten Prozesskriterium: der Betrieb wählt das
+     Kriterium selbst, also auch seine Auswertung. #}
+  <form class="diagrammwahl" method="post" action="/bereich/{{ nummer }}/diagramm">
+    <input type="hidden" name="teil" value="{{ teil }}">
+    <input type="hidden" name="f_von" value="{{ f_von }}">
+    <input type="hidden" name="f_bis" value="{{ f_bis }}">
+    <span class="navgruppe" id="gr-diagramm">Darstellung</span>
+    <span class="schemaschalter" role="group" aria-labelledby="gr-diagramm">
+      {% for wert, name in diagrammarten.items() %}
+      <button type="submit" name="art" value="{{ wert }}"
+              aria-pressed="{{ 'true' if diagrammart == wert else 'false' }}">{{ name }}</button>
+      {% endfor %}
+    </span>
+  </form>
+  {% endif %}
+  <div class="diagrammrahmen" tabindex="0">{{ zeichnungen.themen | safe }}</div>
+{% endif %}
+{% if zeichnungen.vergleich %}
+  <div class="diagrammrahmen" tabindex="0">{{ zeichnungen.vergleich | safe }}</div>
+{% endif %}
+
+{% if ma %}
+<p class="meta">Befragung {{ ma.zeitraum }}</p>
+<div class="diagrammrahmen" tabindex="0">{{ zeichnungen.ma_bloecke | safe }}</div>
+<p class="meta">
+  {{ ma.antworten }} Antworten, Skala {{ ma.skala }}. Gesamtmittel
+  {{ ma.gesamtmittel }}. Die Balkenlänge zeigt den Anteil an der vollen Skala.
+</p>
+
+<div class="diagrammrahmen" tabindex="0">{{ zeichnungen.ma_fragen | safe }}</div>
+
+<div class="pruefer">
+  <h3>Die beiden Fahrzeuge im Vergleich</h3>
+  <div class="tabellenrahmen" tabindex="0" role="region" aria-label="Fahrzeugvergleich">
+  <table class="umbrechend">
+    <caption>Bewertung der beiden Rettungswagen</caption>
+    <thead><tr><th scope="col">Aspekt</th>
+               <th scope="col" class="zahl">WB31</th>
+               <th scope="col" class="zahl">WB32</th>
+               <th scope="col" class="zahl">Abstand</th></tr></thead>
+    <tbody>
+    {% for f in ma.fahrzeuge | sort(attribute="abstand", reverse=true) %}
+      <tr>
+        <td class="kopf">{{ f.aspekt }}</td>
+        <td class="zahl" data-spalte="WB31">{{ f.wb31 }}</td>
+        <td class="zahl rot" data-spalte="WB32">{{ f.wb32 }}</td>
+        <td class="zahl" data-spalte="Abstand">{{ f.abstand }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <p class="meta">
+    Berührt 6.5.2 Ausrüstung der Rettungsmittel und 7.3.19 Arbeitssicherheit.
+  </p>
+</div>
+
+<details>
+  <summary>Alle Fragen der Mitarbeitendenbefragung</summary>
+  <div class="tabellenrahmen" tabindex="0" role="region" aria-label="Alle Fragen">
+  <table class="umbrechend">
+    <caption>Mitarbeitendenbefragung, alle Fragen</caption>
+    <thead><tr><th scope="col">Frage</th><th scope="col">Block</th>
+               <th scope="col" class="zahl">Mittel</th>
+               <th scope="col" class="zahl">Streuung</th>
+               <th scope="col" class="zahl">n</th></tr></thead>
+    <tbody>
+    {% for f in ma.fragen %}
+      <tr>
+        <td class="kopf text">{{ f.frage }}</td>
+        <td class="leise" data-spalte="Block">{{ f.block }}</td>
+        <td class="zahl {{ 'rot' if f.mittel < 6 else 'gelb' if f.mittel < 7.5 else '' }}"
+            data-spalte="Mittel">{{ f.mittel }}</td>
+        <td class="zahl leise" data-spalte="Streuung">±{{ f.streuung }}</td>
+        <td class="zahl leise" data-spalte="n">{{ f.n }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</details>
+{% endif %}
+
+{% if nummer == "8.1.4" and daten %}
+<p class="meta">
+  {{ daten.zielgruppe }}. Skala {{ daten.skala }}. Runde 1:
+  {{ daten.runde1.antworten }} Antworten, {{ daten.runde1.zeitraum }}.
+  Runde 2: {{ daten.runde2.antworten }} Antworten, {{ daten.runde2.zeitraum }}.
+  Rechts steht die Veränderung je Frage.
+</p>
+
+<p class="meta">
+  Gesamtmittel Runde 1 {{ daten.runde1.mittel }}, Runde 2
+  {{ daten.runde2.mittel }}. Die Fragen sind in beiden Runden wortgleich.
+</p>
+{% endif %}
+
+{% if nummer == "8.1.3" and daten %}
+<p class="meta">
+  {{ daten.faelle }} Fälle, davon {{ daten.mit_protokoll }} mit
+  Beschwerdeprotokoll. Die Fallliste mit Erfassung steht unter
+  <a href="/faelle">Beschwerdemanagement</a>.
+</p>
+{% elif nummer == "8.1.1" and daten %}
+<p class="meta">
+  {{ daten.geprueft_gesamt }} beurteilte Protokolle, {{ daten.zeitraum }}.
+  Ausgewertet wird der Freitext der Rückmeldungen.
+</p>
+{% elif nummer == "8.1.2" and daten %}
+<p class="meta">
+  {{ daten.gesamt }} Meldungen{% if daten.monate %} seit
+  {{ (daten.monate[0].monat ~ "-01") | datum }}{% endif %}{% if daten.letzte_meldung %}, zuletzt am
+  {{ daten.letzte_meldung | datum }}{% endif %}. Ein Strich am Boden heisst
+  «Monat ohne Meldung», nicht «keine Daten».
+</p>
+{% endif %}
+{% endif %}
+
+{# Themen und Anzahlen von Hand, je Eintrag mit Zeitraum, dazu ein Filter.
+   Michael am 15.09.2026: «die daten muss ich manuell erfassen können, ich
+   muss ein thema definieren können und die anzahl der rückmeldungen
+   anpassen können» und «um die daten auswerten zu können brauche ich auch
+   einen filter für den zeitraum». Dieselbe Bauweise wie die Termintabelle:
+   leere Formulare vor der Tabelle, Felder in den Zellen. #}
+{% if b.themen %}
+<h2 id="themen">Themen der Rückmeldungen</h2>
+{% if zusammen %}
+<p class="leise">
+  {{ gesamt }} Nennungen{% if f_von or f_bis %} im gewählten Zeitraum{% endif %}, nach Häufigkeit:
+  {% for z in zusammen %}{{ z.name }} {{ z.anzahl }}{% if z.anteil is not none %} ({{ z.anteil }} %){% endif %}{% if not loop.last %}, {% endif %}{% endfor %}.
+</p>
+{% elif not schreiben %}
+<p class="leise">Noch keine Themen erfasst.</p>
+{% endif %}
+{% if schreiben %}
+  {% for t in themen %}
+    <form id="th-{{ t.id }}" method="post" action="/thema/{{ t.id }}">{{ filterfelder }}</form>
+    <form id="thl-{{ t.id }}" method="post" action="/thema/{{ t.id }}/loeschen">{{ filterfelder }}</form>
+  {% endfor %}
+  <form id="th-neu" method="post" action="/bereich/{{ nummer }}/thema">{{ filterfelder }}</form>
+{% endif %}
+{% if themen or schreiben %}
+<div class="tabellenrahmen" tabindex="0" role="region" aria-label="Themen der Rückmeldungen">
+<table class="umbrechend termine themen">
+  <caption>Einträge: ein Thema, eine Anzahl, ein Zeitraum</caption>
+  <thead>
+    <tr><th scope="col">Thema</th><th scope="col" class="zahl">Anzahl</th>
+        <th scope="col">von</th><th scope="col">bis</th>
+        {% if schreiben %}<th scope="col"><span class="nur-vorlesen">Aktion</span></th>{% endif %}</tr>
+  </thead>
+  <tbody>
+  {% for t in themen %}
+    <tr>
+      {# Zeilen aus dem Export stehen als Text: sie werden beim nächsten
+         Export ohnehin ersetzt. Von Hand erfasste Zeilen tragen Felder. #}
+      {% set von_hand = schreiben and not t.quelle %}
+      <td class="kopf">
+        {% if von_hand %}<input type="text" name="name" form="th-{{ t.id }}" value="{{ t.name }}" required aria-label="Thema">
+        {% else %}{{ t.name }}{% if t.quelle %} <span class="marke soll" title="aus dem Export">{{ t.quelle | upper }}</span>{% endif %}{% endif %}
+      </td>
+      <td class="zahl" data-spalte="Anzahl">
+        {% if von_hand %}<input type="number" name="anzahl" form="th-{{ t.id }}" value="{{ t.anzahl }}" min="0" required aria-label="Anzahl">
+        {% else %}{{ t.anzahl }}{% endif %}
+      </td>
+      <td data-spalte="von">
+        {% if von_hand %}<input type="date" name="von" form="th-{{ t.id }}" value="{{ t.von or '' }}" aria-label="von">
+        {% else %}{{ t.von | datum if t.von else "offen" }}{% endif %}
+      </td>
+      <td data-spalte="bis">
+        {% if von_hand %}<input type="date" name="bis" form="th-{{ t.id }}" value="{{ t.bis or '' }}" aria-label="bis">
+        {% else %}{{ t.bis | datum if t.bis else "offen" }}{% endif %}
+      </td>
+      {% if schreiben %}
+      <td class="aktion">
+        {% if von_hand %}<button type="submit" form="th-{{ t.id }}" class="knopf-leise">Speichern</button>{% endif %}
+        <button type="submit" form="thl-{{ t.id }}" class="knopf-leise gefahr">Löschen</button>
+      </td>
+      {% endif %}
+    </tr>
+  {% endfor %}
+  {% if schreiben %}
+    <tr class="neu">
+      <td class="kopf"><input type="text" name="name" form="th-neu" required placeholder="z.B. Notarztaufgebot" aria-label="Neues Thema"></td>
+      <td class="zahl" data-spalte="Anzahl"><input type="number" name="anzahl" form="th-neu" value="0" min="0" required aria-label="Anzahl des neuen Themas"></td>
+      <td data-spalte="von"><input type="date" name="von" form="th-neu" value="{{ f_von }}" aria-label="von"></td>
+      <td data-spalte="bis"><input type="date" name="bis" form="th-neu" value="{{ f_bis }}" aria-label="bis"></td>
+      <td class="aktion"><button type="submit" form="th-neu" class="knopf-klein">Eintragen</button></td>
+    </tr>
+  {% endif %}
+  </tbody>
+</table>
+</div>
+{% endif %}
+{% if schreiben %}
+<p class="meta">
+  Ein Eintrag je Thema und Zeitraum, etwa je Jahr. Der Filter zählt alle
+  Einträge zusammen, deren Zeitraum den gewählten berührt; ohne Datum gilt
+  ein Eintrag immer. Der Anteil rechnet gegen die Summe aller Nennungen im
+  Filter. Ein Thema ist der Messwert eines Kreislaufs: Define benennt es,
+  Measure zählt es.
+</p>
+{% endif %}
+{% endif %}
+
+{% if fuehrung %}
+<h2>So wird daraus ein Kreislauf</h2>
+<div class="fuehrung">
+  <dl class="schrittliste">
+    <dt>Auslöser</dt><dd>{{ fuehrung["auslöser"] }}</dd>
+    <dt>{{ zyklus.dt_zahl }}</dt><dd>{{ fuehrung.zahl }}</dd>
+    {% if fuehrung.ursache %}<dt>{% if dmaic %}Analyze: {% endif %}Ursache statt Schuld</dt><dd>{{ fuehrung.ursache }}</dd>{% endif %}
+    <dt>Zielvorgabe</dt><dd>{{ fuehrung.ziel }}</dd>
+    {% if fuehrung.rueckfluss %}<dt>Rückfluss ins Team</dt><dd>{{ fuehrung.rueckfluss }}</dd>{% endif %}
+    <dt>{{ zyklus.dt_check }}</dt>
+    <dd>
+      Dieselbe Messung erneut, mit derselben Zählweise. Besser geworden heisst
+      Massnahme behalten und dokumentieren. Nicht besser heisst, die
+      Ursachenannahme war falsch; die zweite Runde ist ebenfalls ein gültiger
+      Nachweis.
+    </dd>
+  </dl>
+</div>
+{% endif %}
+
+{% endblock %}

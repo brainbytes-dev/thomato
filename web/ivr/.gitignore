@@ -1,0 +1,23 @@
+# Was ein Betrieb erfasst, gehört ihm und nicht in ein Repository.
+anwendung/daten/
+IVR Dokumente/
+*.db
+*.sqlite
+
+# Die Richtlinien des IVR sind urheberrechtlich geschützt und werden hier
+# nicht verbreitet. Sie liegen beim Betrieb, der sie bezogen hat.
+quellen/
+anwendung/daten/register.json
+
+# Einmalige Skripte mit Betriebsdaten: Kreisläufe, Massnahmentexte, der
+# ausgelesene Expertenbericht.
+kreislauf-*.py
+massnahmen-text.py
+expertenbericht-lesen.py
+
+# Sicherungskopien der Vorlagen aus dem Bauen.
+*.vor-*
+__pycache__/
+*.pyc
+venv/
+.venv/
