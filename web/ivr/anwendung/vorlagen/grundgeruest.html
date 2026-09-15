@@ -1642,58 +1642,89 @@
   /* Am Schreibtisch trägt die Seitenleiste alle Ziele offen; der Knopf ist
      dort überflüssig und bleibt verborgen. */
   .navknopf { display: none; }
+  .obenleiste { display: none; }
+  .navschleier { display: none; }
 
   @media (max-width: 900px) {
-    /* Am Telefon wandert die Leiste nach oben. Dreizehn Ziele passen dort
-       weder nebeneinander noch untereinander: umbrochen fressen sie den
-       halben Bildschirm, in einer Schiebezeile verschwinden neun davon
-       unsichtbar nach rechts. Also zugeklappt, mit dem Namen der aktuellen
-       Seite im Knopf — und aufgeklappt die vollständige Gliederung samt
-       ihren Gruppenbeschriftungen, genau wie am Schreibtisch. */
+    /* Am Telefon: eine feste Leiste oben und eine Schublade dahinter, wie
+       in jeder App. Dreizehn Ziele passen weder nebeneinander noch
+       untereinander über den Inhalt; sie gehören hinter einen Griff.
+
+       Die Schublade legt sich über die Seite und schiebt sie nicht weg.
+       Wer sie schliesst, steht wieder dort, wo er war. */
     .huelle { display: block; }
-    .seitenleiste {
-      position: static; min-height: 0; border-right: 0;
-      border-bottom: 1px solid var(--linie); padding: 12px 14px;
-      display: flex; flex-wrap: wrap; align-items: center; gap: 0 10px;
+
+    .obenleiste {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 40;
+      display: flex; align-items: center; gap: 12px;
+      height: 3.25rem; padding: 0 12px;
+      background: var(--leiste); border-bottom: 1px solid var(--linie);
+      /* Unter der Statusleiste des Telefons, wenn es eine hat. */
+      padding-top: env(safe-area-inset-top, 0);
+      height: calc(3.25rem + env(safe-area-inset-top, 0));
     }
-    .seitenleiste .kopfbereich { flex: 1 1 100%; padding: 0 0 12px; }
+    .obenleiste-wo {
+      min-width: 0; overflow: hidden; text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: var(--schrift-text); font-weight: 560;
+      letter-spacing: -0.012em;
+    }
 
     .navknopf {
-      display: inline-flex; align-items: center; gap: 9px;
-      flex: 1 1 0; min-width: 0; margin: 0;
-      padding: 9px 12px; border: var(--kante); border-radius: var(--rund-feld);
-      background: var(--grund); color: var(--text);
-      font: inherit; font-size: var(--schrift-meta); font-weight: 590;
-      text-align: left; cursor: pointer; box-shadow: var(--hebung-klein);
+      display: inline-flex; align-items: center; justify-content: center;
+      flex: 0 0 auto; margin: 0; padding: 0;
+      width: 2.5rem; height: 2.5rem;
+      /* Ohne padding: 0 bliebe das Innenmass des allgemeinen Knopfes
+         stehen, und vom Symbol wären vier Pixel übrig. */
+      border: 0; border-radius: var(--rund-feld);
+      background: transparent; color: var(--text); cursor: pointer;
       transition: background var(--takt) var(--kurve);
     }
-    .navknopf svg { width: 16px; height: 16px; flex: 0 0 auto; color: var(--leise); }
-    .navknopf-wo {
-      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    .navknopf svg { width: 20px; height: 20px; color: inherit; }
+    .navknopf:hover, .navknopf[aria-expanded="true"] {
+      background: var(--zeile-an);
     }
-    .navknopf[aria-expanded="true"] { background: var(--flaeche); }
-    .navknopf[aria-expanded="true"] svg { color: var(--akzent); }
 
-    .seitenleiste nav { display: none; flex: 1 1 100%; padding-top: 14px; }
-    .seitenleiste.offen nav { display: block; }
-    .navgruppe { margin: 14px 0 6px; }
+    .navschleier {
+      display: block; position: fixed; inset: 0; z-index: 45;
+      background: rgba(2, 8, 18, .55);
+      opacity: 0; transition: opacity var(--takt) var(--kurve);
+    }
+    .navschleier[hidden] { display: none; }
+    body.nav-offen .navschleier { opacity: 1; }
+
+    .seitenleiste {
+      position: fixed; top: 0; bottom: 0; left: 0; z-index: 50;
+      width: min(86vw, 19rem); min-height: 0;
+      border-right: 1px solid var(--linie); border-bottom: 0;
+      padding: 18px 14px calc(18px + env(safe-area-inset-bottom, 0));
+      overflow-y: auto; overscroll-behavior: contain;
+      transform: translateX(-102%);
+      transition: transform var(--takt) var(--kurve);
+      box-shadow: var(--hebung);
+    }
+    body.nav-offen .seitenleiste { transform: translateX(0); }
+    body.nav-offen { overflow: hidden; }
+
+    .seitenleiste .kopfbereich { padding: 2px 10px 18px; }
+    .seitenleiste nav { display: block; }
     .navgruppe:first-child { margin-top: 0; }
 
-    /* Der Schalter bleibt neben dem Knopf sichtbar, auch zugeklappt. Seine
-       Beschriftung nicht: «Hell» und «Dunkel» sagen es selbst, und ein Wort
-       darüber würde die Zeile auf zwei Zeilen auseinanderziehen. Für die
-       Sprachausgabe bleibt sie über aria-labelledby erhalten. */
-    .schemabereich { margin: 0; flex: 0 0 auto; }
-    .schemabereich .navgruppe { display: none; }
-    .angemeldet { margin: 0 0 0 12px; }
-    .angemeldet .wer { display: none; }
-    .schemaschalter { display: inline-flex; }
-    .schemaschalter button { flex: 0 0 auto; white-space: nowrap; }
+    /* Der Inhalt beginnt unter der Leiste. */
+    main { padding-top: calc(3.25rem + env(safe-area-inset-top, 0) + 22px); }
+
+    @media (prefers-reduced-motion: reduce) {
+      .seitenleiste, .navschleier { transition: none; }
+    }
   }
 
   @media (max-width: 640px) {
     :root { --schrift-display: 1.5rem; --schrift-abschnitt: 1.1875rem; }
-    main { padding: 22px 16px 64px; }
+    /* Oben bleibt Platz für die feste Leiste; die Kurzform padding würde
+       ihn wieder wegnehmen. */
+    main {
+      padding: calc(3.25rem + env(safe-area-inset-top, 0) + 18px) 16px 64px;
+    }
 
     /* Eine sechsspaltige Tabelle ist am Telefon ein seitlich scrollendes
        Band. Jede Zeile wird deshalb zu einem Block, und die Spaltennamen
@@ -1864,16 +1895,25 @@
     </g>
   </defs>
 </svg>
+{# Am Telefon steht die Navigation nicht über dem Inhalt, sondern hinter
+   einer Schublade. Die Leiste oben sagt, wo man ist, und hält den Griff
+   dazu. Am Schreibtisch ist sie nicht da. #}
+<header class="obenleiste">
+  <button type="button" class="navknopf" aria-expanded="false"
+          aria-controls="hauptnav" aria-label="Navigation öffnen">
+    <svg viewBox="0 0 16 16" aria-hidden="true"><use href="#sym-menue"/></svg>
+  </button>
+  <span class="obenleiste-wo">IVR-Anerkennung</span>
+</header>
+<div class="navschleier" hidden></div>
+
 <div class="huelle">
 <aside class="seitenleiste">
   <div class="kopfbereich">
     <span class="wortmarke">IVR-Anerkennung</span>
     <span class="betrieb">{{ betrieb or betrieb_name() }}</span>
   </div>
-  <button type="button" class="navknopf" aria-expanded="false" aria-controls="hauptnav">
-    <svg viewBox="0 0 16 16" aria-hidden="true"><use href="#sym-menue"/></svg>
-    <span class="navknopf-wo">Navigation</span>
-  </button>
+
   <nav id="hauptnav" aria-label="Hauptnavigation">
     <p class="navgruppe" id="gr-stand">Stand</p>
     <ul aria-labelledby="gr-stand">
@@ -1994,19 +2034,60 @@
       });
     });
 
-    /* Am Telefon ist die Navigation zugeklappt. Der Knopf sagt, wo man
-       gerade ist, statt nur «Navigation» zu heissen. */
+    /* Am Telefon: die Leiste oben nennt die Seite, der Knopf öffnet die
+       Schublade. Der Name kommt aus der Überschrift der Seite und nicht
+       aus der Navigation — dort steht neben dem Ziel, wie viel offen ist,
+       und diese Zahl stand vorher im Knopf. */
     var knopf = document.querySelector(".navknopf");
-    var leiste = document.querySelector(".seitenleiste");
-    if (knopf && leiste) {
-      var hier = leiste.querySelector('nav a[aria-current="page"]');
-      if (hier) {
-        knopf.querySelector(".navknopf-wo").textContent =
-          hier.textContent.replace(/\s+/g, " ").trim();
+    var schleier = document.querySelector(".navschleier");
+    var wo = document.querySelector(".obenleiste-wo");
+    if (wo) {
+      var ueberschrift = document.querySelector("main h1");
+      var hier = document.querySelector('nav a[aria-current="page"]');
+      var name = "";
+      if (ueberschrift) {
+        name = ueberschrift.textContent;
+      } else if (hier) {
+        /* Ohne die Zahlen daneben: nur die eigenen Wörter des Verweises. */
+        var klon = hier.cloneNode(true);
+        klon.querySelectorAll(".navstand, .navzahl, .nur-vorlesen")
+            .forEach(function (x) { x.remove(); });
+        name = klon.textContent;
       }
-      knopf.addEventListener("click", function () {
-        var offen = leiste.classList.toggle("offen");
+      name = name.replace(/\s+/g, " ").trim();
+      if (name) { wo.textContent = name; }
+    }
+    if (knopf && schleier) {
+      var auf = function (offen) {
+        document.body.classList.toggle("nav-offen", offen);
         knopf.setAttribute("aria-expanded", offen ? "true" : "false");
+        knopf.setAttribute("aria-label",
+          offen ? "Navigation schliessen" : "Navigation öffnen");
+        if (offen) {
+          schleier.hidden = false;
+        } else {
+          /* Erst ausblenden, dann aus dem Weg nehmen. */
+          window.setTimeout(function () {
+            if (!document.body.classList.contains("nav-offen")) {
+              schleier.hidden = true;
+            }
+          }, 200);
+        }
+      };
+      knopf.addEventListener("click", function () {
+        auf(!document.body.classList.contains("nav-offen"));
+      });
+      schleier.addEventListener("click", function () { auf(false); });
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape" && document.body.classList.contains("nav-offen")) {
+          auf(false);
+          knopf.focus();
+        }
+      });
+      /* Ein Ziel in der Schublade schliesst sie. Die Seite wechselt zwar
+         ohnehin, aber bei einem Sprungziel auf derselben Seite nicht. */
+      document.querySelectorAll(".seitenleiste nav a").forEach(function (a) {
+        a.addEventListener("click", function () { auf(false); });
       });
     }
   })();
