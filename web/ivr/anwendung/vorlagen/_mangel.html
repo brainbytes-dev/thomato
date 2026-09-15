@@ -1,0 +1,155 @@
+{# Ein Mangel und was der Betrieb daraus gemacht hat.
+
+   Drei Teile, immer in dieser Reihenfolge: was die Prüfer 2024 notiert
+   haben, ob der Mangel behoben ist, und die eigenen Kommentare seither.
+   Dasselbe Bauteil steht auf der Prozesslandkarte, im Dossier am
+   Kriterium und im Handbuch beim Betriebsablauf; ein Mangel gehört dem
+   Kriterium, nicht der Seite.
+
+   Michael am 15.09.2026: «schreibe den kommentar des prüfers dazu und
+   mach, dass man auch später kommentare selbst eintragen kann und den
+   mangel als behoben markieren kann.» #}
+
+{% macro mangel_block(m, zurueck, mit_titel=false) %}
+{% if m %}
+{% set schreiben = darf_schreiben(request) %}
+<div class="mangel{% if m.auflagen_offen %} offen{% elif m.behoben_am %} behoben{% elif m.bemaengelt %} offen{% endif %}">
+  {% if mit_titel %}
+  <p class="mangel-kopf">
+    <a class="nummer" href="/kriterium/{{ m.nummer }}">{{ m.nummer }}</a>
+    <span class="mangel-titel">{{ m.titel }}</span>
+  </p>
+  {% endif %}
+
+  {% if m.bemaengelt %}
+  <p class="mangel-stand">
+    <span class="marke {{ 'geschlossen' if m.behoben_am else 'muss' }}">
+      {{ m.status_2024 }}{% if m.behoben_am %}, behoben{% endif %}
+    </span>
+    {% if m.behoben_am %}
+      <span class="meta">behoben am {{ m.behoben_am | datum }}{% if m.behoben_von %} von {{ m.behoben_von }}{% endif %}</span>
+    {% else %}
+      <span class="meta">Expertenbericht vom 03.04.2024</span>
+    {% endif %}
+  </p>
+  {% endif %}
+
+  {% if m.empfehlung %}
+  <blockquote class="mangel-zitat">{{ m.empfehlung }}</blockquote>
+  <p class="meta">
+    Wörtlich aus dem Expertenbericht vom 03.04.2024, Dr. med. Luca Marengo
+    und Günter Bildstein.
+  </p>
+  {% elif m.bemaengelt %}
+  <p class="meta">Der Bericht nennt zu diesem Punkt keine eigene Anmerkung.</p>
+  {% endif %}
+
+  {# Auflagen: Bedingungen mit Frist, an denen die Anerkennung haengt.
+     Sie stehen vor den Kommentaren, weil sie eine Frist tragen. #}
+  {% if m.auflagen %}
+  <ul class="auflagen">
+    {% for auf in m.auflagen %}
+    <li class="{{ 'erfuellt' if auf.erfuellt_am else 'offen' }}">
+      <p class="a-kopf">
+        <span class="marke {{ 'geschlossen' if auf.erfuellt_am else 'muss' }}">
+          {% if auf.erfuellt_am %}erfüllt{% else %}Auflage{% endif %}
+        </span>
+        {% if auf.verfahren %}<span class="meta">{{ auf.verfahren }}</span>{% endif %}
+        {% if auf.frist %}
+        <span class="meta {{ auf.stufe }}">
+          Frist {{ auf.frist | datum }}{% if not auf.erfuellt_am and auf.tage is not none %},
+          {% if auf.tage < 0 %}seit {{ -auf.tage }} Tagen überschritten{% else %}noch {{ auf.tage }} Tage{% endif %}{% endif %}
+        </span>
+        {% endif %}
+      </p>
+      <p class="a-text">{{ auf.text }}</p>
+      <p class="meta a-fuss">
+        erfasst {{ auf.erfasst_am | datum }}{% if auf.erfasst_von %} von {{ auf.erfasst_von }}{% endif %}
+        {% if auf.erfuellt_am %} · erfüllt {{ auf.erfuellt_am | datum }}{% if auf.erfuellt_von %} von {{ auf.erfuellt_von }}{% endif %}{% endif %}
+        {% if schreiben %}
+        <form method="post" action="/auflage/{{ auf.id }}/erfuellt">
+          <input type="hidden" name="zurueck" value="{{ zurueck }}">
+          {% if auf.erfuellt_am %}<input type="hidden" name="wieder_offen" value="ja">{% endif %}
+          <button type="submit" class="knopf-leise">
+            {% if auf.erfuellt_am %}Wieder als offen führen{% else %}Als erfüllt markieren{% endif %}
+          </button>
+        </form>
+        <form method="post" action="/auflage/{{ auf.id }}/loeschen">
+          <input type="hidden" name="zurueck" value="{{ zurueck }}">
+          <button type="submit" class="knopf-leise gefahr">Löschen</button>
+        </form>
+        {% endif %}
+      </p>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
+  {% if m.kommentare %}
+  <ul class="kommentare">
+    {% for k in m.kommentare %}
+    <li>
+      <p class="k-text">{{ k.text }}</p>
+      <p class="meta k-fuss">
+        {{ k.erstellt | datum }}{% if k.verfasser %} · {{ k.verfasser }}{% endif %}
+        {% if schreiben %}
+        <form method="post" action="/kommentar/{{ k.id }}/loeschen">
+          <input type="hidden" name="zurueck" value="{{ zurueck }}">
+          <button type="submit" class="knopf-leise gefahr">Löschen</button>
+        </form>
+        {% endif %}
+      </p>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
+  {% if schreiben %}
+  <div class="mangel-aktionen">
+    <details class="phasen">
+      <summary class="als-knopf">Anmerkung eintragen</summary>
+      <form method="post" action="/kriterium/{{ m.nummer }}/kommentar">
+        <input type="hidden" name="zurueck" value="{{ zurueck }}">
+        <label for="kt{{ m.nummer | replace('.', '-') }}">Was ist seither geschehen</label>
+        <textarea id="kt{{ m.nummer | replace('.', '-') }}" name="text" required
+                  placeholder="z.B. Dienstanweisung überarbeitet und am 12.11.2026 im Team geschult."></textarea>
+        <button type="submit" class="knopf-klein">Speichern</button>
+      </form>
+    </details>
+    <details class="phasen">
+      <summary class="als-knopf">Auflage eintragen</summary>
+      <form method="post" action="/kriterium/{{ m.nummer }}/auflage">
+        <input type="hidden" name="zurueck" value="{{ zurueck }}">
+        <label for="at{{ m.nummer | replace('.', '-') }}">Wortlaut der Auflage</label>
+        <textarea id="at{{ m.nummer | replace('.', '-') }}" name="text" required
+                  placeholder="z.B. Der Nachweis der Kompetenzerteilung für Freelancer ist bis zum Besuchstermin vorzulegen."></textarea>
+        <div class="paar">
+          <div>
+            <label for="av{{ m.nummer | replace('.', '-') }}">Verfahren</label>
+            <input type="text" id="av{{ m.nummer | replace('.', '-') }}" name="verfahren"
+                   placeholder="z.B. Rezertifizierung 2028">
+          </div>
+          <div>
+            <label for="af{{ m.nummer | replace('.', '-') }}">Frist</label>
+            <input type="date" id="af{{ m.nummer | replace('.', '-') }}" name="frist">
+          </div>
+        </div>
+        <button type="submit" class="knopf-klein">Auflage speichern</button>
+      </form>
+    </details>
+    {% if m.bemaengelt %}
+    <form method="post" action="/kriterium/{{ m.nummer }}/behoben">
+      <input type="hidden" name="zurueck" value="{{ zurueck }}">
+      {% if m.behoben_am %}
+        <input type="hidden" name="wieder_offen" value="ja">
+        <button type="submit" class="knopf-leise">Wieder als offen führen</button>
+      {% else %}
+        <button type="submit" class="knopf-klein">Mangel als behoben markieren</button>
+      {% endif %}
+    </form>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+{% endmacro %}

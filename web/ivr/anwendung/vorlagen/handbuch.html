@@ -1,0 +1,257 @@
+{% extends "grundgeruest.html" %}
+{% block inhalt %}
+
+<h1>Handbuch</h1>
+
+<form method="get" action="/handbuch" role="search">
+  <label for="q">Volltextsuche über Kriterien, IVR-Text und die abgelegten Dokumente</label>
+  <div class="paar">
+    <input type="text" id="q" name="q" value="{{ q }}"
+           placeholder="z.B. Hygiene, Übergabe, Todesfall">
+    <button type="submit">Suchen</button>
+  </div>
+</form>
+
+{% if meldung %}
+<p class="hinweis {{ art }}" role="status">{{ meldung }}</p>
+{% endif %}
+
+{% if q %}
+  <p class="meta">
+    {{ treffer|length }} {% if treffer|length == 1 %}Kriterium{% else %}Kriterien{% endif %}
+    und {{ dokument_treffer|length }} {% if dokument_treffer|length == 1 %}Dokument{% else %}Dokumente{% endif %}
+    für «{{ q }}». <a href="/handbuch">Suche zurücksetzen</a>
+  </p>
+
+  {% if dokument_treffer %}
+  <h2>Dokumente</h2>
+  <ul class="listenbestand">
+    {% for d in dokument_treffer %}
+    <li>
+      <div class="lb-kopf">
+        <a class="lb-name" href="/handbuch/dokument/{{ d.id }}">{{ d.titel }}</a>
+        <span class="marke soll">{{ d.endung | upper }}</span>
+        {% if d.version %}<span class="meta">{{ d.version }}</span>{% endif %}
+        <span class="meta lb-datum">
+          <a href="/handbuch/{{ d.kriterium }}#dok-{{ d.id }}">{{ d.kriterium }} {{ d.ablauf }}</a>
+        </span>
+      </div>
+      {% if d.ausschnitt %}<p class="meta hb-ausschnitt">{{ d.ausschnitt }}</p>{% endif %}
+      <p class="hb-stand {{ d.stand.stufe }}">
+        <span class="punkt" aria-hidden="true"></span>{{ d.stand.text }}
+      </p>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
+  <h2>Kriterien</h2>
+  <div class="tabellenrahmen" tabindex="0" role="region" aria-label="Suchtreffer">
+  <table class="ablaeufe suchliste">
+    <caption>Kriterien mit «{{ q }}»</caption>
+    <thead><tr><th scope="col">Nr.</th><th scope="col">Titel</th>
+               <th scope="col">Auszug</th></tr></thead>
+    <tbody>
+    {% for t in treffer %}
+      <tr>
+        <td><a class="nummer" href="/handbuch/{{ t.nummer }}">{{ t.nummer }}</a></td>
+        <td><a href="/handbuch/{{ t.nummer }}">{{ t.titel }}</a></td>
+        <td class="leise text">
+          {% set text = (t.auszug or "") | trim %}
+          {{ text[:200] }}{% if text|length > 200 %}…{% endif %}
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="3">
+        <p>Nichts gefunden.</p>
+        <p class="meta">
+          Die Suche prüft Titel, Anforderung und IVR-Handbuchtext der Kriterien
+          sowie Titel, Version und Inhalt der abgelegten Dokumente. Umlaute
+          zählen: «Übergabe» findet etwas, «Uebergabe» nicht.
+        </p>
+      </td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+
+{% else %}
+  <p class="leise">
+    Antrag, Struktur und Prozess, {{ gesamt }} Kriterien. Hier wird verwaltet, was auf
+    der <a href="/">Übersicht</a> und der <a href="/landkarte">Prozesslandkarte</a>
+    steht: die geltenden Dokumente, ihre Prüffristen, die Auflagen aus dem
+    Verfahren und die Mängel aus dem Expertenbericht. Ein Klick auf die
+    Nummer öffnet das Kriterium. Die Ergebnisqualität nach Kapitel 8 wird
+    bei den Qualitätskreisläufen geführt.
+  </p>
+  <p class="leise">
+    <strong>Pflicht</strong> ist die Latte der Erneuerung und nicht die der
+    Erstanerkennung: ein Muss ist nachzuweisen, ein Soll wird erwartet.
+    <strong>Dokumente</strong> zählt, was im Handbuch gilt, und darunter,
+    was im Dossier dazu liegt. <strong>Geprüft</strong> sagt, wie viele
+    dieser Dossierdateien vor dem Einreichen schon durchgesehen sind.
+  </p>
+
+  {% if plan.gesamt %}
+  {# Michael am 15.09.2026: «füge allen dokumenten ein prüfdatum ein, dass
+     wir bis zum einreichen alles auf einem aktuellen stand sind.» #}
+  <h2>Prüfung bis zum Einreichen</h2>
+  <p class="leise">
+    Bis zum {{ plan.frist | datum }} muss das Dossier vollständig und
+    aktuell sein. Dafür trägt jede Datei ihr Prüfdatum: sie ist angeschaut
+    worden und gilt. Gesetzt wird es beim Kriterium unter «Im Dossier
+    abgelegt», einzeln oder für eine ganze Liste.
+  </p>
+  <p class="planzahl">
+    <strong class="{{ 'gruen' if not plan.offen }}">{{ plan.geprueft }} von {{ plan.gesamt }}</strong>
+    Dateien geprüft{% if plan.tage is not none %},
+    <span class="{{ 'rot' if plan.tage < 0 else 'gelb' if plan.tage < 120 }}">
+      {% if plan.tage < 0 %}Frist seit {{ -plan.tage }} Tagen vorbei{% else %}noch {{ plan.tage }} Tage{% endif %}</span>{% endif %}
+  </p>
+  <div class="diagrammrahmen" tabindex="0">{{ planbalken | safe }}</div>
+  <ul class="legende">
+    <li><span class="strich l-gruen"></span> geprüft</li>
+    <li><span class="strich l-grau"></span> noch ungeprüft</li>
+  </ul>
+  {% endif %}
+
+  {% if spaet and plan.frist and darf_verwalten(request) %}
+  {# Ein Handbuchdokument, dessen nächste Prüfung nach dem Einreichen liegt,
+     geht ungeprüft ins Dossier. Die Vorgabe «alle 2 Jahre» rechnet ab dem
+     Ablegen und landet seit Dezember 2025 dahinter. #}
+  <p class="hinweis warnung">
+    <strong>{{ spaet }} {% if spaet == 1 %}Handbuchdokument wird{% else %}Handbuchdokumente werden{% endif %}
+    nicht vor dem Einreichen geprüft</strong>, sondern erst nach dem
+    {{ plan.frist | datum }} oder gar nicht.
+    <form method="post" action="/handbuch/pruefdatum">
+      <button type="submit" class="knopf-klein">Prüfung auf {{ plan.frist | datum }} vorziehen</button>
+    </form>
+  </p>
+  {% endif %}
+
+  {% if auflagen %}
+  <h2>Offene Auflagen ({{ auflagen | length }})</h2>
+  <p class="leise">
+    Bedingungen aus dem Anerkennungsverfahren. Eingetragen und erfüllt
+    gemeldet werden sie beim Kriterium.
+  </p>
+  <ul class="listenbestand">
+    {% for auf in auflagen %}
+    <li>
+      <div class="lb-kopf">
+        <a class="lb-name" href="{% if auf.kriterium.startswith('8.1.') %}/bereich/{{ auf.kriterium }}{% else %}/handbuch/{{ auf.kriterium }}{% endif %}">{{ auf.kriterium }} {{ auf.titel }}</a>
+        {% if auf.verfahren %}<span class="marke soll">{{ auf.verfahren }}</span>{% endif %}
+        <span class="meta lb-datum {{ auf.stufe }}">
+          {% if auf.frist %}Frist {{ auf.frist | datum }}{% else %}ohne Frist{% endif %}
+        </span>
+      </div>
+      <p class="meta">{{ auf.text }}</p>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
+  {% if faellige %}
+  <h2>Zur Prüfung fällig ({{ faellige | length }})</h2>
+  <p class="leise">
+    Diese Dokumente sind zur Prüfung fällig oder werden es in den nächsten
+    zwei Monaten. Prüfen heisst lesen, allenfalls überarbeiten, und dann
+    als aktuell bestätigen.
+  </p>
+  <ul class="listenbestand">
+    {% for d in faellige %}
+    <li>
+      <div class="lb-kopf">
+        <a class="lb-name" href="/handbuch/{{ d.kriterium }}#dok-{{ d.id }}">{{ d.titel }}</a>
+        {% if d.version %}<span class="meta">{{ d.version }}</span>{% endif %}
+        <span class="meta lb-datum">{{ d.kriterium }} {{ d.ablauf }}</span>
+      </div>
+      <p class="hb-stand {{ d.stand.stufe }}">
+        <span class="punkt" aria-hidden="true"></span>
+        <span class="{{ d.stand.farbe }}">{{ d.stand.text }}</span>
+        {% if d.bestaetigt_am %} · zuletzt bestätigt {{ d.bestaetigt_am | datum }}{% endif %}
+      </p>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
+  <h2 id="kriterien">Die Kriterien</h2>
+  {% if kapitelnamen | length > 1 %}
+  <nav class="reiter" aria-label="Kapitel">
+    <a href="/handbuch#kriterien"{% if not kapitel %} aria-current="page"{% endif %}>Alle</a>
+    {% for k in kapitelnamen %}
+      <a href="/handbuch?kapitel={{ k }}#kriterien"{% if kapitel == k %} aria-current="page"{% endif %}>{{ k }}</a>
+    {% endfor %}
+  </nav>
+  {% endif %}
+
+  {% for band in baender %}
+  <h3>{{ band.name }} ({{ band.kriterien | length }})</h3>
+  <div class="tabellenrahmen" tabindex="0" role="region" aria-label="Kriterien, {{ band.name }}">
+  <table class="ablaeufe kriterienliste">
+    <caption>{{ band.name }}: Pflicht, Dokumente, Prüfstand und offene Punkte</caption>
+    <thead>
+      <tr><th scope="col">Nr.</th><th scope="col">Kriterium</th>
+          <th scope="col">Pflicht</th>
+          <th scope="col" class="zahl">Dokumente</th>
+          <th scope="col">Geprüft</th>
+          <th scope="col">Auflagen und Mängel</th></tr>
+    </thead>
+    <tbody>
+    {% for k in band.kriterien %}
+      <tr>
+        <td><a class="nummer" href="/handbuch/{{ k.nummer }}">{{ k.nummer }}</a></td>
+        {# Der Titel führt zum Kriterium wie die Nummer, sieht aber aus
+           wie Text: in einundfünfzig Zeilen untereinander wäre ein blauer,
+           unterstrichener Block nicht mehr zu überfliegen. Die Marke «7.3»
+           ist weg, sie wiederholte die Nummer. #}
+        <td class="kopf">
+          <a class="stiller-verweis" href="/handbuch/{{ k.nummer }}">{{ k.titel }}</a>
+        </td>
+        <td data-spalte="Pflicht">
+          {% if k.muss %}<span class="marke muss">Muss</span>
+          {% elif k.soll %}<span class="marke soll">Soll</span>
+          {% elif k.nur_erst %}<span class="leise">nur Erstanerkennung</span>
+          {% else %}<span class="leise">—</span>{% endif %}
+          {% if k.min_erneuerung %}<div class="meta">min. {{ k.min_erneuerung }}</div>{% endif %}
+        </td>
+        <td class="zahl" data-spalte="Dokumente">
+          {% if k.dokumente %}<span>{{ k.dokumente }}</span>
+          {% else %}<span class="leise">–</span>{% endif %}
+          {% if k.dossier.gesamt %}<div class="meta">{{ k.dossier.gesamt }} im Dossier</div>{% endif %}
+        </td>
+        {# Geprüft zählt die Dateien im Dossier, denn die gibt es; der
+           Prüfstand der Handbuchdokumente steht darunter, wenn es welche
+           gibt. Vorher stand hier nur letzterer, und damit bei allen
+           sechsundfünfzig Kriterien ein Strich. #}
+        <td data-spalte="Geprüft">
+          {% if k.dossier.gesamt %}
+            <span class="{{ 'gruen' if k.dossier.geprueft == k.dossier.gesamt }}">
+              {{ k.dossier.geprueft }} von {{ k.dossier.gesamt }}</span>
+          {% else %}<span class="leise">–</span>{% endif %}
+          {% if k.stand %}<div class="meta {{ k.stand.farbe }}">{{ k.stand.text }}</div>{% endif %}
+        </td>
+        <td data-spalte="Auflagen und Mängel">
+          {% if k.auflagen_offen %}
+            <span class="rot">{{ k.auflagen_offen | length }} {% if k.auflagen_offen | length == 1 %}Auflage{% else %}Auflagen{% endif %}</span>
+          {% endif %}
+          {% if k.bemaengelt and not k.behoben_am %}
+            <div class="rot">2024 bemängelt</div>
+          {% elif k.bemaengelt %}
+            <div class="gruen">bemängelt, behoben</div>
+          {% endif %}
+          {% if k.auflagen and not k.auflagen_offen and not k.bemaengelt %}
+            <span class="gruen">Auflagen erfüllt</span>
+          {% endif %}
+          {% if not k.auflagen and not k.bemaengelt %}<span class="leise">—</span>{% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% endfor %}
+{% endif %}
+
+{% endblock %}

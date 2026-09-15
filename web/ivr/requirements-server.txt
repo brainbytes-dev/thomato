@@ -1,0 +1,4 @@
+# Für den Betrieb auf einem eigenen Server. Auf einer Plattform mit
+# kurzlebigen Prozessen bringt diese den Server selbst mit.
+-r requirements.txt
+uvicorn[standard]

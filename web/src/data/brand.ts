@@ -91,9 +91,10 @@ const digitalOffers = [
     deliverables: [
       "Dienst- und Schichtplanung mit Pikett und Verfügbarkeiten",
       "Material- und Medikamentenverwaltung mit Ablaufkontrolle",
+      "Qualitätsmanagement für die IVR-Anerkennung",
       "Zugeschnitten auf Ihren Ablauf statt umgekehrt",
-      "In Etappen gebaut, jede einzeln abnehmbar",
     ],
+    link: { href: "/ivr-anerkennung", label: "Beispiel: IVR-Anerkennung" },
   },
   {
     id: "03",
@@ -141,6 +142,7 @@ export const brand = {
     { label: "Software", href: "#software" },
     { label: "Sicherheit", href: "#sicherheit" },
     { label: "Rechner", href: "/sanitaetsdienst-rechner" },
+    { label: "IVR-Anerkennung", href: "/ivr-anerkennung" },
     { label: "Prozess", href: "#prozess" },
     { label: "FAQ", href: "#faq" },
     { label: "Kontakt", href: "#kontakt" },

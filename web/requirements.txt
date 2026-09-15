@@ -1,0 +1,7 @@
+# Für die Python-Funktion unter api/, die die Demo der IVR-Anwendung
+# ausliefert. Die Node-Abhängigkeiten der Website stehen in package.json.
+fastapi
+jinja2
+python-multipart
+pypdf
+openpyxl

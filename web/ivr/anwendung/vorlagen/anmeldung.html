@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Anmeldung — IVR-Anerkennung</title>
+<script>
+  /* Wie im Grundgerüst: vor dem ersten Zeichnen, sonst blitzt die helle
+     Fläche auf, bevor das gewählte Schema greift. */
+  try {
+    var s = localStorage.getItem("schema");
+    if (s === "dunkel") document.documentElement.dataset.schema = "dunkel";
+  } catch (e) {}
+</script>
+<style>
+  :root { color-scheme: light; }
+  :root[data-schema="dunkel"] { color-scheme: dark; }
+
+  /* Dieselben Werte wie im Grundgerüst, nur die, die diese Seite braucht.
+     Die Anmeldung ist die einzige Seite ohne Seitenleiste; sie erbt das
+     Aussehen, nicht das Gerüst. */
+  :root {
+    --boden: #f2f1ee;
+    --grund: #ffffff;
+    --text: #1f1e1d;
+    --leise: #6d6b67;
+    --feldlinie: #918e89;
+    --akzent: #0066cc;
+    --akzent-tief: #0052a8;
+    --akzent-text: #ffffff;
+    --rot: #b3261e;
+    --rot-flaeche: #fbf0ee;
+    --fokusring: rgba(0, 102, 204, .22);
+    --schrift-display: 1.75rem;
+    --schrift-text: 0.9375rem;
+    --schrift-meta: 0.8125rem;
+    --rund-gruppe: 14px;
+    --rund-feld: 8px;
+    --hebung: 0 1px 2px rgba(0, 0, 0, .05), 0 8px 24px -14px rgba(0, 0, 0, .18);
+    --kante: 1px solid rgba(0, 0, 0, .06);
+    --takt: 180ms;
+    --kurve: cubic-bezier(.32, .72, 0, 1);
+  }
+
+  :root[data-schema="dunkel"] {
+    --boden: #1c1c1e;
+    --grund: #2c2c2e;
+    --text: #f2f2f5;
+    --leise: #a3a3a9;
+    --feldlinie: #79797f;
+    --akzent: #64aaff;
+    --akzent-tief: #94c4ff;
+    --akzent-text: #0a1f33;
+    --rot: #ff9b91;
+    --rot-flaeche: #3a2422;
+    --fokusring: rgba(100, 170, 255, .34);
+    --hebung: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px -14px rgba(0, 0, 0, .7);
+    --kante: 1px solid rgba(255, 255, 255, .08);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: var(--boden);
+    color: var(--text);
+    font: var(--schrift-text)/1.47 -apple-system, BlinkMacSystemFont,
+          "SF Pro Text", "Segoe UI Variable Text", "Segoe UI", system-ui,
+          sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  :focus-visible { outline: 2px solid var(--akzent); outline-offset: 2px; }
+  input { caret-color: var(--akzent); }
+
+  main {
+    width: 100%;
+    max-width: 23rem;
+    background: var(--grund);
+    border: var(--kante);
+    border-radius: var(--rund-gruppe);
+    box-shadow: var(--hebung);
+    padding: 28px 28px 30px;
+  }
+
+  h1 {
+    margin: 0 0 4px;
+    font-size: var(--schrift-display);
+    font-weight: 640;
+    letter-spacing: -.014em;
+  }
+
+  .unterzeile { margin: 0 0 22px; color: var(--leise); font-size: var(--schrift-meta); }
+
+  label {
+    display: block; font-size: var(--schrift-meta); color: var(--leise);
+    margin: 14px 0 5px; font-weight: 500;
+  }
+
+  input[type=text], input[type=password] {
+    width: 100%; padding: 9px 11px;
+    border: 1px solid var(--feldlinie); border-radius: var(--rund-feld);
+    background: var(--grund); color: var(--text); font: inherit;
+    transition: border-color var(--takt) var(--kurve),
+                box-shadow var(--takt) var(--kurve);
+  }
+
+  input:focus {
+    outline: none; border-color: var(--akzent);
+    box-shadow: 0 0 0 3px var(--fokusring);
+  }
+
+  button {
+    width: 100%;
+    margin-top: 22px; padding: 10px 18px;
+    border: 1px solid transparent; border-radius: var(--rund-feld);
+    background: var(--akzent); color: var(--akzent-text);
+    font: inherit; font-weight: 590; cursor: pointer;
+    transition: background var(--takt) var(--kurve), transform 90ms var(--kurve);
+  }
+  button:hover { background: var(--akzent-tief); }
+  button:active { transform: scale(.985); }
+
+  /* Der Fehler steht über dem Formular, nicht darunter: man liest ihn,
+     bevor man wieder ins Feld greift. */
+  .fehler {
+    margin: 0 0 18px; padding: 10px 12px;
+    background: var(--rot-flaeche); color: var(--rot);
+    border-radius: var(--rund-feld); font-size: var(--schrift-meta);
+  }
+
+  .hinweis.demo {
+    background: var(--akzent-flaeche, rgba(0, 102, 204, .08));
+    border-radius: var(--rund-feld);
+    padding: 12px 14px;
+    text-align: left;
+  }
+  .hinweis.demo code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: .95em;
+  }
+  .hinweis {
+    margin: 22px 0 0; padding-top: 16px;
+    border-top: var(--kante);
+    color: var(--leise); font-size: var(--schrift-meta);
+  }
+</style>
+</head>
+<body>
+<main>
+  {% if neu %}
+    <h1>Passwort festlegen</h1>
+    <p class="unterzeile">Für dieses Konto ist noch keines gesetzt.
+      Mindestens zehn Zeichen.</p>
+  {% else %}
+    <h1>Anmeldung</h1>
+    <p class="unterzeile">IVR-Anerkennung und Betriebshandbuch{% if betrieb %},
+      {{ betrieb }}{% endif %}. Beim ersten Mal nur den Benutzer eingeben —
+      das Passwort legen Sie dann selbst fest.</p>
+    {% if demo %}
+    <p class="hinweis demo">
+      <strong>Demoversion.</strong> Alle Daten sind erfunden.
+      Verwalten: <code>demo</code> / <code>demo-ansehen</code>.
+      Nur Lesen: <code>gast</code> / <code>demo-ansehen</code>.
+      Was Sie ändern, wird nach kurzer Zeit zurückgesetzt.
+    </p>
+    {% endif %}
+  {% endif %}
+
+  {% if fehler %}<p class="fehler" role="alert">{{ fehler }}</p>{% endif %}
+
+  <form method="post" action="/anmeldung">
+    <input type="hidden" name="weiter" value="{{ weiter }}">
+    {% if neu %}<input type="hidden" name="festlegen" value="ja">{% endif %}
+
+    <label for="kennung">Benutzer</label>
+    <input type="text" id="kennung" name="kennung" value="{{ kennung }}"
+           autocomplete="username" autocapitalize="none" spellcheck="false"
+           required {% if not kennung %}autofocus{% endif %}>
+
+    <label for="passwort">Passwort</label>
+    <input type="password" id="passwort" name="passwort"
+           autocomplete="{% if neu %}new-password{% else %}current-password{% endif %}"
+           {% if neu %}required{% endif %} {% if kennung %}autofocus{% endif %}>
+
+    {% if neu %}
+      <label for="wiederholung">Passwort wiederholen</label>
+      <input type="password" id="wiederholung" name="wiederholung"
+             autocomplete="new-password" required>
+    {% endif %}
+
+    <button type="submit">{% if neu %}Festlegen und anmelden{% else %}Anmelden{% endif %}</button>
+  </form>
+
+  {% if tuerwaechter %}
+  <p class="hinweis">Zwei Türen: der Einmalcode von {{ tuerwaechter }} bringt Sie
+    ans Haus, dieses Passwort in den Raum.</p>
+  {% endif %}
+</main>
+</body>
+</html>
