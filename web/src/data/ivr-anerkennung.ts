@@ -36,7 +36,7 @@ export const ivr = {
     hinweis:
       "Alle Daten in der Demo sind erfunden. Der Betrieb «Rettungsdienst Musterstadt» existiert nicht, die Fälle, Messwerte und Dokumente ebenso wenig.",
     zugang:
-      "Anmeldung: demo mit dem Passwort demo-ansehen. Sie dürfen darin alles anfassen, auch löschen; nach kurzer Zeit steht wieder der Ausgangsstand da.",
+      "Drei Zugänge, einer je Rechtestufe: lesen, schreiben und admin, Passwort bei allen drei demo. So sehen Sie auch, was eine Stufe darf und was nicht. Sie dürfen darin alles anfassen, auch löschen; nach kurzer Zeit steht wieder der Ausgangsstand da.",
   },
 
   /** Das Problem, in der Sprache des Betriebs. */

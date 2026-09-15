@@ -5,10 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Anmeldung — IVR-Anerkennung</title>
 <script>
-  /* Wie im Grundgerüst: vor dem ersten Zeichnen, sonst blitzt die helle
-     Fläche auf, bevor das gewählte Schema greift. */
+  /* Vor dem ersten Zeichnen, sonst blitzt die falsche Fläche auf, bevor das
+     gewählte Schema greift. Die Wahl in der Seitenleiste gilt; ohne Wahl
+     entscheidet die Anlage, und die Demo steht auf dunkel. */
   try {
-    var s = localStorage.getItem("schema");
+    var vorgabe = "{{ vorgabe_schema() }}";
+    var s = localStorage.getItem("schema") || vorgabe;
     if (s === "dunkel") document.documentElement.dataset.schema = "dunkel";
   } catch (e) {}
 </script>
@@ -134,45 +136,277 @@
     border-radius: var(--rund-feld); font-size: var(--schrift-meta);
   }
 
-  .hinweis.demo {
-    background: var(--akzent-flaeche, rgba(0, 102, 204, .08));
-    border-radius: var(--rund-feld);
-    padding: 12px 14px;
-    text-align: left;
-  }
-  .hinweis.demo code {
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    font-size: .95em;
-  }
   .hinweis {
     margin: 22px 0 0; padding-top: 16px;
     border-top: var(--kante);
     color: var(--leise); font-size: var(--schrift-meta);
+    text-align: center;
+  }
+
+  /* ───────────────────────────────────────────────────────────────────
+     Die Demo. Sie ist das erste, was jemand von der Anwendung sieht, und
+     wird von der Website aus aufgerufen; deshalb trägt sie deren Bild:
+     dunkle Fläche, Höhenlinien, magere grosse Schrift, Markenblau.
+
+     Ohne Demo bleibt alles wie oben, denn im Betrieb ist die Anmeldung
+     eine Tür und keine Auslage.
+     ─────────────────────────────────────────────────────────────────── */
+  body.schau {
+    --hero-grund: #050f1e;
+    --hero-flaeche: rgba(255, 255, 255, .035);
+    --hero-text: #eef5ff;
+    --hero-leise: rgba(196, 222, 255, .82);
+    --hero-linie: rgba(60, 140, 255, .22);
+    --hero-linie-stark: rgba(60, 140, 255, .42);
+    --hero-blau: #3c8cff;
+    --hero-feld: rgba(255, 255, 255, .06);
+    --hero-karte: rgba(6, 18, 36, .78);
+    display: block;
+    padding: 0;
+    background: var(--hero-grund);
+    color: var(--hero-text);
+  }
+
+  /* Dieselbe Szene bei Tageslicht, falls jemand in der Anwendung auf hell
+     gestellt hat und zur Anmeldung zurückkommt. */
+  :root:not([data-schema="dunkel"]) body.schau {
+    --hero-grund: #f4f7fc;
+    --hero-flaeche: rgba(0, 20, 60, .035);
+    --hero-text: #050f1e;
+    --hero-leise: rgba(0, 20, 56, .78);
+    --hero-linie: rgba(0, 20, 60, .14);
+    --hero-linie-stark: rgba(0, 20, 60, .26);
+    --hero-blau: #0052a8;
+    --hero-feld: rgba(0, 20, 60, .04);
+    --hero-karte: rgba(255, 255, 255, .84);
+  }
+
+  .szene {
+    position: fixed; inset: 0; z-index: 0; overflow: hidden;
+    pointer-events: none;
+  }
+  .szene svg { width: 100%; height: 100%; opacity: .5; }
+  /* Über der Überschrift verschwindet die Zeichnung: Linien, die durch
+     Buchstaben laufen, sind keine Gestaltung, sondern ein Fehler. */
+  .szene::before {
+    content: ""; position: absolute; inset: 0; z-index: 1;
+    background: linear-gradient(to bottom,
+                var(--hero-grund) 0%,
+                var(--hero-grund) 26%,
+                transparent 62%);
+  }
+  /* Der Schein über dem Horizont, ruhig und ohne Takt: ein blinkendes
+     Blaulicht gehört auf die Strasse, nicht hinter ein Formular. */
+  .szene::after {
+    content: ""; position: absolute;
+    left: 50%; top: 58%; width: 120vw; height: 60vh;
+    transform: translate(-50%, -50%);
+    background: radial-gradient(ellipse at center,
+                var(--hero-linie-stark) 0%, transparent 62%);
+    opacity: .5;
+  }
+
+  /* Die senkrechte Linie mit der Jahreszahl, wie auf der Startseite. */
+  .jahr {
+    position: fixed; left: 40px; top: 0; bottom: 0; z-index: 1;
+    display: none; flex-direction: column; align-items: center;
+    pointer-events: none;
+  }
+  .jahr span {
+    margin: 20px 0; font-size: .6rem; letter-spacing: .25em;
+    text-transform: uppercase; color: var(--hero-blau); opacity: .5;
+    writing-mode: vertical-rl;
+  }
+  .jahr i { flex: 1; width: 1px; background: var(--hero-linie); }
+  .jahr i.kurz { flex: 0 0 5rem; }
+  @media (min-width: 64rem) { .jahr { display: flex; } }
+
+  body.schau main {
+    position: relative; z-index: 2;
+    max-width: 52rem; margin: 0 auto;
+    padding: clamp(56px, 12vh, 120px) 24px 64px;
+    background: transparent; border: 0; border-radius: 0; box-shadow: none;
+  }
+  @media (min-width: 64rem) { body.schau main { padding-left: 88px; } }
+
+  .marke {
+    margin: 0 0 18px; font-size: .68rem; font-weight: 600;
+    letter-spacing: .22em; text-transform: uppercase;
+    color: var(--hero-blau);
+  }
+
+  body.schau h1 {
+    margin: 0;
+    font-size: clamp(2.4rem, 6.2vw, 4.2rem);
+    font-weight: 300; line-height: 1.02; letter-spacing: -.028em;
+    color: var(--hero-text);
+  }
+  body.schau .unterzeile {
+    margin: 18px 0 0; max-width: 40rem;
+    font-size: clamp(1.05rem, 2.1vw, 1.35rem); font-weight: 300;
+    line-height: 1.45; color: var(--hero-leise);
+  }
+
+  .rollen {
+    display: grid; gap: 14px; margin: 34px 0 0;
+    grid-template-columns: repeat(auto-fit, minmax(13.5rem, 1fr));
+    border-top: 1px solid var(--hero-linie); padding-top: 30px;
+  }
+  .rollen form { margin: 0; display: flex; }
+  .rollen button {
+    width: 100%; margin: 0; padding: 18px 18px 16px;
+    display: flex; flex-direction: column; align-items: flex-start; gap: 7px;
+    text-align: left;
+    background: var(--hero-karte); color: var(--hero-text);
+    backdrop-filter: blur(2px);
+    border: 1px solid var(--hero-linie); border-radius: 4px;
+    font-weight: 400;
+    transition: border-color var(--takt) var(--kurve),
+                background var(--takt) var(--kurve);
+  }
+  .rollen button:hover {
+    background: var(--hero-feld); border-color: var(--hero-blau);
+  }
+  .r-titel {
+    font-size: 1.05rem; font-weight: 500; letter-spacing: -.01em;
+  }
+  .r-text {
+    font-size: var(--schrift-meta); line-height: 1.5; font-weight: 400;
+    color: var(--hero-leise);
+  }
+  .r-fuss {
+    margin-top: 2px; font-size: .75rem; letter-spacing: .04em;
+    color: var(--hero-blau);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  body.schau .fehler {
+    margin: 26px 0 0; max-width: 40rem;
+    background: transparent; color: #ff9b91;
+    border: 1px solid rgba(255, 155, 145, .4);
+  }
+
+  .selbst { margin: 26px 0 0; max-width: 23rem; }
+  .selbst > summary {
+    display: inline-block; cursor: pointer;
+    font-size: var(--schrift-meta); color: var(--hero-blau);
+    padding: 4px 0;
+  }
+  .selbst > summary::marker { color: var(--hero-blau); }
+  body.schau .selbst label { color: var(--hero-leise); }
+  body.schau .selbst input[type=text],
+  body.schau .selbst input[type=password] {
+    background: var(--hero-feld); color: var(--hero-text);
+    border-color: var(--hero-linie);
+  }
+  body.schau .selbst button {
+    background: var(--hero-blau); color: #f7fbff; width: auto;
+    padding: 10px 22px;
+  }
+
+  body.schau .hinweis {
+    margin: 40px 0 0; max-width: 46rem; padding-top: 22px;
+    border-top: 1px solid var(--hero-linie);
+    color: var(--hero-leise); text-align: left;
+  }
+  body.schau .hinweis a { color: var(--hero-blau); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .szene::after { opacity: .35; }
   }
 </style>
 </head>
-<body>
+
+{% set schau = demo and not neu %}
+<body{% if schau %} class="schau"{% endif %}>
+
+{% if schau %}
+{# Höhenlinien wie auf der Startseite, hier als ruhige Zeichnung statt als
+   gerechnetes Bild: die Anmeldung soll sofort dastehen und nichts laden. #}
+<div class="szene" aria-hidden="true">
+  <svg viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice"
+       fill="none" stroke="var(--hero-linie)" stroke-width="1">
+    <path d="M-40 620C180 560 320 640 520 600S900 470 1240 540"/>
+    <path d="M-40 680C200 620 340 700 540 660S920 540 1240 600"/>
+    <path d="M-40 560C160 500 300 580 500 540S880 400 1240 480" stroke-width="1.6"
+          stroke="var(--hero-linie-stark)"/>
+    <path d="M-40 500C140 440 280 520 480 480S860 330 1240 420"/>
+    <path d="M-40 440C120 380 260 460 460 420S840 260 1240 360"/>
+    <path d="M-40 740C220 690 360 760 560 720S940 620 1240 670"/>
+    <path d="M-40 380C100 320 240 400 440 360S820 190 1240 300"/>
+    <path d="M-40 320C80 260 220 340 420 300S800 120 1240 240"/>
+  </svg>
+</div>
+
+<div class="jahr" aria-hidden="true">
+  <i></i><span>Demo</span><i class="kurz"></i>
+</div>
+{% endif %}
+
 <main>
   {% if neu %}
     <h1>Passwort festlegen</h1>
     <p class="unterzeile">Für dieses Konto ist noch keines gesetzt.
       Mindestens zehn Zeichen.</p>
+  {% elif schau %}
+    <p class="marke">Demo</p>
+    <h1>IVR-Anerkennung</h1>
+    <p class="unterzeile">
+      Dossier, Betriebshandbuch und Qualitätskreisläufe an einem Ort.
+      Wählen Sie eine Stufe, dann sehen Sie, was sie darf.
+    </p>
   {% else %}
     <h1>Anmeldung</h1>
     <p class="unterzeile">IVR-Anerkennung und Betriebshandbuch{% if betrieb %},
       {{ betrieb }}{% endif %}. Beim ersten Mal nur den Benutzer eingeben —
       das Passwort legen Sie dann selbst fest.</p>
-    {% if demo %}
-    <p class="hinweis demo">
-      <strong>Demoversion.</strong> Alle Daten sind erfunden.
-      Verwalten: <code>demo</code> / <code>demo-ansehen</code>.
-      Nur Lesen: <code>gast</code> / <code>demo-ansehen</code>.
-      Was Sie ändern, wird nach kurzer Zeit zurückgesetzt.
-    </p>
-    {% endif %}
   {% endif %}
 
   {% if fehler %}<p class="fehler" role="alert">{{ fehler }}</p>{% endif %}
+
+  {% if schau %}
+  {# Drei Karten, eine je Rechtestufe. Michael am 15.09.2026: «um die
+     Funktionen aufzuzeigen». Ein Satz über Stufen erklärt weniger als
+     drei Türen, die man nacheinander aufmachen kann. #}
+  <div class="rollen">
+    {% for k in demo_konten %}
+    <form method="post" action="/anmeldung">
+      <input type="hidden" name="weiter" value="{{ weiter }}">
+      <input type="hidden" name="kennung" value="{{ k.kennung }}">
+      <input type="hidden" name="passwort" value="{{ demo_passwort }}">
+      <button type="submit">
+        <span class="r-titel">{{ k.titel }}</span>
+        <span class="r-text">{{ k.text }}</span>
+        <span class="r-fuss">{{ k.kennung }} · {{ demo_passwort }}</span>
+      </button>
+    </form>
+    {% endfor %}
+  </div>
+
+  <details class="selbst">
+    <summary>Lieber selbst eintippen</summary>
+    <form method="post" action="/anmeldung">
+      <input type="hidden" name="weiter" value="{{ weiter }}">
+      <label for="kennung">Benutzer</label>
+      <input type="text" id="kennung" name="kennung" value="{{ kennung }}"
+             autocomplete="username" autocapitalize="none" spellcheck="false"
+             required>
+      <label for="passwort">Passwort</label>
+      <input type="password" id="passwort" name="passwort"
+             autocomplete="current-password">
+      <button type="submit">Anmelden</button>
+    </form>
+  </details>
+
+  <p class="hinweis">
+    Alle Daten in dieser Demo sind erfunden. Der Betrieb
+    «{{ betrieb or "Rettungsdienst Musterstadt" }}» existiert nicht, die
+    Fälle, Messwerte und Dokumente ebenso wenig. Sie dürfen darin alles
+    anfassen, auch löschen; nach kurzer Zeit steht wieder der Ausgangsstand
+    da. Das Passwort ist bei allen drei Konten <code>{{ demo_passwort }}</code>.
+  </p>
+
+  {% else %}
 
   <form method="post" action="/anmeldung">
     <input type="hidden" name="weiter" value="{{ weiter }}">
@@ -200,6 +434,7 @@
   {% if tuerwaechter %}
   <p class="hinweis">Zwei Türen: der Einmalcode von {{ tuerwaechter }} bringt Sie
     ans Haus, dieses Passwort in den Raum.</p>
+  {% endif %}
   {% endif %}
 </main>
 </body>

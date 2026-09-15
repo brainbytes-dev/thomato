@@ -5,11 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{ titel }} — IVR-Anerkennung</title>
 <script>
-  /* Vor dem ersten Zeichnen, sonst blitzt die helle Fläche auf, bevor das
-     gewählte Schema greift. Voreinstellung ist hell, auch wenn der Rechner
-     dunkel steht; erst die Wahl in der Seitenleiste ändert das. */
+  /* Vor dem ersten Zeichnen, sonst blitzt die falsche Fläche auf, bevor
+     das gewählte Schema greift. Ohne Wahl entscheidet die Anlage: im
+     Betrieb hell, auch wenn der Rechner dunkel steht, in der Demo dunkel.
+     Die Wahl in der Seitenleiste sticht beides. */
   try {
-    var s = localStorage.getItem("schema");
+    var vorgabe = "{{ vorgabe_schema() }}";
+    var s = localStorage.getItem("schema") || vorgabe;
     if (s === "dunkel") document.documentElement.dataset.schema = "dunkel";
   } catch (e) {}
 </script>
@@ -22,19 +24,19 @@
   :root {
     /* Zwei Ebenen, wie in den Systemeinstellungen: ein ruhiger Fenstergrund,
        darauf weisse Gruppen. Rahmen tragen nicht die Trennung, Raum tut es. */
-    --boden: #f2f1ee;
+    --boden: #eef2f9;
     --grund: #ffffff;
-    --flaeche: #f5f4f1;
-    --leiste: #f7f6f3;
+    --flaeche: #f3f6fb;
+    --leiste: #f7f9fd;
 
-    --text: #1f1e1d;
-    --leise: #6d6b67;        /* 5,6:1 auf Weiss */
-    --linie: #e6e4e0;        /* Haarlinie innerhalb einer Gruppe */
-    --feldlinie: #918e89;    /* 3,3:1 auf Weiss, SC 1.4.11 */
+    --text: #050f1e;
+    --leise: #4d5f7d;        /* 6,3:1 auf Weiss */
+    --linie: #dde5f0;        /* Haarlinie innerhalb einer Gruppe */
+    --feldlinie: #8095b3;    /* 3,1:1 auf Weiss, SC 1.4.11 */
 
-    --akzent: #0066cc;       /* 5,6:1 auf Weiss, auch als Verweistext */
-    --akzent-tief: #0052a8;
-    --akzent-flaeche: #eaf2fd;
+    --akzent: #0052a8;       /* 7,4:1 auf Weiss, auch als Verweistext */
+    --akzent-tief: #003b7a;
+    --akzent-flaeche: #e7effb;
     --akzent-text: #ffffff;
 
     --rot: #b3261e;
@@ -48,35 +50,38 @@
     /* Der ruhige Ton für «erledigt» im Lagebalken: die grösste Fläche zeigt
        den Zustand, der keine Arbeit auslöst, und darf deshalb nicht der
        lauteste Block der Seite sein. */
-    --gruen-ruhig: #dbebe0;
-    --lage-grau: #dad8d3;
+    --gruen-ruhig: #d8ebe1;
+    --lage-grau: #d3dbe7;
     /* Schrift auf einer gefüllten Statusfarbe. Im dunklen Schema sind diese
        Farben hell, dort steht dunkle Schrift darauf. */
     --auf-farbe: #ffffff;
 
     /* Die Flächen, die kein Merkmal trägt: Auswahl, Fokus, Zeilenanfassung,
        Segmentgrund, Rollbalken. Sie gehören zum Schema wie jede andere. */
-    --auswahl: rgba(0, 102, 204, .18);
-    --fokusring: rgba(0, 102, 204, .22);
-    --zeile-an: rgba(0, 0, 0, .05);
-    --segment-grund: rgba(0, 0, 0, .05);
-    --rollbalken: rgba(0, 0, 0, .26);
+    --auswahl: rgba(0, 82, 168, .18);
+    --fokusring: rgba(0, 82, 168, .24);
+    --zeile-an: rgba(5, 15, 30, .05);
+    --segment-grund: rgba(5, 15, 30, .05);
+    --rollbalken: rgba(5, 15, 30, .24);
 
     /* Diagrammreihen, geprüft gegen Helligkeitsband, Sättigung,
        Farbenblindheit und Kontrast auf weissem Grund. */
-    --reihe-1: #0062c4;
+    --reihe-1: #0052a8;
     --reihe-2: #a35e00;
 
     /* Vier Stufen, fest in rem. Produktoberflächen werden bei gleicher
        Auflösung gelesen; eine mitwachsende Überschrift hilft hier nicht. */
-    --schrift-display: 1.75rem;
-    --schrift-abschnitt: 1.3125rem;
+    --schrift-display: 2.125rem;
+    --schrift-abschnitt: 1.4375rem;
     --schrift-text: 0.9375rem;
     --schrift-meta: 0.8125rem;
 
-    --rund-gruppe: 14px;
-    --rund-feld: 8px;
-    --rund-klein: 6px;
+    /* Kantig wie die Website: dort steht der Radius auf 0.25rem. Weiche
+       Ecken sind freundlich, gerade sind ruhig, und eine Oberfläche mit
+       sechzig Zeilen braucht Ruhe. */
+    --rund-gruppe: 7px;
+    --rund-feld: 4px;
+    --rund-klein: 3px;
 
     /* Ein Schatten mit Versatz und weichem Verlauf, dazu eine Haarlinie für
        die Kante. Nicht ein Schein ohne Versatz. */
@@ -98,46 +103,49 @@
      Die Flächen werden nach oben heller statt dunkler, wie es eine dunkle
      Systemoberfläche macht, und der Schatten trägt die Tiefe nicht mit. */
   :root[data-schema="dunkel"] {
-    --boden: #1c1c1e;
-    --grund: #2c2c2e;
-    --flaeche: #3a3a3d;
-    --leiste: #232325;
+    /* Das Marineblau der Website, nicht das neutrale Grau der
+       Systemeinstellungen: die Demo wird von dort aus aufgerufen, und
+       zwischen Eingang und Anwendung soll kein Bruch liegen. */
+    --boden: #050f1e;
+    --grund: #0a1830;
+    --flaeche: #102341;
+    --leiste: #040c18;
 
-    --text: #f2f2f5;
-    --leise: #a3a3a9;        /* 6,0:1 auf der gehobenen Fläche */
-    --linie: #3d3d41;
-    --feldlinie: #79797f;    /* 3,2:1 auf der gehobenen Fläche */
+    --text: #eef5ff;
+    --leise: #9db6d8;        /* 6,4:1 auf der gehobenen Fläche */
+    --linie: #17294a;
+    --feldlinie: #3f5c88;    /* 3,1:1 auf der gehobenen Fläche */
 
-    --akzent: #64aaff;       /* 6,1:1 auf der gehobenen Fläche */
-    --akzent-tief: #94c4ff;
-    --akzent-flaeche: #16314d;
-    --akzent-text: #0a1f33;
+    --akzent: #3c8cff;       /* 6,2:1 auf der gehobenen Fläche */
+    --akzent-tief: #7db4ff;
+    --akzent-flaeche: #0f2a52;
+    --akzent-text: #04101f;
 
     --rot: #ff9b91;
     --gelb: #e0b45c;
     --gruen: #76d3a1;
     --violett: #b9a5f5;
-    --rot-flaeche: #3a2422;
-    --gelb-flaeche: #35291a;
-    --gruen-flaeche: #1d3529;
-    --violett-flaeche: #2a2442;
-    --gruen-ruhig: #27402f;
-    --lage-grau: #44444a;
-    --auf-farbe: #16161a;
+    --rot-flaeche: #3a1f24;
+    --gelb-flaeche: #33281a;
+    --gruen-flaeche: #143728;
+    --violett-flaeche: #221e46;
+    --gruen-ruhig: #1a3c2c;
+    --lage-grau: #27354f;
+    --auf-farbe: #04101f;
 
-    --reihe-1: #64aaff;
+    --reihe-1: #3c8cff;
     --reihe-2: #dba05a;
 
-    --auswahl: rgba(100, 170, 255, .30);
-    --fokusring: rgba(100, 170, 255, .34);
-    --zeile-an: rgba(255, 255, 255, .07);
-    --segment-grund: rgba(255, 255, 255, .07);
-    --rollbalken: rgba(255, 255, 255, .28);
+    --auswahl: rgba(60, 140, 255, .32);
+    --fokusring: rgba(60, 140, 255, .38);
+    --zeile-an: rgba(126, 178, 255, .09);
+    --segment-grund: rgba(126, 178, 255, .09);
+    --rollbalken: rgba(126, 178, 255, .26);
 
     --hebung: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px -14px rgba(0, 0, 0, .7);
     --hebung-klein: 0 1px 3px rgba(0, 0, 0, .55);
     --hebung-an: 0 2px 4px rgba(0, 0, 0, .5), 0 14px 32px -14px rgba(0, 0, 0, .9);
-    --kante: 1px solid rgba(255, 255, 255, .08);
+    --kante: 1px solid rgba(126, 178, 255, .12);
   }
 
   * { box-sizing: border-box; }
@@ -184,8 +192,16 @@
   }
   .seitenleiste .kopfbereich { padding: 2px 10px 22px; }
   .wortmarke {
-    display: block; font-size: var(--schrift-text); font-weight: 640;
+    display: block; font-size: var(--schrift-text); font-weight: 560;
     letter-spacing: -0.012em;
+  }
+  /* Die Augenbraue der Website: klein, gesperrt, in Markenblau. Sie sagt,
+     wozu die Seitenleiste gehört, ohne Platz zu nehmen. */
+  .kopfbereich::before {
+    content: "Qualitätsmanagement";
+    display: block; margin-bottom: 7px;
+    font-size: 0.625rem; font-weight: 600; letter-spacing: .18em;
+    text-transform: uppercase; color: var(--akzent);
   }
   .betrieb {
     display: block; color: var(--leise); font-size: var(--schrift-meta);
@@ -260,13 +276,16 @@
     margin: 0 auto; padding: 34px 40px 96px;
   }
 
+  /* Die Website setzt ihre grossen Zeilen mager und eng. Eine
+     Bedienoberfläche kann das nicht in ihrer Grösse, aber in ihrer Haltung:
+     leichter, etwas grösser, enger gestellt. */
   h1 {
-    font-size: var(--schrift-display); line-height: 1.18; font-weight: 680;
-    letter-spacing: -0.021em; margin: 0 0 8px; text-wrap: balance;
+    font-size: var(--schrift-display); line-height: 1.1; font-weight: 340;
+    letter-spacing: -0.026em; margin: 0 0 10px; text-wrap: balance;
   }
   h2 {
-    font-size: var(--schrift-abschnitt); line-height: 1.28; font-weight: 640;
-    letter-spacing: -0.014em; margin: 52px 0 14px; text-wrap: balance;
+    font-size: var(--schrift-abschnitt); line-height: 1.24; font-weight: 420;
+    letter-spacing: -0.02em; margin: 52px 0 14px; text-wrap: balance;
   }
   /* Nur die erste Überschrift des Inhalts braucht oben keinen Abstand.
      Ohne die Einschränkung auf das unmittelbare Kind verliert auch jede

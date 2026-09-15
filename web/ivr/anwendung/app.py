@@ -435,6 +435,20 @@ def betrieb_name():
 vorlagen.env.globals["betrieb_name"] = betrieb_name
 
 
+def vorgabe_schema():
+    """Welches Farbschema gilt, solange niemand gewählt hat.
+
+    Im Betrieb hell: die Anwendung steht tagsüber neben Papier. In der Demo
+    dunkel, weil sie von einer dunklen Website aus aufgerufen wird und ein
+    weisser Blitz dazwischen ein Bruch wäre. Die Wahl in den Einstellungen
+    sticht beides.
+    """
+    return "dunkel" if anmeldung.DEMO else "hell"
+
+
+vorlagen.env.globals["vorgabe_schema"] = vorgabe_schema
+
+
 def einstellungen(v):
     return {r["schluessel"]: r["wert"] for r in
             v.execute("SELECT schluessel, wert FROM einstellung")}

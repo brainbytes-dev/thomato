@@ -509,14 +509,18 @@ def aufbauen():
 
 
 def konten_anlegen():
-    """Ein Konto für die Demo. Das Passwort steht in der Anmeldung."""
+    """Ein Konto je Rechtestufe. Wer die Anwendung zum ersten Mal sieht,
+    soll die Stufen sehen und nicht von ihnen lesen.
+
+    Die Liste steht in anmeldung.DEMO_KONTEN, weil die Anmeldemaske
+    dieselbe zeigt."""
     datei = anmeldung.DATEI
     if datei.exists():
         datei.unlink()
-    anmeldung.benutzer_anlegen("demo", "Demo Verwaltung", "verwalten")
-    anmeldung.passwort_setzen("demo", "demo-ansehen")
-    anmeldung.benutzer_anlegen("gast", "Demo Lesen", "lesen")
-    anmeldung.passwort_setzen("gast", "demo-ansehen")
+    for k in anmeldung.DEMO_KONTEN:
+        anmeldung.benutzer_anlegen(k["kennung"], k["name"], k["recht"])
+        anmeldung.passwort_setzen(k["kennung"], anmeldung.DEMO_PASSWORT,
+                                  mindestens=len(anmeldung.DEMO_PASSWORT))
 
 
 if __name__ == "__main__":
@@ -526,5 +530,6 @@ if __name__ == "__main__":
     for name, zahl in zahlen.items():
         print(f"  {zahl:>4}  {name}")
     print(f"\nDossier: {handbuch.DOSSIER}")
-    print("Konten: demo / demo-ansehen (Verwalten), "
-          "gast / demo-ansehen (Lesen)")
+    print("Konten, Passwort «" + anmeldung.DEMO_PASSWORT + "»:")
+    for k in anmeldung.DEMO_KONTEN:
+        print(f"  {k['kennung']:<10} {k['recht']}")

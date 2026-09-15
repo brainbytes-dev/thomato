@@ -124,11 +124,22 @@ def hat_passwort(kennung):
     return bool(b and b.get("streuwert"))
 
 
-def passwort_setzen(kennung, passwort):
+# Zehn Zeichen. Kurz genug, dass man es sich merkt, lang genug, dass
+# Ausprobieren nichts bringt.
+MINDESTLAENGE = 10
+
+
+def passwort_setzen(kennung, passwort, mindestens=MINDESTLAENGE):
     """Setzt oder ersetzt ein Passwort. Ruft auch das Werkzeug auf der
-    Kommandozeile auf, wenn jemand seines vergessen hat."""
-    if len(passwort) < 10:
-        raise ValueError("Das Passwort braucht mindestens zehn Zeichen.")
+    Kommandozeile auf, wenn jemand seines vergessen hat.
+
+    «mindestens» senkt die Schranke nur dort, wo das Passwort ohnehin
+    öffentlich ist: in der Demo steht es auf der Anmeldemaske. Für jedes
+    Konto, das über die Oberfläche gesetzt wird, gilt die Vorgabe.
+    """
+    if len(passwort) < mindestens:
+        raise ValueError(
+            f"Das Passwort braucht mindestens {mindestens} Zeichen.")
     daten = _laden()
     if kennung not in daten["benutzer"]:
         raise KeyError(kennung)
@@ -217,6 +228,34 @@ def erstes_konto(kennung, name, recht="verwalten", passwort=None):
 # Anlage im Betrieb tut das nie. Der Tuerwaechter ist der Dienst, der
 # davorsteht, falls einer davorsteht.
 DEMO = bool(os.environ.get("IVR_DEMO"))
+
+# Die Konten der öffentlichen Demo, eines je Stufe. Wer die Anwendung zum
+# ersten Mal sieht, soll ohne Erklärung merken, dass es Stufen gibt; drei
+# Karten auf der Maske zeigen das besser als ein Satz darüber.
+#
+# Die Liste steht hier, weil sie an zwei Orten gebraucht wird: die
+# Anmeldemaske zeigt sie, und der Aufbau der Demodaten legt sie an.
+DEMO_PASSWORT = "demo"
+DEMO_KONTEN = [
+    {
+        "kennung": "lesen", "name": "Demo Lesen", "recht": "lesen",
+        "titel": "Lesen",
+        "text": "Sieht alles: Dossier, Handbuch, Kreisläufe, Auswertungen. "
+                "Ändert nichts. Die Formulare sind gar nicht erst da.",
+    },
+    {
+        "kennung": "schreiben", "name": "Demo Schreiben", "recht": "schreiben",
+        "titel": "Schreiben",
+        "text": "Erfasst Massnahmen, Themen und Beschwerden und legt Dateien "
+                "ins Dossier. Prüfen und freigeben darf diese Stufe nicht.",
+    },
+    {
+        "kennung": "admin", "name": "Demo Administrator", "recht": "verwalten",
+        "titel": "Administrator",
+        "text": "Prüft Dokumente, setzt Prüfdaten, nimmt Dateien ins Handbuch "
+                "und führt die Konten. Stufe «Verwalten».",
+    },
+]
 TUERWAECHTER = os.environ.get("IVR_TUERWAECHTER", "")
 
 
@@ -395,6 +434,7 @@ def einrichten(app, vorlagen):
     def _seite(request, **mehr):
         daten = {"fehler": "", "kennung": "", "weiter": "/", "neu": False,
                  "betrieb": _betrieb(), "demo": DEMO,
+                 "demo_konten": DEMO_KONTEN, "demo_passwort": DEMO_PASSWORT,
                  "tuerwaechter": TUERWAECHTER}
         daten.update(mehr)
         return vorlagen.TemplateResponse(request, "anmeldung.html", daten)
