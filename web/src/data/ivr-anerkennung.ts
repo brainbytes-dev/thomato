@@ -30,10 +30,13 @@ export const ivr = {
   /** Die Demo mit erfundenen Daten. Leer lassen, solange keine läuft. */
   demo: {
     url: "/ivr-anerkennung/demo",
-    label: "Demo ansehen",
+    label: "Demo öffnen und ausprobieren",
+    /** Kürzer, für den zweiten Knopf weiter unten auf der Seite. */
+    labelKurz: "Demo testen",
     hinweis:
       "Alle Daten in der Demo sind erfunden. Der Betrieb «Rettungsdienst Musterstadt» existiert nicht, die Fälle, Messwerte und Dokumente ebenso wenig.",
-    zugang: "Anmeldung: demo mit dem Passwort demo-ansehen.",
+    zugang:
+      "Anmeldung: demo mit dem Passwort demo-ansehen. Sie dürfen darin alles anfassen, auch löschen; nach kurzer Zeit steht wieder der Ausgangsstand da.",
   },
 
   /** Das Problem, in der Sprache des Betriebs. */
@@ -98,6 +101,23 @@ export const ivr = {
     },
   ],
 
+  /** Für wen es sonst noch taugt. */
+  zielgruppen: {
+    titel: "Nicht nur für Rettungsdienste",
+    absaetze: [
+      "Gebaut ist die Anwendung für die Anerkennung eines Rettungsdienstes. Die Struktur dahinter ist aber überall dieselbe, wo der Interverband für Rettungswesen Auflagen macht: eine Liste von Kriterien, Nachweise dazu, Fristen, und der Beleg, dass eine Massnahme gewirkt hat.",
+      "Angepasst werden die Kriterienliste und die Prozesslandkarte. Beides ist Inhalt und kein Programmcode, und beides wird einmal eingerichtet statt dauernd gepflegt.",
+    ],
+    punkte: [
+      "Samaritervereine mit Sanitätsdienst an Veranstaltungen",
+      "Betriebe mit Auflagen aus einem Anerkennungsverfahren",
+      "Ausbildungs- und Schulungsbetriebe im Rettungswesen",
+      "Jede Organisation, die Nachweise, Fristen und Qualitätskreisläufe an einem Ort führen will",
+    ],
+    schluss:
+      "Ob es für Ihren Fall passt, lässt sich in einem Gespräch schneller klären als in einer Offerte. Schauen Sie vorher in die Demo, dann reden wir über etwas, das Sie gesehen haben.",
+  },
+
   technik: {
     titel: "Technik",
     text: "Python mit FastAPI und SQLite, Vorlagen ohne Bauschritt, Diagramme als selbst gezeichnetes SVG. Keine fremde Wolke, keine Abhängigkeit von einem Anbieter: die Anwendung läuft auf einem Server im eigenen Haus oder auf einem gemieteten. Die Daten bleiben, wo der Betrieb sie haben will.",
@@ -113,7 +133,7 @@ export const ivr = {
     {
       frage: "Ist das auf einen bestimmten Rettungsdienst zugeschnitten?",
       antwort:
-        "Nein. Der Name des Betriebs, die Fristen, die tragenden Monitoringbereiche und der Vorgehenszyklus sind Einstellungen. Die Kriterien kommen aus der Richtlinie und werden eingelesen, nicht abgetippt. Angepasst wird die Prozesslandkarte, weil sie den eigenen Betrieb beschreibt.",
+        "Nein. Der Name des Betriebs, die Fristen, die tragenden Monitoringbereiche und der Vorgehenszyklus sind Einstellungen. Die Kriterien kommen aus der Richtlinie und werden eingelesen, nicht abgetippt. Angepasst wird die Prozesslandkarte, weil sie den eigenen Betrieb beschreibt. Das gilt auch über den Rettungsdienst hinaus: für Samaritervereine und andere Organisationen mit Auflagen des IVR lässt sich dieselbe Anwendung auf deren Kriterien stellen.",
     },
     {
       frage: "Wo liegen die Daten?",

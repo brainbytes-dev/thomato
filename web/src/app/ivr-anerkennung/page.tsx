@@ -60,8 +60,10 @@ const jsonLd = [
   },
 ];
 
-/** Der Knopf zur Demo, oder der ehrliche Hinweis, wenn keine läuft. */
-function DemoZugang() {
+/** Der Knopf zur Demo, oder der ehrliche Hinweis, wenn keine läuft.
+    Mit `knapp` steht er ein zweites Mal am Ende der Seite, kürzer
+    beschriftet und ohne die Erklärung, die oben schon stand. */
+function DemoZugang({ knapp = false }: { knapp?: boolean }) {
   if (!ivr.demo.url) {
     return (
       <p className="max-w-[60ch] text-sm leading-relaxed text-muted-foreground">
@@ -84,12 +86,14 @@ function DemoZugang() {
         href={ivr.demo.url}
         className="inline-flex items-center gap-2 rounded-sm bg-brand-solid px-5 py-3 text-sm font-medium text-brand-solid-foreground transition-opacity hover:opacity-90"
       >
-        {ivr.demo.label}
+        {knapp ? ivr.demo.labelKurz : ivr.demo.label}
         <ArrowRight aria-hidden className="h-4 w-4" />
       </a>
-      <p className="max-w-[60ch] text-sm leading-relaxed text-muted-foreground">
-        {ivr.demo.zugang} {ivr.demo.hinweis}
-      </p>
+      {!knapp && (
+        <p className="max-w-[60ch] text-sm leading-relaxed text-muted-foreground">
+          {ivr.demo.zugang} {ivr.demo.hinweis}
+        </p>
+      )}
     </div>
   );
 }
@@ -220,6 +224,34 @@ export default function IvrAnerkennungSeite() {
 
           <section className="max-w-[65ch] space-y-4">
             <h2 className="text-2xl font-medium text-foreground sm:text-3xl">
+              {ivr.zielgruppen.titel}
+            </h2>
+            {ivr.zielgruppen.absaetze.map((absatz) => (
+              <p
+                key={absatz.slice(0, 24)}
+                className="text-base leading-relaxed text-muted-foreground"
+              >
+                {absatz}
+              </p>
+            ))}
+            <ul className="space-y-2 text-base leading-relaxed text-muted-foreground">
+              {ivr.zielgruppen.punkte.map((punkt) => (
+                <li key={punkt} className="flex gap-3">
+                  <span
+                    aria-hidden
+                    className="mt-2.5 h-px w-4 shrink-0 bg-border"
+                  />
+                  <span>{punkt}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="text-base leading-relaxed text-muted-foreground">
+              {ivr.zielgruppen.schluss}
+            </p>
+          </section>
+
+          <section className="max-w-[65ch] space-y-4">
+            <h2 className="text-2xl font-medium text-foreground sm:text-3xl">
               {ivr.technik.titel}
             </h2>
             <p className="text-base leading-relaxed text-muted-foreground">
@@ -258,14 +290,25 @@ export default function IvrAnerkennungSeite() {
             <p className="text-base leading-relaxed text-muted-foreground">
               {ivr.abschluss.text}
             </p>
-            <p>
+            {/* Wer bis hierher gelesen hat, soll nicht nach oben scrollen
+                müssen, um die Demo zu finden. */}
+            <div className="flex flex-wrap items-center gap-3">
               <Link
                 href="/#kontakt"
                 className="inline-flex items-center gap-2 rounded-sm bg-brand-solid px-5 py-3 text-sm font-medium text-brand-solid-foreground transition-opacity hover:opacity-90"
               >
                 Anfrage schreiben
               </Link>
-            </p>
+              {ivr.demo.url ? (
+                <a
+                  href={ivr.demo.url}
+                  className="inline-flex items-center gap-2 rounded-sm border border-border px-5 py-3 text-sm font-medium text-foreground transition-colors hover:border-brand"
+                >
+                  {ivr.demo.labelKurz}
+                  <ArrowRight aria-hidden className="h-4 w-4" />
+                </a>
+              ) : null}
+            </div>
           </section>
         </div>
       </main>
