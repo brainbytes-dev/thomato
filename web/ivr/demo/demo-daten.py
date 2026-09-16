@@ -17,6 +17,7 @@ Aufruf aus dem Ordner der Anwendung:
 Vorhandene Daten werden dabei geloescht.
 """
 
+import csv
 import json
 import random
 import shutil
@@ -31,6 +32,7 @@ sys.path.insert(0, str(ANWENDUNG))
 import anmeldung  # noqa: E402
 import datenbank  # noqa: E402
 import handbuch  # noqa: E402
+import listen  # noqa: E402
 import pfade  # noqa: E402
 
 HEUTE = date.today()
@@ -52,6 +54,9 @@ FRISTEN = {
     "dossier": tage(460),
     "tragende": "8.1.1,8.1.2,8.1.4",
     "zyklus": "dmaic",
+    # So heisst der Betrieb in den Daten der Leitstelle. Die Analysen-Seite
+    # hebt diesen Balken hervor.
+    "eigener_dienst": "RD Musterstadt",
 }
 
 # Ein erfundener Expertenbericht. Die Vorlagen beschriften den Stand
@@ -266,6 +271,141 @@ BESCHWERDEN = [
      "Defekter Absaugbeutel im Rucksack gefunden."),
 ]
 
+# --- Analysen: Hilfsfrist, Indikatordiagnosen, Reanimationsregister --------
+# Die Analysen-Seite liest zwei gerechnete Dateien und die abgelegten Listen.
+# Im Betrieb entstehen die Dateien aus der Einsatzliste der Leitstelle; hier
+# sind es erfundene ganze Einsaetze, aus denen die Quoten gerechnet werden,
+# damit Monate, Dienste und Diagnosen zueinander passen. Die Geschichte
+# darin: ein Wintermonat unter dem Richtwert, das Trauma als schwaechste
+# Diagnose, und ein Nachbardienst, der im eigenen Gebiet deutlich langsamer
+# ist, weil er von weiter her kommt.
+RICHTWERT_U15 = 90
+
+# Je Monat, zwoelf volle Monate bis zum Vormonat: Einsaetze, davon unter
+# 15 Minuten, davon unter 10 Minuten, ohne Zeitstempel.
+HILFSFRIST_MONATE = [
+    (33, 31, 26, 0), (35, 33, 27, 1), (29, 27, 22, 0), (38, 36, 29, 1),
+    (31, 29, 24, 0), (34, 30, 23, 2), (40, 34, 26, 1), (36, 34, 28, 0),
+    (32, 30, 25, 0), (37, 35, 29, 1), (35, 33, 27, 0), (32, 30, 25, 0),
+]
+MEDIAN_EIGEN = 6.9
+
+# Fremde Dienste im eigenen Gebiet, wenn das eigene Fahrzeug gebunden war.
+FREMDE_DIENSTE = [
+    ("RD Nachbarstadt", 96, 78, 51, 9.4),
+    ("RD Region Süd", 41, 30, 17, 11.8),
+]
+
+# First Hour Quintett: Einsaetze, unter 15, unter 10, Median.
+DIAGNOSEN = [
+    ("Herz-Kreislauf-Stillstand", 34, 32, 27, 6.2),
+    ("Akutes Koronarsyndrom", 71, 65, 52, 6.8),
+    ("Schlaganfall", 88, 81, 64, 7.1),
+    ("Schweres Trauma", 29, 25, 18, 8.9),
+    ("Schwere Atemnot", 63, 58, 46, 7.0),
+]
+
+MONATSNAMEN = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli",
+               "August", "September", "Oktober", "November", "Dezember"]
+
+# Spalten der Reanimationsliste. Bewusst ohne alles, was auf eine Person
+# zeigt, auch nicht mittelbar: kein Alter, kein Ort, kein Datum auf den Tag.
+REANIMATION_SPALTEN = [
+    "Fallnummer", "Monat", "Umgebung", "Beobachtet", "Laienreanimation",
+    "Telefonreanimation", "Erster Rhythmus", "AED vor Eintreffen", "ROSC",
+    "Überleben 30 Tage",
+]
+
+
+def _monatsname(jjjj_mm):
+    j, m = jjjj_mm.split("-")
+    return f"{MONATSNAMEN[int(m) - 1]} {j}"
+
+
+def analysen_schreiben():
+    """Schreibt, was die Analysen-Seite liest, und traegt eine Liste ein."""
+    def quote(teil, ganz):
+        return round(100 * teil / ganz, 1) if ganz else 0.0
+
+    def block(n, u15, u10, median):
+        return {"n": n, "u15": quote(u15, n), "u10": quote(u10, n),
+                "median": median}
+
+    erster = date(HEUTE.year, HEUTE.month, 1)
+    monate = []
+    for i in range(12, 0, -1):
+        m = erster.month - 1 - i
+        monate.append(f"{erster.year + m // 12}-{m % 12 + 1:02d}")
+
+    # 8.3 Hilfsfrist. Der eigene Dienst ist die Summe der Monate.
+    reihe = [{"monat": mon, "n": n, "anteil_u15": quote(u15, n),
+              "anteil_u10": quote(u10, n), "ohne_zeitstempel": ohne}
+             for mon, (n, u15, u10, ohne) in zip(monate, HILFSFRIST_MONATE)]
+    eigen_n = sum(z[0] for z in HILFSFRIST_MONATE)
+    eigen_u15 = sum(z[1] for z in HILFSFRIST_MONATE)
+    eigen_u10 = sum(z[2] for z in HILFSFRIST_MONATE)
+    dienste = [{"dienst": FRISTEN["eigener_dienst"],
+                **block(eigen_n, eigen_u15, eigen_u10, MEDIAN_EIGEN)}]
+    dienste += [{"dienst": name, **block(n, u15, u10, median)}
+                for name, n, u15, u10, median in FREMDE_DIENSTE]
+    zeitraum = f"{_monatsname(monate[0])} bis {_monatsname(monate[-1])}"
+    pfade.daten("hilfsfrist.json").write_text(json.dumps({
+        "richtwert_u15": RICHTWERT_U15,
+        "grundgesamtheit": f"P1-Einsätze im eigenen Gebiet, {zeitraum}, "
+                           "Alarm bis am Ereignisort, nach ausrückendem "
+                           "Dienst",
+        "monate": reihe,
+        "nach_dienst": dienste,
+    }, ensure_ascii=False, indent=1), encoding="utf-8")
+
+    # 8.4 Indikatordiagnosen. Das Quintett ist eine Teilmenge der eigenen
+    # P1, der Rest sind die uebrigen Diagnosen.
+    fhq_n = sum(d[1] for d in DIAGNOSEN)
+    fhq_u15 = sum(d[2] for d in DIAGNOSEN)
+    fhq_u10 = sum(d[3] for d in DIAGNOSEN)
+    pfade.daten("indikatordiagnosen.json").write_text(json.dumps({
+        "richtwert_u15": RICHTWERT_U15,
+        "grundgesamtheit": f"Eigene P1-Einsätze {zeitraum}, Diagnose aus "
+                           "dem Einsatzprotokoll, Alarm bis am Ereignisort",
+        "diagnosen": {name: block(n, u15, u10, median)
+                      for name, n, u15, u10, median in DIAGNOSEN},
+        "fhq_gesamt": block(fhq_n, fhq_u15, fhq_u10, 7.0),
+        "andere": block(eigen_n - fhq_n, eigen_u15 - fhq_u15,
+                        eigen_u10 - fhq_u10, 6.6),
+    }, ensure_ascii=False, indent=1), encoding="utf-8")
+
+    # 8.5 Reanimationsregister: eine Liste je Fall, so viele Zeilen wie
+    # Herz-Kreislauf-Stillstaende oben.
+    faelle = []
+    for i in range(1, DIAGNOSEN[0][1] + 1):
+        beobachtet = zufall.random() < 0.62
+        laien = beobachtet and zufall.random() < 0.7
+        rhythmus = zufall.choices(["Kammerflimmern", "Asystolie", "PEA"],
+                                  [0.3, 0.5, 0.2])[0]
+        rosc = zufall.random() < (0.45 if rhythmus == "Kammerflimmern"
+                                  else 0.22)
+        faelle.append([
+            f"R-{monate[-1][:4]}-{i:03d}", zufall.choice(monate),
+            zufall.choices(["privat", "öffentlich", "Pflegeheim"],
+                           [0.6, 0.25, 0.15])[0],
+            "ja" if beobachtet else "nein", "ja" if laien else "nein",
+            "ja" if laien and zufall.random() < 0.5 else "nein",
+            rhythmus, "ja" if zufall.random() < 0.18 else "nein",
+            "ja" if rosc else "nein",
+            "ja" if rosc and zufall.random() < 0.4 else "nein",
+        ])
+    faelle.sort(key=lambda f: f[1])
+    ordner = listen.ORDNER / "swissreca"
+    ordner.mkdir(parents=True, exist_ok=True)
+    datei = ordner / (f"{HEUTE.isoformat()}_08-00-00__SWISSRECA Export "
+                      f"{monate[0][:4]}-{monate[-1][:4]}.csv")
+    with datei.open("w", encoding="utf-8-sig", newline="") as f:
+        schreiber = csv.writer(f, delimiter=";")
+        schreiber.writerow(REANIMATION_SPALTEN)
+        schreiber.writerows(faelle)
+    return {"Analysemonate": len(reihe), "Reanimationsfälle": len(faelle)}
+
+
 # --- Dossierdateien ---------------------------------------------------------
 # Je Kriterium ein paar Dateien mit erfundenem Inhalt. Sie werden wirklich
 # geschrieben, damit sich in der Demo jede Datei oeffnen laesst.
@@ -428,6 +568,7 @@ def aufbauen():
         datenbank.einstellung_setzen(v, schluessel, wert)
 
     dateien = dossier_schreiben(v)
+    analysen = analysen_schreiben()
 
     for nummer, text, verfahren, frist, erfuellt in AUFLAGEN:
         v.execute(
@@ -500,6 +641,7 @@ def aufbauen():
         "Themen": len(THEMEN),
         "Beschwerden": len(BESCHWERDEN),
         "Auflagen": len(AUFLAGEN),
+        **analysen,
         "geprüft": v.execute(
             "SELECT COUNT(*) FROM pruefung WHERE geprueft_am IS NOT NULL"
         ).fetchone()[0],
