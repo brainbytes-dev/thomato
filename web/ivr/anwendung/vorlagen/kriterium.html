@@ -96,7 +96,7 @@
   {% elif not m.gemessen_am %}
     <p class="meta">
       Zum Schliessen fehlt die erste Messung. Ohne Ausgangswert lässt sich
-      keine Wirksamkeit belegen, und genau das prüft das IVR.
+      keine Wirksamkeit belegen, und genau das verlangt die Richtlinie.
     </p>
   {% else %}
     <form method="post" action="/massnahme/{{ m.id }}/nachmessung">
@@ -464,7 +464,7 @@
 
 {% if nachweise %}
 <details>
-  <summary>Was das IVR als Nachweis akzeptiert</summary>
+  <summary>Mögliche Nachweise laut Handbuch</summary>
   <ul class="knapp">
     {% for n in nachweise %}<li>{{ n }}</li>{% endfor %}
   </ul>

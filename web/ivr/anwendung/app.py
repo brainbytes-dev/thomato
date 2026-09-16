@@ -171,8 +171,8 @@ BEREICHE = {
         "erfassung": "Rückmeldung der ärztlichen Leitung",
         "erklaerung":
             "Beurteilung der Einsatzprotokolle ab NACA 5 auf Algorithmen, "
-            "Medikation, Guidelines, Bergung und Zeitmanagement. Das IVR nennt "
-            "hier ausdrücklich die Einhaltung der Notarztindikation und die "
+            "Medikation, Guidelines, Bergung und Zeitmanagement. Kriterium 8.1.1 "
+            "nennt ausdrücklich die Einhaltung der Notarztindikation und die "
             "Zusammensetzung der Einsatzequipe nach 7.8.",
     },
     "8.1.2": {
@@ -2004,7 +2004,7 @@ def zyklus_setzen(zyklus: str = Form("pdca")):
 
 @app.post("/einstellungen/tragende")
 async def tragende_setzen(request: Request):
-    """Welche der fünf Bereiche zur Erneuerung zählen. Das IVR verlangt
+    """Welche der fünf Bereiche zur Erneuerung zählen. Die Richtlinie verlangt
     drei; weniger sind erlaubt, werden aber angesagt, mehr sind Vorsorge."""
     formular = await request.form()
     gewaehlt = [n for n in formular.getlist("tragend") if n in MONITORING]
@@ -2018,7 +2018,9 @@ async def tragende_setzen(request: Request):
     meldung = f"Tragend: {', '.join(gewaehlt)}."
     if len(gewaehlt) < 3:
         return _zu_einstellungen(
-            "warnung", meldung + " Das IVR verlangt drei Bereiche.", "tragend")
+            "warnung",
+            meldung + " Zur Erneuerung verlangt die Richtlinie drei Bereiche.",
+            "tragend")
     return _zu_einstellungen("gut", meldung, "tragend")
 
 
