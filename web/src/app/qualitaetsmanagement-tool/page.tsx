@@ -176,9 +176,7 @@ function Stufe({ stufe }: { stufe: (typeof qmTool.preise.stufen)[number] }) {
 
 export default function QualitaetsmanagementToolSeite() {
   return (
-    // systemzeiger holt den Mauszeiger zurück, den die Startseite global
-    // ausblendet, weil sie ihn selbst zeichnet.
-    <div className="systemzeiger min-h-dvh">
+    <div className="unterseite min-h-dvh">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

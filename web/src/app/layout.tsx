@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { CookieBanner } from "@/components/consent/cookie-banner";
 import { Analytics } from "@/components/consent/analytics";
+import { CustomCursor } from "@/components/ui/custom-cursor";
 import { brand } from "@/data/brand";
 
 const geistSans = Geist({
@@ -111,6 +112,10 @@ export default function RootLayout({
               the page content, while position:fixed keeps it visually at the bottom. */}
           <CookieBanner />
           {children}
+          {/* Der eigene Zeiger gehört zur Marke und steht deshalb im
+              Layout, nicht auf der Startseite: sonst hat jede Unterseite
+              ein verstecktes Zeigegerät und muss es einzeln zurückholen. */}
+          <CustomCursor />
           <Analytics />
         </ThemeProvider>
       </body>

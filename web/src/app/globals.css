@@ -324,52 +324,24 @@
   }
 }
 
-/* Der eigene Mauszeiger gehört zur Startseite, die ihn selbst zeichnet.
-   Überall sonst ist ein verstecktes Zeigegerät eine Verschlechterung: die
-   Startseite blendet den Systemzeiger global aus, also muss jede Seite,
-   die den eigenen nicht zeichnet, ihn zurückholen.
-
-   Dafür ist .systemzeiger da. Er hing vorher am Namen des Rechners und
-   damit an einer einzelnen Seite; die nächste Unterseite hatte deshalb
-   gar keinen Zeiger. */
-@media (pointer: fine) {
-  /* html und body liegen oberhalb des Wrappers und werden deshalb eigens
-     angesprochen, sonst bliebe der Zeiger auf der Seitenfläche versteckt. */
-  html:has(.systemzeiger),
-  html:has(.systemzeiger) body,
-  .systemzeiger,
-  .systemzeiger *,
-  .systemzeiger *::before,
-  .systemzeiger *::after {
-    cursor: auto !important;
-  }
-
-  .systemzeiger a,
-  .systemzeiger button,
-  .systemzeiger summary,
-  .systemzeiger label,
-  .systemzeiger select,
-  .systemzeiger [role="button"] {
-    cursor: pointer !important;
-  }
-
-  .systemzeiger input:not([type="radio"]):not([type="checkbox"]),
-  .systemzeiger textarea {
-    cursor: text !important;
-  }
-}
+/* Der eigene Mauszeiger gehört zur Marke und wird im Layout gezeichnet,
+   also auf jeder Seite. Vorher zeichnete ihn nur die Startseite, während
+   die Regel oben das Zeigegerät überall ausblendete; jede Unterseite
+   musste es deshalb eigens zurückholen und hatte sonst gar keines. Diese
+   Rückholregel ist weg. Die Klasse der Unterseiten trägt jetzt nur noch,
+   was sie wirklich meint: Typografie. */
 
 /* Die Flächen, die der Browser stellt, gehören zur Gestaltung. */
-.systemzeiger ::selection {
+.unterseite ::selection {
   background: var(--brand);
   color: oklch(0.99 0.004 252);
 }
 
-.systemzeiger * {
+.unterseite * {
   caret-color: var(--brand);
 }
 
-.systemzeiger a {
+.unterseite a {
   text-underline-offset: 0.2em;
   text-decoration-thickness: 1px;
 }
