@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { FadeIn } from "@/lib/motion";
-import { brand, type Offer, type Pillar } from "@/data/brand";
+import { brand, darfVorladen, type Offer, type Pillar } from "@/data/brand";
 
 /**
  * Eine Leistungszeile als natives `details`. Der Inhalt steht damit im HTML,
@@ -60,6 +60,7 @@ function ServiceRow({ offer }: { offer: Offer }) {
               {"link" in offer && offer.link ? (
                 <Link
                   href={offer.link.href}
+                  prefetch={darfVorladen(offer.link.href)}
                   className="eyebrow inline-flex items-center gap-2 text-brand transition-colors hover:text-foreground"
                 >
                   {offer.link.label}

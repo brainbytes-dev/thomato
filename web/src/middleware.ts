@@ -54,6 +54,29 @@ function anmeldung(kopf: string | null) {
   return { benutzer: text.slice(0, trenner), passwort: text.slice(trenner + 1) };
 }
 
+/**
+ * Eine spekulative Vorabanfrage, kein Aufruf durch einen Menschen.
+ *
+ * Next.js lädt eine verlinkte Route vor, sobald der Link ins Bild kommt.
+ * Beim Öffnen des Menüs fragte der Browser dadurch die gesperrte Seite an,
+ * bekam 401 mit `WWW-Authenticate` und zeigte die Anmeldemaske, ohne dass
+ * jemand darauf geklickt hatte. Solche Anfragen bekommen weiterhin 401,
+ * aber ohne den Kopf, der den Dialog auslöst.
+ */
+function istVorablage(request: NextRequest) {
+  const k = request.headers;
+  // Nur diese beiden kommen hier an. Next entfernt seine eigenen Köpfe
+  // `RSC` und `Next-Router-Prefetch` aus eingehenden Anfragen, bevor die
+  // Middleware sie sieht; darauf zu prüfen sähe aus wie ein Schutz und wäre
+  // keiner. Gemessen am 16.09.2026 mit einer Ausgabe aller ankommenden
+  // Köpfe. Das Vorladen selbst ist deshalb an den Verweisen abgeschaltet,
+  // siehe `darfVorladen` in data/brand.ts.
+  return (
+    k.get("purpose") === "prefetch" ||
+    (k.get("sec-purpose") ?? "").includes("prefetch")
+  );
+}
+
 export function middleware(request: NextRequest) {
   const daten = anmeldung(request.headers.get("authorization"));
 
@@ -65,16 +88,22 @@ export function middleware(request: NextRequest) {
     return antwort;
   }
 
+  const kopf: Record<string, string> = {
+    "Content-Type": "text/plain; charset=utf-8",
+    "X-Robots-Tag": "noindex, nofollow",
+    // Weder Browser noch Netz sollen die Sperre zwischenspeichern; sonst
+    // bleibt sie nach dem Aufschalten noch eine Weile stehen.
+    "Cache-Control": "no-store",
+  };
+  // Der Kopf, der die Anmeldemaske auslöst, gehört nur an eine Anfrage, die
+  // jemand selbst ausgelöst hat.
+  if (!istVorablage(request)) {
+    kopf["WWW-Authenticate"] = `Basic realm="${BEREICH}", charset="UTF-8"`;
+  }
+
   return new NextResponse("Diese Seite ist noch nicht öffentlich.", {
     status: 401,
-    headers: {
-      "WWW-Authenticate": `Basic realm="${BEREICH}", charset="UTF-8"`,
-      "Content-Type": "text/plain; charset=utf-8",
-      "X-Robots-Tag": "noindex, nofollow",
-      // Weder Browser noch Netz sollen die Sperre zwischenspeichern; sonst
-      // bleibt sie nach dem Aufschalten noch eine Weile stehen.
-      "Cache-Control": "no-store",
-    },
+    headers: kopf,
   });
 }
 

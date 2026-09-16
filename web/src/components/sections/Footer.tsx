@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { brand } from "@/data/brand";
+import { brand, darfVorladen } from "@/data/brand";
 import { ArrowRight, Mail, MapPin } from "lucide-react";
 import { useRef } from "react";
 import { useInView } from "framer-motion";
@@ -74,6 +74,7 @@ export function Footer() {
                       <Link
                         key={kind.href}
                         href={kind.href}
+                        prefetch={darfVorladen(kind.href)}
                         className="group flex items-center gap-2 pl-5 text-sm text-foreground/65 transition-all duration-300 hover:text-foreground"
                       >
                         <span className="opacity-0 transition-opacity group-hover:opacity-100">

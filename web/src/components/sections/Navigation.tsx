@@ -8,7 +8,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
 import { ModeToggle } from "@/components/theme/theme-toggle";
 import { LogoWordmark } from "@/components/ui/logo";
-import { brand } from "@/data/brand";
+import { brand, darfVorladen } from "@/data/brand";
 
 type NavEintrag = (typeof brand.nav)[number];
 
@@ -73,6 +73,7 @@ export function Navigation() {
                         <li key={kind.href}>
                           <Link
                             href={kind.href}
+                            prefetch={darfVorladen(kind.href)}
                             className="block px-4 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:bg-muted focus-visible:text-foreground"
                           >
                             {kind.label}
@@ -122,6 +123,7 @@ export function Navigation() {
                       <Link
                         key={kind.href}
                         href={kind.href}
+                        prefetch={darfVorladen(kind.href)}
                         onClick={() => setOpen(false)}
                         className="flex items-center gap-3 py-2 pl-4 text-sm text-muted-foreground transition-colors hover:text-foreground"
                       >

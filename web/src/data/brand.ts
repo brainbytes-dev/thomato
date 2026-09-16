@@ -114,6 +114,22 @@ const digitalOffers = [
   },
 ] as const;
 
+/**
+ * Adressen, die hinter der Baustellensperre liegen, siehe src/middleware.ts.
+ *
+ * Next.js lädt eine verlinkte Route vor, sobald der Link ins Bild kommt.
+ * Bei einer gesperrten Seite fragt der Browser dadurch etwas an, das mit
+ * 401 antwortet, ohne dass jemand darauf geklickt hat. Wer hierher
+ * verlinkt, schaltet das Vorladen ab; beim Aufschalten fällt der Eintrag
+ * weg und alles läuft wieder wie sonst.
+ */
+const GESPERRT = ["/qualitaetsmanagement-tool"];
+
+/** Soll diese Adresse vorgeladen werden? */
+export function darfVorladen(href: string) {
+  return !GESPERRT.some((p) => href === p || href.startsWith(`${p}/`));
+}
+
 export const brand = {
   name: "Thomato",
   tagline: "Digitale Lösungen & Notfallorganisation",
