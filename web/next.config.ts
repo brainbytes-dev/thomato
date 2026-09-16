@@ -37,8 +37,16 @@ const nextConfig: NextConfig = {
       // Interverbands. Das Kürzel ist geschützt, die Adresse leitet um, auch
       // die der Demo darunter.
       {
-        source: "/ivr-anerkennung/:pfad*",
-        destination: "/qualitaetsmanagement-tool/:pfad*",
+        source: "/ivr-anerkennung",
+        destination: "/qualitaetsmanagement-tool",
+        permanent: true,
+      },
+      // Der Platzhalter allein liesse die Wurzel auf «/qualitaetsmanagement-tool/»
+      // landen, mit Schrägstrich, und Next nähme ihn in einem zweiten Sprung
+      // wieder weg. Deshalb steht die Wurzel oben einzeln.
+      {
+        source: "/ivr-anerkennung/:pfad+",
+        destination: "/qualitaetsmanagement-tool/:pfad+",
         permanent: true,
       },
     ];
