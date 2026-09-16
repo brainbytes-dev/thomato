@@ -22,7 +22,7 @@ import json
 import random
 import shutil
 import sys
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 HIER = Path(__file__).resolve().parent
@@ -34,6 +34,7 @@ import datenbank  # noqa: E402
 import handbuch  # noqa: E402
 import listen  # noqa: E402
 import pfade  # noqa: E402
+import reca  # noqa: E402
 
 HEUTE = date.today()
 zufall = random.Random(20260915)   # dieselbe Demo bei jedem Lauf
@@ -182,6 +183,25 @@ KREISLAEUFE = [
         "nachgemessen_am": None, "nachmessung_ergebnis": None,
     },
     {
+        "kriterium": "8.5", "strang": "laienrea",
+        "ausloeser": "Auswertung des Reanimationsregisters",
+        "definition": "Bei weniger als der Hälfte der beobachteten Kollapse "
+                      "beginnen Ersthelfer mit der Reanimation. Ziel: "
+                      "Laienreanimation bei mindestens 60 Prozent der "
+                      "beobachteten Kollapse.",
+        "analyse": "Die Notrufzentrale leitet die Telefonreanimation spät "
+                   "an, und First Responder werden nur in zwei Gemeinden "
+                   "alarmiert.",
+        "beschreibung": "Absprache mit der SNZ 144 zur Telefonreanimation, "
+                        "First-Responder-Alarmierung auf das ganze "
+                        "Einsatzgebiet ausgeweitet.",
+        "verantwortlich": "B. Beispiel",
+        "gemessen_am": tage(-110),
+        "messwert": "Laienreanimation bei 8 von 17 beobachteten Kollapsen",
+        "frist": tage(250),
+        "nachgemessen_am": None, "nachmessung_ergebnis": None,
+    },
+    {
         "kriterium": "8.1.5", "strang": "material",
         "ausloeser": "Selbst gewähltes Prozesskriterium",
         "definition": "Die Kontrolle der Notfallrucksäcke wird unterschiedlich "
@@ -308,13 +328,114 @@ DIAGNOSEN = [
 MONATSNAMEN = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli",
                "August", "September", "Oktober", "November", "Dezember"]
 
-# Spalten der Reanimationsliste. Bewusst ohne alles, was auf eine Person
-# zeigt, auch nicht mittelbar: kein Alter, kein Ort, kein Datum auf den Tag.
+# Spalten der Reanimationsliste, benannt wie im echten Export des
+# Registers, damit die Auswertung in reca.py dieselbe ist wie im Betrieb.
+# Ausgelassen ist, was auf eine Person zeigt: Erfassende, Adresse,
+# Gemeinde, Koordinaten, Geburtsjahr, Geschlecht.
 REANIMATION_SPALTEN = [
-    "Fallnummer", "Monat", "Umgebung", "Beobachtet", "Laienreanimation",
-    "Telefonreanimation", "Erster Rhythmus", "AED vor Eintreffen", "ROSC",
-    "Überleben 30 Tage",
+    "idRecord", "datetime", "Einsatz Datum", "Rettungsmittel", "Einsatzort",
+    "Kollaps beobachtet", "Kollaps Zeitpunkt", "Ursache",
+    "Notrufeingang SNZ144", "SNZ 144 erkennt Kreislaufstillstand",
+    "SNZ 144 Telefon-Reanimation", "Start Telefonreanimation",
+    "First Responder aktiviert", "Ersthelfer vor Ort (Zeuge oder Passant)",
+    "Ersthelfer Reanimation (Zeugen / Passant)", "Start Ersthelfer Reanimation",
+    "Einsatz AED Ersthelfer", "1. Defibrillation Ersthelfer",
+    "First Responder vor Ort", "Zeitpunkt Rettungsdienst vor Ort",
+    "Reanimation durchgeführt", "Herzrhythmus Rettungsdienst",
+    "1. Defibrillation Rettungsdienst", "Jemals ROSC", "Spitalaufnahme",
+    "Überlebt Ereignis", "Spitalentlassung", "CPC Outcome bei Spitalentlassung",
+    "Daten Präklinik", "Daten Klinik",
 ]
+
+
+def _reanimationsfall(nr, monat):
+    """Ein erfundener Fall in der Schreibweise des Registers.
+
+    Die Wahrscheinlichkeiten sind so gewaehlt, dass die Demo eine
+    Geschichte erzaehlt: Laienreanimation bei weniger als der Haelfte der
+    beobachteten Kollapse, die meisten Faelle in der Wohnung, der erste
+    Rhythmus selten schockbar, und die Klinik meldet nur bei einem Teil der
+    Aufnahmen zurueck."""
+    from datetime import datetime as _dt
+    j, m = int(monat[:4]), int(monat[5:7])
+    kollaps = _dt(j, m, zufall.randint(1, 28), zufall.randint(0, 23),
+                  zufall.randint(0, 59))
+    z = lambda t: t.strftime("%d.%m.%Y %H:%M:%S")  # noqa: E731
+    notruf = kollaps + timedelta(minutes=zufall.randint(1, 5))
+    vor_ort = notruf + timedelta(minutes=zufall.randint(5, 14))
+    beobachtet = zufall.choices(["Durch Ersthelfer", "Nicht beobachtet",
+                                 "Durch Rettungsdienst", "Unbekannt"],
+                                [0.5, 0.38, 0.06, 0.06])[0]
+    ersthelfer = beobachtet == "Durch Ersthelfer" or zufall.random() < 0.5
+    laien = ersthelfer and zufall.random() < (0.55 if beobachtet == "Durch Ersthelfer" else 0.25)
+    laien_art = (zufall.choice(["Nur Herzdruckmassage", "Nur Herzdruckmassage",
+                                "Herzdruckmassage + Beatmung"]) if laien
+                 else "Nicht durchgeführt" if ersthelfer else "")
+    telefon = zufall.choices(["Ja", "Nein", "Nein, Reanimation schon eingeleitet",
+                              "Unbekannt", ""], [0.3, 0.15, 0.15, 0.15, 0.25])[0]
+    aed = zufall.choices(["Eingesetzt", "Nicht eingesetzt", ""],
+                         [0.12, 0.63, 0.25])[0]
+    fr_vor_ort = zufall.choices(["Ja", "Nein"], [0.4, 0.6])[0]
+    reanimiert = zufall.random() < 0.7
+    grund = ("Ja" if reanimiert else
+             zufall.choice(["Nein, weil offensichtlich tot.",
+                            "Nein, weil offensichtlich tot.",
+                            "Nein, weil REA Status \"Nein\""]))
+    rhythmus = (zufall.choices(["Kammerflimmern", "Asystolie",
+                                "Pulslose Elektrische Aktivität"],
+                               [0.25, 0.5, 0.25])[0] if reanimiert else "")
+    schockbar = rhythmus == "Kammerflimmern"
+    # Beobachteter Kollaps und schockbarer erster Rhythmus ist die Gruppe
+    # mit der besten Prognose; genau sie ist die Utstein-Vergleichsgruppe.
+    if not reanimiert:
+        aussicht = 0.0
+    elif schockbar:
+        aussicht = 0.7 if beobachtet.startswith("Durch") else 0.45
+    else:
+        aussicht = 0.25 if beobachtet.startswith("Durch") else 0.15
+    rosc = zufall.random() < aussicht
+    # ROSC heisst nicht Spitalaufnahme: ein Teil verliert ihn wieder, ein
+    # anderer kommt unter laufender Reanimation in die Klinik. Sonst haetten
+    # beide Balken denselben Wert, und das sieht nach Fehler aus.
+    if rosc:
+        aufnahme = zufall.choices(
+            ["Spitalaufnahme mit ROSC", "Spitalaufnahme unter Reanimation",
+             "Nein, Patient verstorben vor Ort"], [0.65, 0.15, 0.2])[0]
+    elif reanimiert:
+        aufnahme = zufall.choices(
+            ["Nein, Patient verstorben vor Ort",
+             "Spitalaufnahme unter Reanimation"], [0.85, 0.15])[0]
+    else:
+        aufnahme = ""
+    eingeliefert = aufnahme.startswith("Spitalaufnahme")
+    klinik = eingeliefert and zufall.random() < 0.75
+    ueberlebt = ("Ja" if klinik and zufall.random() < 0.45
+                 else "Nein" if klinik else "")
+    entlassung = ("Lebend" if ueberlebt == "Ja" and zufall.random() < 0.8
+                  else "Verstorben" if ueberlebt else "")
+    cpc = (f"CPC {zufall.choice([1, 1, 2, 3])}" if entlassung == "Lebend" else "")
+    defi_rd = (z(vor_ort + timedelta(minutes=zufall.randint(1, 3)))
+               if schockbar else "")
+    return [
+        f"{700000 + nr}", z(kollaps + timedelta(days=zufall.randint(1, 4))),
+        z(kollaps), "Bodengebunden",
+        zufall.choices(["Wohnung", "Strasse / Öffentlicher Raum", "Altersheim",
+                        "Sport / Freizeit"], [0.7, 0.15, 0.1, 0.05])[0],
+        beobachtet, z(kollaps) if beobachtet != "Nicht beobachtet" else "",
+        zufall.choices(["Medizinisch", "Traumatisch", "Intoxikation"],
+                       [0.86, 0.08, 0.06])[0],
+        z(notruf), zufall.choices(["Ja", "Noch nicht im Kreislaufstillstand",
+                                   "Nein"], [0.65, 0.3, 0.05])[0],
+        telefon, z(notruf + timedelta(minutes=1)) if telefon == "Ja" else "",
+        "Ja" if fr_vor_ort == "Ja" or zufall.random() < 0.3 else "Nein",
+        "Ja" if ersthelfer else "Nein", laien_art,
+        z(kollaps + timedelta(minutes=zufall.randint(1, 3))) if laien else "",
+        aed, z(kollaps + timedelta(minutes=zufall.randint(3, 8)))
+        if aed == "Eingesetzt" else "",
+        fr_vor_ort, z(vor_ort), grund, rhythmus, defi_rd,
+        ("Ja" if rosc else "Nein") if reanimiert else "",
+        aufnahme, ueberlebt, entlassung, cpc, "Grün", "Grün" if klinik else "",
+    ]
 
 
 def _monatsname(jjjj_mm):
@@ -376,34 +497,21 @@ def analysen_schreiben():
 
     # 8.5 Reanimationsregister: eine Liste je Fall, so viele Zeilen wie
     # Herz-Kreislauf-Stillstaende oben.
-    faelle = []
-    for i in range(1, DIAGNOSEN[0][1] + 1):
-        beobachtet = zufall.random() < 0.62
-        laien = beobachtet and zufall.random() < 0.7
-        rhythmus = zufall.choices(["Kammerflimmern", "Asystolie", "PEA"],
-                                  [0.3, 0.5, 0.2])[0]
-        rosc = zufall.random() < (0.45 if rhythmus == "Kammerflimmern"
-                                  else 0.22)
-        faelle.append([
-            f"R-{monate[-1][:4]}-{i:03d}", zufall.choice(monate),
-            zufall.choices(["privat", "öffentlich", "Pflegeheim"],
-                           [0.6, 0.25, 0.15])[0],
-            "ja" if beobachtet else "nein", "ja" if laien else "nein",
-            "ja" if laien and zufall.random() < 0.5 else "nein",
-            rhythmus, "ja" if zufall.random() < 0.18 else "nein",
-            "ja" if rosc else "nein",
-            "ja" if rosc and zufall.random() < 0.4 else "nein",
-        ])
-    faelle.sort(key=lambda f: f[1])
+    faelle = [_reanimationsfall(i, zufall.choice(monate))
+              for i in range(1, DIAGNOSEN[0][1] + 1)]
+    faelle.sort(key=lambda f: datetime.strptime(f[2], "%d.%m.%Y %H:%M:%S"))
     ordner = listen.ORDNER / "swissreca"
     ordner.mkdir(parents=True, exist_ok=True)
     datei = ordner / (f"{HEUTE.isoformat()}_08-00-00__SWISSRECA Export "
                       f"{monate[0][:4]}-{monate[-1][:4]}.csv")
     with datei.open("w", encoding="utf-8-sig", newline="") as f:
-        schreiber = csv.writer(f, delimiter=";")
+        schreiber = csv.writer(f, delimiter=",")
         schreiber.writerow(REANIMATION_SPALTEN)
         schreiber.writerows(faelle)
-    return {"Analysemonate": len(reihe), "Reanimationsfälle": len(faelle)}
+    # Dieselbe Auswertung wie beim Hochladen im Betrieb.
+    bericht = reca.aktualisieren()
+    return {"Analysemonate": len(reihe), "Reanimationsfälle": len(faelle),
+            "davon reanimiert": bericht["reanimiert"]}
 
 
 # --- Dossierdateien ---------------------------------------------------------

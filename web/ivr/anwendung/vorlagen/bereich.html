@@ -344,7 +344,7 @@
   <p class="meta">{{ b.upload_hinweis }}</p>
 </form>
 {% endif %}
-{% if b.themen or b.quelle in ("naca", "emris") %}
+{% if b.themen or b.quelle in ("naca", "emris", "swissreca") %}
 <form method="get" action="/bereich/{{ nummer }}" class="filter" role="search">
   {% if teil %}<input type="hidden" name="teil" value="{{ teil }}">{% endif %}
   <div class="paar">
@@ -389,6 +389,12 @@
 {% endif %}
 {% if zeichnungen.vergleich %}
   <div class="diagrammrahmen" tabindex="0">{{ zeichnungen.vergleich | safe }}</div>
+{% endif %}
+{% if zeichnungen.kette %}
+  <div class="diagrammrahmen" tabindex="0">{{ zeichnungen.kette | safe }}</div>
+{% endif %}
+{% if zeichnungen.ergebnis %}
+  <div class="diagrammrahmen" tabindex="0">{{ zeichnungen.ergebnis | safe }}</div>
 {% endif %}
 
 {% if ma %}
@@ -485,6 +491,88 @@
   {{ daten.letzte_meldung | datum }}{% endif %}. Ein Strich am Boden heisst
   «Monat ohne Meldung», nicht «keine Daten».
 </p>
+{% elif nummer == "8.5" and daten %}
+{# Das Register kennt drei Grundgesamtheiten: alle erfassten Faelle, die
+   mit Reanimationsversuch, und je Kennzahl die mit Angabe. Jede Zahl sagt,
+   auf welche sie sich bezieht; sonst vergleicht man 11 von 24 mit 11 von 36
+   und merkt es nicht. #}
+<p class="kennzahl">
+  <span class="gross gruen">{{ daten.reanimiert }}</span>
+  <span class="leise">
+    Reanimationen durch den Rettungsdienst bei {{ daten.gesamt }} erfassten
+    Kreislaufstillständen, {{ daten.von | datum }} bis {{ daten.bis | datum }}.
+    Stand des Registers {{ daten.stand | datum }}.
+  </span>
+</p>
+<p class="meta">
+  Die Balken oben beziehen sich auf die {{ daten.reanimiert }} reanimierten
+  Fälle; n ist jeweils die Zahl der Fälle mit Angabe. Bei
+  {{ daten.klinikdaten_fehlen }} davon hat die Klinik nichts zurückgemeldet,
+  deshalb sind Überleben und Entlassung meist ohne Angabe: das ist eine
+  Lücke im Register, keine Null.
+</p>
+
+<div class="tabellenrahmen" tabindex="0" role="region" aria-label="Zeiten und erster Rhythmus">
+<table class="umbrechend">
+  <caption>Zeiten und erster Rhythmus</caption>
+  <thead><tr><th scope="col">Kennzahl</th><th scope="col" class="zahl">Wert</th>
+             <th scope="col" class="zahl">n</th></tr></thead>
+  <tbody>
+    <tr><td class="kopf">Notruf bis Rettungsdienst vor Ort, Median</td>
+        <td class="zahl" data-spalte="Wert">{% if daten.zeiten.notruf_vor_ort.median is not none %}{{ daten.zeiten.notruf_vor_ort.median }} min{% else %}<span class="leise">keine Angabe</span>{% endif %}</td>
+        <td class="zahl leise" data-spalte="n">{{ daten.zeiten.notruf_vor_ort.n }}</td></tr>
+    <tr><td class="kopf">Kollaps bis Beginn der Laienreanimation, Median</td>
+        <td class="zahl" data-spalte="Wert">{% if daten.zeiten.kollaps_laienrea.median is not none %}{{ daten.zeiten.kollaps_laienrea.median }} min{% else %}<span class="leise">keine Angabe</span>{% endif %}</td>
+        <td class="zahl leise" data-spalte="n">{{ daten.zeiten.kollaps_laienrea.n }}</td></tr>
+    <tr><td class="kopf">Kollaps bis erste Defibrillation, Median</td>
+        <td class="zahl" data-spalte="Wert">{% if daten.zeiten.kollaps_defi.median is not none %}{{ daten.zeiten.kollaps_defi.median }} min{% else %}<span class="leise">keine Angabe</span>{% endif %}</td>
+        <td class="zahl leise" data-spalte="n">{{ daten.zeiten.kollaps_defi.n }}</td></tr>
+    <tr><td class="kopf">Erster Rhythmus schockbar</td>
+        <td class="zahl" data-spalte="Wert">{{ daten.rhythmus.schockbar }}</td>
+        <td class="zahl leise" data-spalte="n">{{ daten.rhythmus.schockbar + daten.rhythmus.nicht_schockbar }}</td></tr>
+    <tr><td class="kopf">Erster Rhythmus nicht schockbar</td>
+        <td class="zahl" data-spalte="Wert">{{ daten.rhythmus.nicht_schockbar }}</td>
+        <td class="zahl leise" data-spalte="n">{{ daten.rhythmus.schockbar + daten.rhythmus.nicht_schockbar }}</td></tr>
+    <tr><td class="kopf">Utstein-Vergleichsgruppe: beobachtet und schockbar</td>
+        <td class="zahl" data-spalte="Wert">{{ daten.utstein.n }} Fälle, {{ daten.utstein.rosc }} mit ROSC, {{ daten.utstein.ueberlebt }} überlebt</td>
+        <td class="zahl leise" data-spalte="n">{{ daten.reanimiert }}</td></tr>
+  </tbody>
+</table>
+</div>
+<p class="meta">
+  Die Utstein-Gruppe ist der Ausschnitt, mit dem sich Register untereinander
+  vergleichen: durch Ersthelfer beobachtet und schockbarer erster Rhythmus.
+  Bei einem Betrieb dieser Grösse ist sie einstellig, und jeder Fall darin
+  zählt.
+</p>
+
+<details>
+  <summary>Wo, warum, und wo nicht begonnen wurde</summary>
+  <div class="tabellenrahmen" tabindex="0" role="region" aria-label="Einsatzort und Ursache">
+  <table class="umbrechend">
+    <caption>Alle {{ daten.gesamt }} erfassten Fälle</caption>
+    <thead><tr><th scope="col">Merkmal</th><th scope="col">Ausprägung</th>
+               <th scope="col" class="zahl">Fälle</th></tr></thead>
+    <tbody>
+    {% for name, zahl in daten.einsatzort.items() %}
+      <tr><td class="kopf">{% if loop.first %}Einsatzort{% endif %}</td>
+          <td data-spalte="Ausprägung">{{ name }}</td>
+          <td class="zahl" data-spalte="Fälle">{{ zahl }}</td></tr>
+    {% endfor %}
+    {% for name, zahl in daten.ursache.items() %}
+      <tr><td class="kopf">{% if loop.first %}Ursache{% endif %}</td>
+          <td data-spalte="Ausprägung">{{ name }}</td>
+          <td class="zahl" data-spalte="Fälle">{{ zahl }}</td></tr>
+    {% endfor %}
+    {% for name, zahl in daten.nicht_begonnen.items() %}
+      <tr><td class="kopf">{% if loop.first %}Keine Reanimation{% endif %}</td>
+          <td data-spalte="Ausprägung">{{ name }}</td>
+          <td class="zahl" data-spalte="Fälle">{{ zahl }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</details>
 {% endif %}
 {% endif %}
 

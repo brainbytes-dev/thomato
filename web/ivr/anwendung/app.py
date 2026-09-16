@@ -27,6 +27,7 @@ import listen
 import landkarte
 import pfade
 import praefix
+import reca
 
 app = FastAPI(title="Software für die Anerkennung des IVR und Betriebshandbuch")
 vorlagen = Jinja2Templates(directory=str(pfade.VORLAGEN))
@@ -123,6 +124,27 @@ ANLEITUNG = {
                     "Aufmerksamkeit braucht.",
         "zahl": "Frei, aber zählbar und über die Zeit wiederholbar.",
         "ziel": "Vor der ersten Messung festlegen.",
+    },
+    "8.5": {
+        "auslöser": "Ein Glied der Rettungskette, das im Register schwach "
+                    "ausfällt: wenige Laienreanimationen, späte "
+                    "Telefonreanimation, kein AED vor Eintreffen, lange "
+                    "Zeit bis zur ersten Defibrillation.",
+        "zahl": "Der Anteil unter den Fällen mit Angabe, nicht unter allen: "
+                "bei dreissig Fällen im Jahr entscheidet ein einzelner über "
+                "mehrere Prozentpunkte, und was die Klinik nicht "
+                "zurückmeldet, ist keine Null. Grundgesamtheit ist ein "
+                "Jahr oder mehrere.",
+        "ziel": "Ein Anteil, der über Jahre vergleichbar bleibt, zum Beispiel "
+                "Laienreanimation bei mindestens der Hälfte der beobachteten "
+                "Kollapse.",
+        "ursache": "Die Kette hat Glieder, die der Betrieb nicht selbst "
+                   "hält: Notrufzentrale, First Responder, Bevölkerung. Eine "
+                   "Massnahme heisst hier meist Absprache oder Ausbildung, "
+                   "nicht Dienstanweisung.",
+        "rueckfluss": "Das Register liefert die Zahlen nur, wenn jeder Fall "
+                      "vollständig erfasst ist. Wer beim Erfassen die "
+                      "Zeitpunkte weglässt, nimmt sich die Auswertung.",
     },
 }
 
@@ -240,7 +262,40 @@ BEREICHE = {
             "Frei gewählt. Ein Prozess, der im Betrieb ohnehin Aufmerksamkeit "
             "braucht, zählbar und über die Zeit wiederholbar.",
     },
+    # Kein Bereich nach 8.1, aber derselbe Kreislauf: Daten, Auswertung,
+    # Massnahme, Nachmessung. Michael am 16.09.2026: «8.5 muss noch in
+    # Qualitätsabläufe … es braucht so wie Ereignisse, dass man die Swiss
+    # Reca Liste hochladen kann und werte die Daten sinnvoll aus.»
+    "8.5": {
+        "themen": False,
+        "kurz": "Reanimationen",
+        "quelle": "swissreca",
+        "upload": "swissreca",
+        "upload_name": "SWISSRECA-Export",
+        "upload_hinweis": "CSV oder Excel, wie ihn das Reanimationsregister "
+                          "ausgibt, eine Zeile je Fall. Gelesen werden nur die "
+                          "Spalten zur Rettungskette, zum ersten Rhythmus und "
+                          "zum Ausgang; Name der erfassenden Person, Adresse, "
+                          "Geburtsjahr und Geschlecht bleiben in der Datei. "
+                          "Mehrere Exporte werden zusammen gerechnet, jeder "
+                          "Fall einmal. Die Datei liegt danach auch unter "
+                          "Listen.",
+        "erfassung": "Auswertung der Reanimationsdaten",
+        "erklaerung":
+            "Alle Kreislaufstillstände, die der Betrieb im Reanimationsregister "
+            "erfasst. Das Kriterium verlangt, dass die Daten erhoben, "
+            "ausgewertet und analysiert werden und dass daraus Massnahmen "
+            "folgen. Gerechnet wird die Rettungskette vom beobachteten "
+            "Kollaps bis zur Defibrillation, dann der Ausgang: ROSC, "
+            "Spitalaufnahme, Überleben.",
+    },
 }
+
+# Die Bereiche, die einen Kreislauf fuehren: die fuenf nach 8.1 und die
+# Reanimationsdaten nach 8.5. Tragend zur Erneuerung koennen nur die fuenf
+# sein, deshalb bleibt MONITORING daneben bestehen.
+KREISLAUF_BEREICHE = {**MONITORING,
+                      "8.5": "Auswertung und Analyse von Reanimationsdaten"}
 
 # Die Seitenleiste braucht die Bereiche auf jeder Seite, nicht nur auf
 # der Bereichsseite.
@@ -679,7 +734,7 @@ def monitoring_stand(v):
     tragend = set(filter(None, (einstellungen(v).get("tragende") or "").split(",")))
     zyklus = zyklus_von(v)
     stand = []
-    for nummer, name in MONITORING.items():
+    for nummer, name in KREISLAUF_BEREICHE.items():
         # Angezeigt wird der laufende Kreislauf; ein geschlossener ist
         # erledigte Arbeit und steht eingeklappt in der Liste.
         m = v.execute(
@@ -1173,7 +1228,7 @@ def kriterium(request: Request, nummer: str, meldung: str = "", art: str = ""):
     # Fuer die Monitoringbereiche: die Anleitung und das Bild des Kreislaufs.
     fuehrung = ANLEITUNG.get(nummer)
     kreislauf_bild = None
-    if nummer in MONITORING:
+    if nummer in KREISLAUF_BEREICHE:
         erste = next((x for x in massnahmen if x["gemessen_am"]), None)
         if erste:
             kreislauf_bild = diagramme.vorher_nachher(
@@ -1185,7 +1240,7 @@ def kriterium(request: Request, nummer: str, meldung: str = "", art: str = ""):
         "k": k,
         "fuehrung": fuehrung,
         "kreislauf_bild": kreislauf_bild,
-        "ist_monitoring": nummer in MONITORING,
+        "ist_monitoring": nummer in KREISLAUF_BEREICHE,
         "nachweise": json.loads(k["nachweise"] or "[]"),
         "massnahmen": massnahmen,
         "belege": belege,
@@ -1289,7 +1344,7 @@ def massnahmen(request: Request):
     antwort = vorlagen.TemplateResponse(request, "massnahmen.html", {
         "massnahmen": alle,
         "stand": kreislaeufe(v),
-        "monitoring": MONITORING,
+        "monitoring": KREISLAUF_BEREICHE,
         "titel": "Massnahmen",
         "seite": "massnahmen",
     })
@@ -1738,7 +1793,7 @@ def analysen(request: Request, meldung: str = "", art: str = ""):
         # Die Reanimationsdaten gehören zu 8.5 und haben keinen eigenen
         # Bereich; sie werden hier hochgeladen.
         "swissreca": listen.QUELLEN["swissreca"],
-        "swissreca_dateien": listen.bestand("swissreca"),
+        "reca": daten_laden("reca"),
         "zeichnungen": zeichnungen,
         "eigener_dienst": eigener,
         "betrieb": einstellungen(v).get("betrieb", ""),
@@ -2427,6 +2482,22 @@ async def bereich_export(request: Request, nummer: str,
             f"Meldungen {jahre} in {bericht['kategorien']} Kategorien, letzte "
             f"Meldung {schweizer_datum(bericht['letzte'])}.", f_von, f_bis, "daten")
 
+    if b["upload"] == "swissreca":
+        bericht = reca.aktualisieren()
+        if not bericht["faelle"]:
+            return _zum_bereich(
+                nummer, teil, "warnung",
+                f"«{name}» ist abgelegt, aber es liess sich kein Fall mit "
+                "Einsatzdatum lesen. Erwartet wird der Export aus SWISSRECA "
+                "mit den Spalten «Kollaps beobachtet» und «Jemals ROSC».",
+                f_von, f_bis, "daten")
+        return _zum_bereich(
+            nummer, teil, "gut",
+            f"«{name}» eingelesen. Über alle Exporte: {bericht['faelle']} "
+            f"Fälle {', '.join(bericht['jahre'])}, davon "
+            f"{bericht['reanimiert']} mit Reanimation, letzter Fall "
+            f"{schweizer_datum(bericht['bis'])}.", f_von, f_bis, "daten")
+
     # Andere Quellen: ablegen und hineinschauen, wie auf der Listenseite.
     befund = listen.pruefen(pfad)
     if befund["fehler"]:
@@ -2628,6 +2699,29 @@ def bereich(request: Request, nummer: str, teil: str = "", meldung: str = "",
                 beschriftung_vorher=daten["runde1"]["jahr"],
                 beschriftung_nachher=daten["runde2"]["jahr"],
                 titel="Partnerbefragung, beide Runden im Vergleich")
+    elif b["quelle"] == "swissreca":
+        daten = daten_laden("reca")
+        if daten:
+            monate = [m for m in daten["monate"] if im_filter(m["monat"])]
+            if monate:
+                zeichnungen["verlauf"] = diagramme.saeulen_zeit(
+                    [m["anzahl"] for m in monate], [m["monat"] for m in monate],
+                    titel="Erfasste Kreislaufstillstände je Monat")
+
+            def _kettenbalken(posten, titel):
+                # Ohne Angabe heisst nicht null: der Balken bleibt leer und
+                # sagt es, statt eine Null zu behaupten.
+                return diagramme.balken_quote(
+                    [{"name": p["name"], "wert": p["quote"] or 0, "n": p["n"],
+                      "klasse": "r1" if p["quote"] is not None else "unter",
+                      **({"label": "keine Angabe"} if p["quote"] is None else {})}
+                     for p in posten], titel=titel, beschriftung_breite=270)
+            zeichnungen["kette"] = _kettenbalken(
+                daten["kette"], "Die Rettungskette: Anteil Ja unter den "
+                                "reanimierten Fällen mit Angabe")
+            zeichnungen["ergebnis"] = _kettenbalken(
+                daten["ergebnis"], "Der Ausgang: Anteil unter den reanimierten "
+                                   "Fällen mit Angabe")
     elif b["quelle"] == "beschwerden":
         alle = v.execute("SELECT * FROM beschwerde ORDER BY datum DESC").fetchall()
         je_kat = {}
@@ -2895,6 +2989,10 @@ async def liste_hochladen(quelle: str, datei: UploadFile = File(...),
     zeilen = sum(b["zeilen"] for b in befund["blaetter"])
     meldung = f"«{befund['angezeigt']}» eingelesen, {zeilen} Zeilen."
     art = "gut"
+    if quelle == reca.QUELLE:
+        bericht = reca.aktualisieren()
+        meldung += (f" Auswertung über alle Exporte: {bericht['faelle']} Fälle, "
+                    f"davon {bericht['reanimiert']} mit Reanimation.")
     if befund["direkt"]:
         meldung += (" Achtung: Spalten mit Personendaten gefunden ("
                     + ", ".join(befund["direkt"][:4]) + ").")
@@ -2908,6 +3006,10 @@ def liste_loeschen(quelle: str, datei: str = Form(...)):
         listen.loeschen(quelle, datei)
     except listen.Abgelehnt as e:
         return _zurueck(quelle, "fehler", str(e))
+    if quelle == reca.QUELLE:
+        # Die Auswertung rechnet aus den Dateien; ohne die Datei ohne die
+        # Faelle darin.
+        reca.aktualisieren()
     return _zurueck(quelle, "gut", "Die Liste ist geloescht.")
 
 

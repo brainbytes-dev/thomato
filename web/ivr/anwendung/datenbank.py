@@ -225,6 +225,9 @@ TITEL_KORREKTUR = {
               "Schnittstellen",
     "7.3.19": "Richtlinien & Massnahmen für die Arbeitssicherheit und den "
               "Gesundheitsschutz",
+    # Der Name des Registers stand in der PDF mit Markenzeichen und fiel
+    # beim Auslesen weg; der Titel endete auf «nach».
+    "8.5": "Auswertung & Analyse der Reanimationsdaten nach SWISSRECA",
 }
 
 # Der Rest des Titels, der in der Beschreibung steht und dort weg muss,

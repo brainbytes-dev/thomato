@@ -139,59 +139,34 @@
 {% if meldung %}
 <p class="hinweis {{ art }}" role="status">{{ meldung }}</p>
 {% endif %}
-<p class="leise">
-  {{ swissreca.lang }}. {{ swissreca.hinweis }}
+{# Hochgeladen und ausgewertet wird im Bereich 8.5, seit dem 16.09.2026
+   ein Bereich wie die fuenf nach 8.1. Hier steht die Kurzfassung. #}
+{% if reca %}
+<p class="kennzahl">
+  <span class="gross gruen">{{ reca.reanimiert }}</span>
+  <span class="leise">
+    Reanimationen bei {{ reca.gesamt }} erfassten Kreislaufstillständen,
+    {{ reca.von | datum }} bis {{ reca.bis | datum }}.
+  </span>
 </p>
-{% if darf_schreiben(request) %}
-<form class="einwurf" method="post" enctype="multipart/form-data"
-      action="/listen/swissreca">
-  <input type="hidden" name="zurueck" value="/analysen">
-  <label for="reca">SWISSRECA-Export hochladen</label>
-  <div class="paar">
-    <input type="file" id="reca" name="datei" required
-           accept=".xlsx,.xlsm,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
-    <button type="submit">Einlesen</button>
-  </div>
-  <p class="meta">
-    Excel oder CSV. Die Datei wird abgelegt und gelesen; ausgewertet wird
-    daraus noch nichts. Alle abgelegten Listen stehen unter
-    <a href="/listen">Listen</a>.
-  </p>
-</form>
-{% endif %}
-{% if swissreca_dateien %}
-<ul class="listenbestand">
-  {% for d in swissreca_dateien %}
-  <li>
-    <div class="lb-kopf">
-      <span class="lb-name">{{ d.angezeigt }}</span>
-      <span class="marke soll">{{ d.art }}</span>
-      <span class="meta lb-datum">
-        {{ d.hochgeladen.strftime("%d.%m.%Y") }} ·
-        {{ (d.bytes / 1024) | round | int }} KB
-      </span>
-    </div>
-    {% if d.fehler %}
-      <p class="meta rot">Nicht lesbar: {{ d.fehler }}.</p>
-    {% else %}
-      {% for bl in d.blaetter %}
-      <p class="meta">
-        {% if bl.name %}Blatt «{{ bl.name }}» · {% endif %}{{ bl.zeilen }} Zeilen,
-        {{ bl.spalten }} Spalten
-      </p>
-      {% endfor %}
-    {% endif %}
-  </li>
-  {% endfor %}
-</ul>
+<p class="meta">
+  {% for p in reca.kette[:2] + reca.ergebnis[:1] %}{{ p.name }}:
+  {% if p.quote is not none %}{{ p.quote }} % (n = {{ p.n }}){% else %}keine Angabe{% endif %}{{ "." if loop.last else " · " }}{% endfor %}
+  Rettungskette, Ausgang, Zeiten und der Kreislauf dazu stehen unter
+  <a href="/bereich/8.5">8.5 Reanimationen</a>.
+</p>
 {% else %}
-<p class="meta">Noch keine Liste hochgeladen.</p>
+<p class="leise">
+  {{ swissreca.lang }}. Noch kein Export eingelesen; hochgeladen wird unter
+  <a href="/bereich/8.5">8.5 Reanimationen</a>.
+</p>
 {% endif %}
 
-<h2>Die Monitoringbereiche nach 8.1</h2>
+<h2>Die Bereiche mit eigenem Kreislauf</h2>
 <p>
-  Die fünf Bereiche nach 8.1 haben eigene Seiten, weil dort neben den Daten
-  auch der Kreislauf und die Erfassung stehen:
+  Die fünf Bereiche nach 8.1 und die Reanimationsdaten nach 8.5 haben eigene
+  Seiten, weil dort neben den Daten auch der Kreislauf und die Erfassung
+  stehen:
 </p>
 <ul class="knapp">
   {% for nr, e in navbereiche.items() %}
