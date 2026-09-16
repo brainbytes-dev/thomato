@@ -91,10 +91,13 @@ const digitalOffers = [
     deliverables: [
       "Dienst- und Schichtplanung mit Pikett und Verfügbarkeiten",
       "Material- und Medikamentenverwaltung mit Ablaufkontrolle",
-      "Qualitätsmanagement für die IVR-Anerkennung",
+      "Qualitätsmanagement für die Anerkennung als Rettungsdienst",
       "Zugeschnitten auf Ihren Ablauf statt umgekehrt",
     ],
-    link: { href: "/ivr-anerkennung", label: "Beispiel: IVR-Anerkennung" },
+    link: {
+      href: "/qualitaetsmanagement-tool",
+      label: "Beispiel: Qualitätsmanagement-Tool",
+    },
   },
   {
     id: "03",
@@ -142,11 +145,26 @@ export const brand = {
   /** Last review date of Impressum and Datenschutzerklärung. */
   legalUpdated: "8. September 2026",
 
+  /**
+   * Hauptpunkte sind die Abschnitte der Startseite. Die beiden Werkzeuge
+   * hängen als Unterpunkte an ihrer Säule, statt eigene Hauptpunkte zu sein:
+   * das Werkzeug gehört zur Leistung, nicht daneben.
+   */
   nav: [
-    { label: "Software", href: "#software" },
-    { label: "Sicherheit", href: "#sicherheit" },
-    { label: "Rechner", href: "/sanitaetsdienst-rechner" },
-    { label: "IVR-Anerkennung", href: "/ivr-anerkennung" },
+    {
+      label: "Software",
+      href: "#software",
+      children: [
+        { label: "Qualitätsmanagement-Tool", href: "/qualitaetsmanagement-tool" },
+      ],
+    },
+    {
+      label: "Sicherheit",
+      href: "#sicherheit",
+      children: [
+        { label: "Sanitätsdienst-Rechner", href: "/sanitaetsdienst-rechner" },
+      ],
+    },
     { label: "Prozess", href: "#prozess" },
     { label: "FAQ", href: "#faq" },
     { label: "Kontakt", href: "#kontakt" },

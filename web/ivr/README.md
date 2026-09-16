@@ -37,7 +37,7 @@ die Übersicht sagt, wie weit das ist.
 tragend zur Erneuerung. Je Bereich beliebig viele Kreisläufe, wahlweise als
 PDCA mit drei Schritten oder als DMAIC nach Six Sigma mit fünf. Ein
 Kreislauf ist erst geschlossen, wenn die Nachmessung die Wirksamkeit belegt,
-und genau das prüft das IVR.
+und genau das verlangt die Richtlinie in Kapitel 8.1.
 
 **Beschwerdemanagement.** Fälle mit Weg, Kategorie, fachlicher Beurteilung
 und Bewertung, mit Anhängen, ausgewertet nach Jahr und Kategorie.
@@ -133,7 +133,7 @@ Eine Fassung mit erfundenen Daten, ohne jeden Bezug zu einem echten Betrieb.
 Der Betrieb heisst «Rettungsdienst Musterstadt», Fälle und Messwerte sind
 ausgedacht, die Erläuterungen aus der Richtlinie fehlen bewusst.
 
-Sie läuft unter `thomato.ch/ivr-anerkennung/demo`, im selben Projekt wie
+Sie läuft unter `thomato.ch/qualitaetsmanagement-tool/demo`, im selben Projekt wie
 die Website. Der Einstieg dafür ist `web/api/demo.py`: er setzt die
 Datenpfade auf den einzigen beschreibbaren Ordner, baut die Demodaten beim
 ersten Aufruf und lädt die Anwendung. Dass die Instanz irgendwann endet,
@@ -152,7 +152,7 @@ cd web
 IVR_ABLAGE=/tmp/ivr-demo python -m uvicorn api.demo:app --port 8012
 ```
 
-Danach `http://127.0.0.1:8012/ivr-anerkennung/demo`.
+Danach `http://127.0.0.1:8012/qualitaetsmanagement-tool/demo`.
 
 ## Stand
 

@@ -57,16 +57,32 @@ export function Footer() {
             <h2 className="eyebrow mb-6 text-xs text-foreground">Navigation</h2>
             <nav className="flex flex-col gap-4">
               {brand.nav.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="group flex items-center gap-2 text-sm text-foreground/65 transition-all duration-300 hover:text-foreground"
-                >
-                  <span className="opacity-0 transition-opacity group-hover:opacity-100">
-                    <ArrowRight className="h-3 w-3" />
-                  </span>
-                  {item.label}
-                </Link>
+                <div key={item.href} className="flex flex-col gap-3">
+                  <Link
+                    href={item.href}
+                    className="group flex items-center gap-2 text-sm text-foreground/65 transition-all duration-300 hover:text-foreground"
+                  >
+                    <span className="opacity-0 transition-opacity group-hover:opacity-100">
+                      <ArrowRight className="h-3 w-3" />
+                    </span>
+                    {item.label}
+                  </Link>
+                  {/* Die Werkzeuge eingerückt unter ihrer Säule, wie in der
+                      Hauptnavigation. */}
+                  {"children" in item &&
+                    item.children.map((kind) => (
+                      <Link
+                        key={kind.href}
+                        href={kind.href}
+                        className="group flex items-center gap-2 pl-5 text-sm text-foreground/65 transition-all duration-300 hover:text-foreground"
+                      >
+                        <span className="opacity-0 transition-opacity group-hover:opacity-100">
+                          <ArrowRight className="h-3 w-3" />
+                        </span>
+                        {kind.label}
+                      </Link>
+                    ))}
+                </div>
               ))}
             </nav>
           </div>

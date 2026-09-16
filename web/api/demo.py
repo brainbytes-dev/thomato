@@ -1,4 +1,4 @@
-"""Die Demo der IVR-Anwendung, ausgeliefert unter /ivr-anerkennung/demo.
+"""Die Demo der Anwendung, ausgeliefert unter /qualitaetsmanagement-tool/demo.
 
 Die Anwendung selbst liegt in «web/ivr» und ist eine gewoehnliche
 Python-Anwendung; hier steht nur, was noetig ist, damit sie auf einer
@@ -31,7 +31,7 @@ os.environ.setdefault("IVR_DOSSIER", str(ABLAGE / "dossier"))
 os.environ.setdefault("IVR_DEMO", "1")
 # Die Adresse, unter der die Besucher die Demo sehen, und daneben die
 # Adresse der Funktion selbst: die Plattform ruft sie unter beiden auf.
-os.environ.setdefault("IVR_BASIS", "/ivr-anerkennung/demo")
+os.environ.setdefault("IVR_BASIS", "/qualitaetsmanagement-tool/demo")
 os.environ.setdefault("IVR_BASIS_FUNKTION", "/api/demo")
 
 sys.path.insert(0, str(ANWENDUNG))

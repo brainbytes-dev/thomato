@@ -2,11 +2,11 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
     {
-      "source": "/ivr-anerkennung/demo",
+      "source": "/qualitaetsmanagement-tool/demo",
       "destination": "/api/demo"
     },
     {
-      "source": "/ivr-anerkennung/demo/:pfad*",
+      "source": "/qualitaetsmanagement-tool/demo/:pfad*",
       "destination": "/api/demo"
     }
   ],

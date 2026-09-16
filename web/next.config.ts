@@ -33,6 +33,14 @@ const nextConfig: NextConfig = {
         destination: "/sanitaetsdienst-rechner",
         permanent: true,
       },
+      // Die Produktseite hiess bis zum 16.09.2026 nach dem Kürzel des
+      // Interverbands. Das Kürzel ist geschützt, die Adresse leitet um, auch
+      // die der Demo darunter.
+      {
+        source: "/ivr-anerkennung/:pfad*",
+        destination: "/qualitaetsmanagement-tool/:pfad*",
+        permanent: true,
+      },
     ];
   },
   images: {

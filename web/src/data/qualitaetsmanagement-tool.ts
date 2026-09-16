@@ -1,7 +1,11 @@
 import { brand } from "@/data/brand";
 
 /**
- * Inhalte der Produktseite unter /ivr-anerkennung.
+ * Inhalte der Produktseite unter /qualitaetsmanagement-tool.
+ *
+ * Das Kürzel des Interverbands ist geschützt und steht deshalb weder im
+ * Namen noch in der Adresse des Produkts. Wo der Verband gemeint ist,
+ * wird er ausgeschrieben.
  *
  * Getrennt von brand.ts, weil es eine Unterseite beschreibt und nicht die
  * Marke. Texte werden hier geändert, nicht in den Komponenten, gleiche Regel
@@ -11,15 +15,15 @@ import { brand } from "@/data/brand";
  * statt des Knopfes den Hinweis, dass die Demo auf Anfrage läuft. So bleibt
  * die Seite richtig, auch bevor die Demo eine feste Adresse hat.
  */
-export const ivr = {
-  pfad: "/ivr-anerkennung",
-  name: "IVR-Anerkennung",
+export const qmTool = {
+  pfad: "/qualitaetsmanagement-tool",
+  name: "Qualitätsmanagement-Tool",
 
-  titel: "Software für die IVR-Anerkennung eines Rettungsdienstes",
+  titel: "Qualitätsmanagement-Tool für Rettungsdienste",
   beschreibung:
     "Dossier, Betriebshandbuch und Qualitätskreisläufe an einem Ort. Die Anwendung beantwortet vor dem Expertenbesuch die Frage, die zählt: Was fehlt noch, und bis wann?",
   schluesselwoerter:
-    "IVR Anerkennung, Rezertifizierung Rettungsdienst, Qualitätsmanagement Rettungsdienst, Betriebshandbuch Rettungsdienst, Qualitätskreislauf PDCA DMAIC, Anerkennungsdossier IVR, Prozesslandkarte Rettungsdienst",
+    "Qualitätsmanagement Rettungsdienst, Anerkennung Rettungsdienst, Rezertifizierung Rettungsdienst, Betriebshandbuch Rettungsdienst, Qualitätskreislauf PDCA DMAIC, Anerkennungsdossier Rettungsdienst, Prozesslandkarte Rettungsdienst",
 
   h1: "Die Anerkennung vorbereiten, ohne den Überblick zu verlieren",
   vorspann:
@@ -29,7 +33,7 @@ export const ivr = {
 
   /** Die Demo mit erfundenen Daten. Leer lassen, solange keine läuft. */
   demo: {
-    url: "/ivr-anerkennung/demo",
+    url: "/qualitaetsmanagement-tool/demo",
     label: "Demo öffnen und ausprobieren",
     /** Kürzer, für den zweiten Knopf weiter unten auf der Seite. */
     labelKurz: "Demo testen",
@@ -68,7 +72,7 @@ export const ivr = {
     {
       id: "kreislauf",
       titel: "Qualitätskreisläufe",
-      text: "Fünf Monitoringbereiche nach Kapitel 8.1, davon drei tragend zur Erneuerung. Je Bereich beliebig viele Kreisläufe, wahlweise als PDCA mit drei Schritten oder als DMAIC nach Six Sigma mit fünf. Ein Kreislauf gilt erst als geschlossen, wenn die Nachmessung die Wirksamkeit belegt. Genau das prüft das IVR.",
+      text: "Fünf Monitoringbereiche nach Kapitel 8.1, davon drei tragend zur Erneuerung. Je Bereich beliebig viele Kreisläufe, wahlweise als PDCA mit drei Schritten oder als DMAIC nach Six Sigma mit fünf. Ein Kreislauf gilt erst als geschlossen, wenn die Nachmessung die Wirksamkeit belegt. Genau das prüfen die Expertinnen und Experten des Interverbands für Rettungswesen.",
       bild: "/ivr/kreislauf.jpg",
       alt: "Ein Qualitätskreislauf in den fünf DMAIC-Schritten",
     },
@@ -172,7 +176,7 @@ export const ivr = {
     {
       frage: "Ist das auf einen bestimmten Rettungsdienst zugeschnitten?",
       antwort:
-        "Nein. Der Name des Betriebs, die Fristen, die tragenden Monitoringbereiche und der Vorgehenszyklus sind Einstellungen. Die Kriterien kommen aus der Richtlinie und werden eingelesen, nicht abgetippt. Angepasst wird die Prozesslandkarte, weil sie den eigenen Betrieb beschreibt. Das gilt auch über den Rettungsdienst hinaus: für Samaritervereine und andere Organisationen mit Auflagen des IVR lässt sich dieselbe Anwendung auf deren Kriterien stellen.",
+        "Nein. Der Name des Betriebs, die Fristen, die tragenden Monitoringbereiche und der Vorgehenszyklus sind Einstellungen. Die Kriterien kommen aus der Richtlinie und werden eingelesen, nicht abgetippt. Angepasst wird die Prozesslandkarte, weil sie den eigenen Betrieb beschreibt. Das gilt auch über den Rettungsdienst hinaus: für Samaritervereine und andere Organisationen mit Auflagen des Interverbands für Rettungswesen lässt sich dieselbe Anwendung auf deren Kriterien stellen.",
     },
     {
       frage: "Wo liegen die Daten?",
@@ -197,4 +201,4 @@ export const ivr = {
   },
 } as const;
 
-export const ivrUrl = `${brand.meta.url}${ivr.pfad}`;
+export const qmToolUrl = `${brand.meta.url}${qmTool.pfad}`;

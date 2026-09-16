@@ -2,7 +2,7 @@
 
 Sie ist gebaut für eine eigene Adresse: jeder Verweis in den Vorlagen
 beginnt mit einem Schrägstrich, «/handbuch» führt zum Handbuch. Läuft sie
-unter «thomato.ch/ivr-anerkennung/demo», stimmt das nicht mehr; der Verweis
+unter «thomato.ch/qualitaetsmanagement-tool/demo», stimmt das nicht mehr; der Verweis
 zeigt dann an der Anwendung vorbei.
 
 Zwei Wege wären möglich gewesen. Der eine: in allen fünfzehn Vorlagen jeden
