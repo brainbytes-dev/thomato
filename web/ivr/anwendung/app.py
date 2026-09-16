@@ -1,4 +1,4 @@
-"""IVR-Anerkennung und Betriebshandbuch für einen Rettungsdienst.
+"""Software für die Anerkennung des IVR und Betriebshandbuch für einen Rettungsdienst.
 
 Vier Ansichten auf einer Wirbelsäule, dem Kriterienregister:
 Dossier, Handbuch, Analysen, Fälle. Der Fortschrittsbalken ist nicht die
@@ -28,7 +28,7 @@ import landkarte
 import pfade
 import praefix
 
-app = FastAPI(title="IVR-Anerkennung und Betriebshandbuch")
+app = FastAPI(title="Software für die Anerkennung des IVR und Betriebshandbuch")
 vorlagen = Jinja2Templates(directory=str(pfade.VORLAGEN))
 
 # Das Handbuch und die Fallanhaenge brauchen ihre Tabellen, auch in einer
