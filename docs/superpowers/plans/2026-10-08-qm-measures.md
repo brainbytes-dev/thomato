@@ -33,7 +33,7 @@
 
 ```
 qm/
-  drizzle/0007_*.sql                                   Tabelle measure, CHECKs
+  drizzle/0008_*.sql                                   Tabelle measure, CHECKs
   src/db/schema/domain.ts                              + MEASURE_STATUSES, measure
   src/domain/measures.ts                               Services (anlegen, ändern, Status, lesen, Mitglieder)
   src/domain/dashboard.ts                              measure-Items, Zähler, soonCount
@@ -53,7 +53,7 @@ qm/
 
 **Files:**
 - Modify: `qm/src/db/schema/domain.ts`, `qm/src/domain/audit-copy.ts`
-- Create: `qm/drizzle/0007_*.sql` (generiert), `qm/src/domain/measures.ts`
+- Create: `qm/drizzle/0008_*.sql` (generiert), `qm/src/domain/measures.ts`
 - Test: `qm/src/domain/measures.test.ts`, `qm/src/domain/audit-copy.test.ts` (Fälle ergänzen), `qm/src/db/measure-schema.test.ts`
 
 **Interfaces:**
@@ -147,7 +147,7 @@ export const measure = pgTable(
 );
 ```
 
-(`sql` aus `drizzle-orm` importieren, falls nicht vorhanden.) `pnpm db:generate && pnpm db:migrate`, Migration `0007` committen. `measure` in `TABLES` von `src/test/helpers.ts` und in die `TRUNCATE`-Liste von `src/seed/demo.ts` aufnehmen (vor `audit_event`).
+(`sql` aus `drizzle-orm` importieren, falls nicht vorhanden.) `pnpm db:generate && pnpm db:migrate`, Migration `0008` committen. `measure` in `TABLES` von `src/test/helpers.ts` und in die `TRUNCATE`-Liste von `src/seed/demo.ts` aufnehmen (vor `audit_event`).
 
 - [ ] **Step 3: Service `measures.ts`**
 
@@ -249,7 +249,7 @@ git add qm/ && git commit -m "feat(qm): seed demo measures with owners, due date
 
 ## Abschluss Plan 4b (Definition of Done)
 
-- `pnpm test`, `typecheck`, `lint`, `build` grün; Migration `0007` auf frischer Datenbank anwendbar.
+- `pnpm test`, `typecheck`, `lint`, `build` grün; Migration `0008` auf frischer Datenbank anwendbar.
 - Massnahmen sind persistent, mandantengetrennt, auditiert und in der Kriterien-Historie sichtbar; Status und Erledigungsdatum sind auch in der Datenbank konsistent erzwungen.
 - Dashboard und Action Center zeigen überfällige und fällige Massnahmen und Zähler; die Readiness bleibt unverändert.
 - Browserpfad belegt (anlegen, Status, Historie, Rollen).
