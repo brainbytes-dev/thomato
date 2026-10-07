@@ -1,6 +1,6 @@
 # QM Design
 
-Quelle: «Thomato IVR QM — Design System» (17.09.2026), verbindlich. Diese Datei hält nur, was Code und Hook brauchen.
+Quelle: «IVR QM Design System» (17.09.2026), verbindlich. Diese Datei hält nur, was Code und Hook brauchen.
 
 ## 1. Dials (Vorschlag, von Henrik anzupassen)
 

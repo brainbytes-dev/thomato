@@ -5,7 +5,7 @@ import path from "node:path";
 config({ path: ".env" });
 
 export default defineConfig({
-  resolve: { alias: { "@": path.resolve(__dirname, "src") } },
+  resolve: { alias: { "@": path.resolve(import.meta.dirname, "src") } },
   test: {
     environment: "node",
     globalSetup: ["./vitest.global-setup.ts"],
