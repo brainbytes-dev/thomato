@@ -1,5 +1,5 @@
 import type { AssessmentStatus } from "@/db/schema";
-import { DEFAULT_PROCEDURE } from "@/domain/dashboard";
+import { DEFAULT_PROCEDURE } from "@/domain/procedure";
 import { scopeOf, type CriterionInput } from "@/domain/readiness";
 
 export const STATUS_LABEL: Record<AssessmentStatus, string> = {

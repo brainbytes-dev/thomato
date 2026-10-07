@@ -4,10 +4,11 @@ import { ACTIVE_STANDARD_VERSION, standardVersion } from "@/db/schema";
 import { listAssessments, type AssessmentRow } from "./assessments";
 import { daysUntil, monthsUntil, SOON_DAYS } from "./dates";
 import { listDeadlines, type DeadlineView } from "./deadlines";
+import { DEFAULT_PROCEDURE } from "./procedure";
 import { assertCan, type OrgContext } from "./org-context";
 import { computeReadiness, percentOf, scopeOf, type ProcedureMode, type ReadinessResult } from "./readiness";
 
-export const DEFAULT_PROCEDURE: ProcedureMode = "accreditation";
+export { DEFAULT_PROCEDURE } from "./procedure";
 export const ACTION_CENTER_LIMIT = 10;
 
 export type ActionPriority = "critical" | "high" | "medium";

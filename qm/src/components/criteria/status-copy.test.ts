@@ -1,0 +1,39 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { describe, expect, it } from "vitest";
+import { scopeLabel, STATUS_LABEL } from "./status-copy";
+
+const base = { number: "1", chapter: "x" };
+
+describe("status-copy is client-safe", () => {
+  it.each(["src/components/criteria/status-copy.ts", "src/domain/procedure.ts", "src/domain/readiness.ts"])(
+    "%s does not import the database client",
+    (file) => {
+      const source = readFileSync(join(process.cwd(), file), "utf8");
+      expect(source).not.toMatch(/from\s+["']@\/db["']/);
+      expect(source).not.toMatch(/from\s+["']@\/db\/(?!schema["'])/);
+      expect(source).not.toMatch(/from\s+["'](\.\/|@\/domain\/)dashboard["']/);
+    },
+  );
+});
+
+describe("STATUS_LABEL", () => {
+  it("covers all five statuses", () => {
+    expect(STATUS_LABEL).toEqual({
+      not_assessed: "Nicht bewertet",
+      met: "Erfüllt",
+      open: "Offen",
+      critical: "Kritisch",
+      not_applicable: "Entfällt",
+    });
+  });
+});
+
+describe("scopeLabel", () => {
+  it("labels mandatory, should and out-of-procedure criteria", () => {
+    const off = { mandatoryAccreditation: false, shouldAccreditation: false, mandatoryRenewal: false, shouldRenewal: false };
+    expect(scopeLabel({ ...base, ...off, mandatoryAccreditation: true })).toBe("Muss");
+    expect(scopeLabel({ ...base, ...off, shouldAccreditation: true })).toBe("Soll");
+    expect(scopeLabel({ ...base, ...off, mandatoryRenewal: true })).toBe("- (nicht im Verfahren)");
+  });
+});
