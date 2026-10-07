@@ -47,3 +47,23 @@ DATABASE_URL_DIRECT=<direct-url> pnpm db:migrate
 
 - App-Rolle (in `DATABASE_URL`): nur `INSERT` und `SELECT` auf `audit_event`, keine Owner-Rechte.
 - Migrationen mit einer separaten Owner-Rolle (in `DATABASE_URL_DIRECT`).
+
+## Browser-Smoke-Test
+
+`scripts/smoke/demo_story.py` spielt die Demo-Story mit Playwright (Python 3, Sync-API) im Browser durch: Login als Owner, veralteter Nachweis zu 7.3.10, neue Version hochladen, Dashboard, Stand auf «Erfüllt». Pro Schritt eine PASS/FAIL-Zeile, Exit-Code ungleich 0 bei Fehlern, Screenshots in `OUT_DIR`.
+
+Das Skript **verändert Daten** (zusätzliche Version, geänderter Stand). Es erwartet eine frisch geseedete Datenbank und danach ein erneutes `pnpm seed:demo -- --yes-reset`.
+
+| Variable | Bedeutung | Standard |
+| --- | --- | --- |
+| `BASE_URL` | laufende App | `http://localhost:3100` |
+| `QM_EMAIL` | Login | `owner@demo.qm.test` |
+| `QM_PASSWORD` | Passwort des Demo-Seeds | `Demo-QM-2026` |
+| `CHROMIUM_PATH` | optionaler Pfad zur Chromium-Binärdatei | Playwright-Standard |
+| `OUT_DIR` | Verzeichnis für Screenshots | temporäres Verzeichnis |
+| `EXTRA_HTTP_HEADERS` | optional, JSON, z. B. für Protection-Bypass-Header | keine |
+
+```bash
+BETTER_AUTH_URL=http://localhost:3100 pnpm exec next dev -p 3100   # in einem zweiten Terminal
+python3 scripts/smoke/demo_story.py
+```

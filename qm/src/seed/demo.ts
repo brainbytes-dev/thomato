@@ -13,6 +13,7 @@ import { setAssessmentDueDate, setAssessmentStatus } from "@/domain/assessments"
 import { importCatalog } from "@/domain/catalog";
 import { addDays, zurichDate } from "@/domain/dates";
 import { ROLES, type Role } from "@/domain/rights";
+import { seedDemoDocuments } from "./demo-documents";
 import { assertResetAllowed } from "./reset-guard";
 
 export { assertResetAllowed };
@@ -102,6 +103,7 @@ export async function seedDemo(input: { catalog: unknown; now?: Date }) {
       await setAssessmentDueDate(ctx, c.id, addDays(today, o.dueInDays));
     }
   }
+  await seedDemoDocuments(ctx, now);
   await db.insert(deadline).values([
     { organizationId: org.id, kind: "application", label: "Antrag einreichen", dueDate: addDays(today, 20) },
     { organizationId: org.id, kind: "custom", label: "Besuchstermin der Expertinnen und Experten", dueDate: addDays(today, 60) },
