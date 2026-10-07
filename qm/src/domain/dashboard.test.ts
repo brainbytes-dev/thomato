@@ -19,7 +19,6 @@ function row(over: Partial<AssessmentRow>): AssessmentRow {
     number: `${k}`,
     title: `Titel ${k}`,
     chapter: "Prozess",
-    mandatory: true,
     mandatoryAccreditation: true,
     shouldAccreditation: false,
     mandatoryRenewal: true,
@@ -143,13 +142,16 @@ describe("getDashboard", () => {
     expect(dashA.readiness.basisValidated).toBe(false);
     expect(dashA.actions[0]).toMatchObject({ criterionNumber: "7.3.10", priority: "critical" });
     expect(dashA.deadlines.map((d) => d.label)).toEqual(["Antrag", "Ablauf"]);
-    expect(dashA.monthsToExpiry).toBe(20);
+    expect(dashA.expiry).toEqual({ kind: "months", months: 20 });
+    expect(dashA.overdueCount).toBe(0);
     expect(dashA.soonCount).toBe(1);
 
     const dashB = await getDashboard(ctxB, NOW);
     expect(dashB.readiness.status).toBe("not_assessed");
     expect(dashB.deadlines).toEqual([]);
-    expect(dashB.monthsToExpiry).toBeNull();
+    expect(dashB.expiry).toBeNull();
+    expect(dashB.overdueCount).toBe(0);
+    expect(dashB.actions).toHaveLength(4);
     expect(dashB.actions.every((i) => i.source === "criterion" && i.priority === "medium")).toBe(true);
   });
 
@@ -168,5 +170,44 @@ describe("getDashboard", () => {
     const dash = await getDashboard(ctx, NOW);
     expect(dash.readiness.progressPercent).toBe(75);
     expect(dash.readiness.status).toBe("critical");
+    expect(dash.actions[0]).toMatchObject({ priority: "critical", criterionNumber: "7.3.8", source: "criterion" });
+  });
+
+  it("reports an expired expiry deadline without changing the readiness status", async () => {
+    const crits = await seedCatalog();
+    const a = await makeOrg("dash-e");
+    const ctx = ctxFor(a.org.id, a.user.id, "owner");
+    for (const c of crits) await setAssessmentStatus(ctx, c.id, "met");
+    await db.insert(deadline).values([
+      { organizationId: a.org.id, kind: "expiry", label: "Alt", dueDate: "2025-01-01" },
+      { organizationId: a.org.id, kind: "expiry", label: "Abgelaufen", dueDate: "2026-09-27" },
+    ]);
+    const dash = await getDashboard(ctx, NOW);
+    expect(dash.expiry).toEqual({ kind: "expired", days: 10 });
+    expect(dash.overdueCount).toBe(2);
+    expect(dash.readiness.status).toBe("ready");
+  });
+
+  it("prefers the nearest future expiry over a past one", async () => {
+    await seedCatalog();
+    const a = await makeOrg("dash-f");
+    const ctx = ctxFor(a.org.id, a.user.id, "owner");
+    await db.insert(deadline).values([
+      { organizationId: a.org.id, kind: "expiry", label: "Vorher", dueDate: "2026-09-01" },
+      { organizationId: a.org.id, kind: "expiry", label: "Spät", dueDate: "2028-06-30" },
+      { organizationId: a.org.id, kind: "expiry", label: "Früher", dueDate: "2027-10-07" },
+    ]);
+    const dash = await getDashboard(ctx, NOW);
+    expect(dash.expiry).toEqual({ kind: "months", months: 12 });
+  });
+
+  it("lets the catalog order decide between equal priority and equal due date", async () => {
+    const crits = await seedCatalog();
+    const a = await makeOrg("dash-g");
+    const ctx = ctxFor(a.org.id, a.user.id, "owner");
+    await setAssessmentStatus(ctx, crits[3].id, "critical");
+    await setAssessmentStatus(ctx, crits[1].id, "critical");
+    const dash = await getDashboard(ctx, NOW);
+    expect(dash.actions.slice(0, 2).map((i) => i.criterionNumber)).toEqual(["6.1", "7.3.8"]);
   });
 });

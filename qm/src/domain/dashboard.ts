@@ -106,18 +106,32 @@ export function chapterProgress(criteria: readonly AssessmentRow[], mode: Proced
   }));
 }
 
+export type ExpiryInfo = { kind: "months"; months: number } | { kind: "expired"; days: number };
+
+/** Nächster künftiger Ablauftermin, sonst der jüngste abgelaufene, sonst null. */
+export function expiryOf(deadlines: readonly DeadlineView[], now: Date): ExpiryInfo | null {
+  const expiries = deadlines.filter((d) => d.kind === "expiry");
+  const upcoming = expiries.filter((d) => d.days >= 0).sort((a, b) => a.dueDate.localeCompare(b.dueDate))[0];
+  if (upcoming) return { kind: "months", months: monthsUntil(upcoming.dueDate, now) };
+  const past = expiries.filter((d) => d.days < 0).sort((a, b) => b.dueDate.localeCompare(a.dueDate))[0];
+  return past ? { kind: "expired", days: -past.days } : null;
+}
+
 export type DashboardData = {
   readiness: ReadinessResult;
   actions: ActionItem[];
   deadlines: DeadlineView[];
   chapters: ChapterProgress[];
-  monthsToExpiry: number | null;
+  expiry: ExpiryInfo | null;
+  /** Fristen mit days < 0. */
+  overdueCount: number;
+  /** Punkte im Action Center, die innerhalb von SOON_DAYS fällig oder bereits überfällig sind. */
   soonCount: number;
 };
 
 export async function getDashboard(
   ctx: OrgContext,
-  now: Date = new Date(),
+  now: Date,
   mode: ProcedureMode = DEFAULT_PROCEDURE,
 ): Promise<DashboardData> {
   assertCan(ctx, "assessment", "read");
@@ -131,13 +145,13 @@ export async function getDashboard(
   ]);
   const basisValidated = versions[0]?.status === "validated";
   const actions = buildActionItems(criteria, deadlines, mode, now);
-  const expiry = deadlines.find((d) => d.kind === "expiry" && d.days >= 0);
   return {
     readiness: computeReadiness(criteria, mode, basisValidated),
     actions,
     deadlines,
     chapters: chapterProgress(criteria, mode),
-    monthsToExpiry: expiry ? monthsUntil(expiry.dueDate, now) : null,
+    expiry: expiryOf(deadlines, now),
+    overdueCount: deadlines.filter((d) => d.days < 0).length,
     soonCount: actions.filter((a) => a.dueInDays !== null && a.dueInDays <= SOON_DAYS).length,
   };
 }

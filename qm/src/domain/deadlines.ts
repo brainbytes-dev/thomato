@@ -13,7 +13,7 @@ export type DeadlineView = {
   urgency: DeadlineUrgency;
 };
 
-export async function listDeadlines(ctx: OrgContext, now: Date = new Date()): Promise<DeadlineView[]> {
+export async function listDeadlines(ctx: OrgContext, now: Date): Promise<DeadlineView[]> {
   assertCan(ctx, "deadline", "read");
   const rows = await db
     .select()

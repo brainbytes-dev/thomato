@@ -14,7 +14,6 @@ export type AssessmentRow = {
   number: string;
   title: string;
   chapter: string;
-  mandatory: boolean;
   mandatoryAccreditation: boolean;
   shouldAccreditation: boolean;
   mandatoryRenewal: boolean;
@@ -32,7 +31,6 @@ export async function listAssessments(ctx: OrgContext): Promise<AssessmentRow[]>
       number: criterion.number,
       title: criterion.title,
       chapter: criterion.chapter,
-      mandatory: criterion.mandatoryAccreditation,
       mandatoryAccreditation: criterion.mandatoryAccreditation,
       shouldAccreditation: criterion.shouldAccreditation,
       mandatoryRenewal: criterion.mandatoryRenewal,

@@ -48,3 +48,11 @@ export function formatDate(iso: string): string {
   const [y, m, d] = iso.split("-");
   return `${d}.${m}.${y}`;
 }
+
+export function formatMonths(n: number): string {
+  return n === 1 ? "1 Monat" : `${n} Monate`;
+}
+
+export function formatDays(n: number): string {
+  return n === 1 ? "1 Tag" : `${n} Tage`;
+}

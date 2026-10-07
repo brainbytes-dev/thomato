@@ -5,7 +5,8 @@ import { db } from "@/db";
 import { member, organization, user } from "@/db/schema";
 import { listAssessments } from "@/domain/assessments";
 import { listAuditEvents } from "@/domain/audit";
-import { getDashboard } from "@/domain/dashboard";
+import { DEFAULT_PROCEDURE, getDashboard } from "@/domain/dashboard";
+import { scopeOf } from "@/domain/readiness";
 import { resetDb } from "@/test/helpers";
 import { seedDemo } from "./demo";
 
@@ -31,7 +32,7 @@ describe("seedDemo", () => {
     const owner = (await db.select().from(member)).find((m) => m.role === "owner");
     const ctx = { organizationId: org.id, userId: owner!.userId, role: "owner" as const };
     const rows = await listAssessments(ctx);
-    expect(rows.some((r) => r.status === "critical" && r.mandatory)).toBe(true);
+    expect(rows.some((r) => r.status === "critical" && scopeOf(r, DEFAULT_PROCEDURE).mandatory)).toBe(true);
     expect(rows.some((r) => r.status === "not_assessed")).toBe(true);
     expect((await listAuditEvents(ctx)).length).toBeGreaterThan(0);
   });
@@ -62,7 +63,8 @@ describe("seedDemo dashboard story", () => {
     const critical = dash.actions.filter((a) => a.priority === "critical" && a.source === "criterion");
     expect(critical.map((a) => a.criterionNumber).sort()).toEqual(["6.3.2", "7.3.10"]);
     expect(critical.every((a) => a.dueInDays !== null && a.dueInDays > 0)).toBe(true);
-    expect(dash.monthsToExpiry).toBeGreaterThan(12);
+    expect(dash.expiry?.kind).toBe("months");
+    expect(dash.expiry?.kind === "months" && dash.expiry.months).toBeGreaterThan(12);
     expect(dash.chapters.map((c) => c.chapter)).toContain("Ergebnis");
   });
 });
