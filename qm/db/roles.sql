@@ -11,12 +11,26 @@
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'qm_app') THEN
-    CREATE ROLE qm_app LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT;
+    CREATE ROLE qm_app LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION NOBYPASSRLS CONNECTION LIMIT 20;
   END IF;
 END
 $$;
 
-ALTER ROLE qm_app LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION NOBYPASSRLS;
+-- Kein attributändernder ALTER ROLE (NOSUPERUSER usw. verlangt SUPERUSER, z. B. auf Neon nicht verfügbar).
+-- Stattdessen wird geprüft und abgebrochen, falls eine bereits vorhandene Rolle zu mächtig ist.
+ALTER ROLE qm_app CONNECTION LIMIT 20;
+
+DO $$
+DECLARE
+  r pg_roles%ROWTYPE;
+BEGIN
+  SELECT * INTO r FROM pg_roles WHERE rolname = 'qm_app';
+  IF r.rolsuper OR r.rolbypassrls OR r.rolreplication OR r.rolcreatedb OR r.rolcreaterole THEN
+    RAISE EXCEPTION 'Rolle qm_app hat unzulässige Attribute (superuser=%, bypassrls=%, replication=%, createdb=%, createrole=%): bitte Rolle prüfen und korrigieren',
+      r.rolsuper, r.rolbypassrls, r.rolreplication, r.rolcreatedb, r.rolcreaterole;
+  END IF;
+END
+$$;
 
 GRANT USAGE ON SCHEMA public TO qm_app;
 REVOKE CREATE ON SCHEMA public FROM qm_app;

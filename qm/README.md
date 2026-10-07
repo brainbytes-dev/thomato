@@ -59,6 +59,10 @@ Rolle anlegen oder aktualisieren (idempotent, Passwort nur aus der Umgebung, nie
 DATABASE_URL_DIRECT=<owner-direct-url> QM_APP_PASSWORD=<passwort> pnpm db:roles
 ```
 
+`db:roles` liest beide Werte **ausschliesslich aus der Prozessumgebung** (kein `.env`), bricht ab, wenn die URL einen Pooler (`-pooler`) oder den Benutzer `qm_app` enthält, und gibt vor dem Lauf Host und Datenbankname aus (nie das Passwort). Das Passwort geht nicht im Klartext an den Server: das Skript berechnet den SCRAM-SHA-256-Verifier lokal, damit nichts in Server-Logs landet. `roles.sql` braucht keine Superuser-Rechte (läuft mit `CREATEROLE`, wie `neondb_owner`); eine bereits vorhandene, zu mächtige Rolle `qm_app` (Superuser, CREATEDB, CREATEROLE, REPLICATION, BYPASSRLS) lässt den Lauf abbrechen statt still zu überschreiben.
+
+**Produktionsablauf nach jeder Schemaänderung:** `DATABASE_URL_DIRECT=<owner-direct-url> QM_APP_PASSWORD=<passwort> pnpm db:deploy` (= `pnpm db:migrate && pnpm db:roles`).
+
 Regeln:
 
 - **Nach jeder Migration `pnpm db:roles` ausführen.** Die Rechte (inklusive der Ausnahmen) werden dabei jedes Mal neu erzwungen.

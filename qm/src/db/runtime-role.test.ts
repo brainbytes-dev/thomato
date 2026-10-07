@@ -87,10 +87,15 @@ describe("qm_app runtime role", () => {
   it("connects as qm_app and is neither superuser nor owner of any table (g)", async () => {
     const who = await app.query<{ current_user: string }>(`SELECT current_user`);
     expect(who.rows[0].current_user).toBe("qm_app");
-    const attrs = await owner.query<{ rolsuper: boolean; rolcreatedb: boolean; rolcreaterole: boolean; rolcanlogin: boolean }>(
-      `SELECT rolsuper, rolcreatedb, rolcreaterole, rolcanlogin FROM pg_roles WHERE rolname = 'qm_app'`,
+    const attrs = await owner.query(
+      `SELECT rolsuper, rolcreatedb, rolcreaterole, rolcanlogin, rolbypassrls, rolreplication, rolinherit, rolconnlimit
+       FROM pg_roles WHERE rolname = 'qm_app'`,
     );
-    expect(attrs.rows[0]).toEqual({ rolsuper: false, rolcreatedb: false, rolcreaterole: false, rolcanlogin: true });
+    // rolinherit ist bewusst false (NOINHERIT): qm_app erbt keine Rechte aus Gruppenrollen und besitzt auch keine.
+    expect(attrs.rows[0]).toEqual({
+      rolsuper: false, rolcreatedb: false, rolcreaterole: false, rolcanlogin: true,
+      rolbypassrls: false, rolreplication: false, rolinherit: false, rolconnlimit: 20,
+    });
     const owned = await owner.query(`SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tableowner = 'qm_app'`);
     expect(owned.rows).toEqual([]);
   });
