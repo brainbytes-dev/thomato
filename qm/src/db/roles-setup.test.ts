@@ -79,7 +79,7 @@ describe("roles.sql without superuser", () => {
     );
     expect(r.rows[0]).toEqual({
       rolsuper: false, rolbypassrls: false, rolreplication: false, rolcreatedb: false, rolcreaterole: false,
-      rolcanlogin: true, rolconnlimit: 20,
+      rolcanlogin: true, rolconnlimit: 50,
     });
     // Ausnahmen wurden erzwungen
     const priv = await adminProbe.query<{ p: string }>(

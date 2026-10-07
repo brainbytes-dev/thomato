@@ -94,7 +94,7 @@ describe("qm_app runtime role", () => {
     // rolinherit ist bewusst false (NOINHERIT): qm_app erbt keine Rechte aus Gruppenrollen und besitzt auch keine.
     expect(attrs.rows[0]).toEqual({
       rolsuper: false, rolcreatedb: false, rolcreaterole: false, rolcanlogin: true,
-      rolbypassrls: false, rolreplication: false, rolinherit: false, rolconnlimit: 20,
+      rolbypassrls: false, rolreplication: false, rolinherit: false, rolconnlimit: 50,
     });
     const owned = await owner.query(`SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tableowner = 'qm_app'`);
     expect(owned.rows).toEqual([]);
