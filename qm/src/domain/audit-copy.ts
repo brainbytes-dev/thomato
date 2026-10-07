@@ -39,6 +39,22 @@ function asDoc(v: unknown): DocPayload | null {
   };
 }
 
+const MEASURE_STATUS_WORD: Record<string, string> = { open: "Offen", in_progress: "In Bearbeitung", done: "Erledigt" };
+
+type MeasurePayload = { title: string; ownerName: string | null; dueDate: string | null; status: string | null };
+
+function asMeasure(v: unknown): MeasurePayload | null {
+  if (typeof v !== "object" || v === null) return null;
+  const o = v as Record<string, unknown>;
+  if (typeof o.title !== "string") return null;
+  return {
+    title: o.title,
+    ownerName: typeof o.ownerName === "string" ? o.ownerName : null,
+    dueDate: typeof o.dueDate === "string" ? o.dueDate : null,
+    status: typeof o.status === "string" ? o.status : null,
+  };
+}
+
 const word = (s: string) => STATUS_WORD[s] ?? s;
 
 /** Menschenlesbare Beschreibung eines Audit-Events zu einem Kriterium. Unbekanntes fällt auf den Eventtyp zurück. */
@@ -81,6 +97,33 @@ export function describeAuditEvent(e: { eventType: string; before: unknown; afte
   if (e.eventType === "evidence.unlinked") {
     const b = asDoc(e.before);
     return b ? `Nachweis «${b.title}» gelöst` : e.eventType;
+  }
+  if (e.eventType === "measure.created") {
+    const a = asMeasure(e.after);
+    if (!a || a.ownerName === null || a.dueDate === null) return e.eventType;
+    return `Massnahme «${a.title}» angelegt (verantwortlich: ${a.ownerName}, Frist ${formatDate(a.dueDate)})`;
+  }
+  if (e.eventType === "measure.status_changed") {
+    const b = asMeasure(e.before);
+    const a = asMeasure(e.after);
+    if (!b || !a || b.status === null || a.status === null) return e.eventType;
+    const w = (s: string) => MEASURE_STATUS_WORD[s] ?? s;
+    return `Massnahme «${a.title}»: Status von «${w(b.status)}» zu «${w(a.status)}»`;
+  }
+  if (e.eventType === "measure.updated") {
+    const b = asMeasure(e.before);
+    const a = asMeasure(e.after);
+    if (!b || !a) return e.eventType;
+    const changes: string[] = [];
+    if (b.ownerName !== a.ownerName && b.ownerName !== null && a.ownerName !== null) {
+      changes.push(`verantwortlich: ${b.ownerName} zu ${a.ownerName}`);
+    }
+    if (b.dueDate !== a.dueDate && b.dueDate !== null && a.dueDate !== null) {
+      changes.push(`Frist ${formatDate(b.dueDate)} zu ${formatDate(a.dueDate)}`);
+    }
+    if (b.title !== a.title) changes.unshift(`früherer Titel: «${b.title}»`);
+    const head = `Massnahme «${a.title}» geändert`;
+    return changes.length > 0 ? `${head} (${changes.join(", ")})` : head;
   }
   return e.eventType;
 }

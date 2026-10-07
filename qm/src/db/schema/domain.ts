@@ -204,3 +204,43 @@ export const evidenceLink = pgTable(
     index("evidence_link_org_criterion_idx").on(t.organizationId, t.criterionNumber),
   ],
 );
+
+export const MEASURE_STATUSES = ["open", "in_progress", "done"] as const;
+export type MeasureStatus = (typeof MEASURE_STATUSES)[number];
+
+export const measure = pgTable(
+  "measure",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id),
+    standardVersionId: text("standard_version_id").notNull(),
+    criterionNumber: text("criterion_number").notNull(),
+    title: text("title").notNull(),
+    description: text("description"),
+    ownerUserId: text("owner_user_id")
+      .notNull()
+      .references(() => user.id),
+    dueDate: date("due_date").notNull(),
+    status: text("status", { enum: MEASURE_STATUSES }).notNull().default("open"),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    createdBy: text("created_by").references(() => user.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    foreignKey({
+      name: "measure_criterion_fk",
+      columns: [t.standardVersionId, t.criterionNumber],
+      foreignColumns: [criterion.standardVersionId, criterion.number],
+    }),
+    check("measure_status_check", sql`${t.status} in ('open', 'in_progress', 'done')`),
+    check(
+      "measure_status_completed_check",
+      sql`(${t.status} = 'done' AND ${t.completedAt} IS NOT NULL) OR (${t.status} <> 'done' AND ${t.completedAt} IS NULL)`,
+    ),
+    index("measure_org_criterion_idx").on(t.organizationId, t.criterionNumber),
+    index("measure_org_due_idx").on(t.organizationId, t.dueDate),
+  ],
+);

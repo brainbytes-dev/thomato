@@ -7,6 +7,7 @@ import type { Role } from "@/domain/rights";
 import { assertResetAllowed } from "@/seed/reset-guard";
 
 const TABLES = [
+  "measure",
   "evidence_link",
   "document_version",
   "document",

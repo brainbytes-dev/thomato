@@ -30,6 +30,16 @@ describe("describeAuditEvent", () => {
     expect(describeAuditEvent({ eventType: "criterion.due_date_changed", before: { dueDate: "2026-11-15" }, after: { dueDate: "2026-12-01" } })).toBe("Frist von 15.11.2026 zu 01.12.2026");
     expect(describeAuditEvent({ eventType: "criterion.due_date_changed", before: { dueDate: "2026-11-15" }, after: { dueDate: null } })).toBe("Frist entfernt (war 15.11.2026)");
   });
+  it("describes measure events", () => {
+    const base = { title: "Hygieneschulung planen", criterionNumbers: ["7.3.10"] };
+    expect(describeAuditEvent({ eventType: "measure.created", before: null, after: { ...base, ownerName: "Demo editor", dueDate: "2026-11-15", status: "open" } }))
+      .toBe("Massnahme «Hygieneschulung planen» angelegt (verantwortlich: Demo editor, Frist 15.11.2026)");
+    expect(describeAuditEvent({ eventType: "measure.status_changed", before: { ...base, status: "open", completedAt: null }, after: { ...base, status: "done", completedAt: "2026-10-08T10:00:00.000Z" } }))
+      .toBe("Massnahme «Hygieneschulung planen»: Status von «Offen» zu «Erledigt»");
+    expect(describeAuditEvent({ eventType: "measure.updated", before: { ...base, ownerName: "A", dueDate: "2026-11-15", description: null }, after: { ...base, ownerName: "B", dueDate: "2026-12-01", description: null } }))
+      .toBe("Massnahme «Hygieneschulung planen» geändert (verantwortlich: A zu B, Frist 15.11.2026 zu 01.12.2026)");
+    expect(describeAuditEvent({ eventType: "measure.status_changed", before: 1, after: null })).toBe("measure.status_changed");
+  });
   it("falls back to the event type for unknown or malformed events", () => {
     expect(describeAuditEvent({ eventType: "x.y", before: null, after: null })).toBe("x.y");
     expect(describeAuditEvent({ eventType: "criterion.status_changed", before: 5, after: "kaputt" })).toBe("criterion.status_changed");
