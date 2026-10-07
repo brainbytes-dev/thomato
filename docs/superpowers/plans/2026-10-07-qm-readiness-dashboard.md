@@ -14,7 +14,7 @@
 
 - Alle Constraints aus Plan 1 gelten weiter (pnpm, kein `any`, kein `db:push`, `organization_id NOT NULL` auf mandantenabhängigen Tabellen, Rollen exakt `owner`, `qm_admin`, `reviewer`, `editor`, `viewer`, Rechte nur aus `src/domain/rights.ts`, kein Produktnamen-Literal ausser `src/brand.ts`, Farben nur über Tokens in `globals.css`, keine Em-Dashes, Conventional Commits, kein `git push` ohne Freigabe von Henrik).
 - **Readiness-Regel (verbindlich, testbar):** Im Geltungsbereich eines Verfahrens (`accreditation` oder `renewal`) liegen Kriterien, die in diesem Verfahren Muss oder Soll sind; alle anderen werden ignoriert. Kriterien mit Status `not_applicable` fallen aus Zähler und Nenner. Status: `not_assessed` wenn nichts anwendbar ist oder alle anwendbaren Kriterien `not_assessed` sind; sonst `critical` wenn mindestens ein Muss-Kriterium `critical` ist; sonst `action_needed` wenn mindestens ein Muss-Kriterium nicht `met` ist oder ein Soll-Kriterium `critical` ist; sonst `ready`.
-- **Fortschritt** = erfüllte / anwendbare Kriterien im Geltungsbereich, gerundet auf ganze Prozent, `null` wenn nichts anwendbar ist. Fortschritt beeinflusst den Status nie.
+- **Fortschritt** = erfüllte / anwendbare Kriterien im Geltungsbereich, auf ganze Prozent ABGERUNDET (`percentOf`, Ruling R16: 100 % nur wenn alles Anwendbare erfüllt ist), `null` wenn nichts anwendbar ist. Fortschritt beeinflusst den Status nie.
 - Solange die aktive Standardversion `draft_extracted` ist, trägt das Ergebnis `basisValidated: false`, und die UI zeigt unter dem Readiness-Status: «Interne Arbeitsbewertung auf Basis eines nicht validierten Katalogs (Entwurf). Keine Entscheidung des IVR.»
 - Vorgabe Henrik 2026-10-07: Audit-Log darf nur `owner` und `qm_admin` lesen. `viewer`, `editor` und `reviewer` nicht.
 - Fristen sind Datumswerte (`date`), «heute» wird in `Europe/Zurich` bestimmt. Der Dienst nimmt `now: Date` als Parameter, kein verstecktes `new Date()` in der Fachlogik.
@@ -846,7 +846,7 @@ import { listAssessments, type AssessmentRow } from "./assessments";
 import { daysUntil, monthsUntil, SOON_DAYS } from "./dates";
 import { listDeadlines, type DeadlineView } from "./deadlines";
 import { assertCan, type OrgContext } from "./org-context";
-import { computeReadiness, scopeOf, type ProcedureMode, type ReadinessResult } from "./readiness";
+import { computeReadiness, percentOf, scopeOf, type ProcedureMode, type ReadinessResult } from "./readiness";
 
 export const DEFAULT_PROCEDURE: ProcedureMode = "accreditation";
 export const ACTION_CENTER_LIMIT = 10;
@@ -943,7 +943,7 @@ export function chapterProgress(criteria: readonly AssessmentRow[], mode: Proced
     chapter,
     met: e.met,
     applicable: e.applicable,
-    percent: e.applicable === 0 ? null : Math.round((e.met / e.applicable) * 100),
+    percent: percentOf(e.met, e.applicable),
   }));
 }
 
