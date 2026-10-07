@@ -1,16 +1,15 @@
-import { and, eq, sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { auth } from "@/auth/auth";
 import { db } from "@/db";
 import {
   ACTIVE_STANDARD_VERSION,
   criterion,
-  criterionAssessment,
   deadline,
   member,
   organization,
 } from "@/db/schema";
 import type { AssessmentStatus } from "@/db/schema";
-import { setAssessmentStatus } from "@/domain/assessments";
+import { setAssessmentDueDate, setAssessmentStatus } from "@/domain/assessments";
 import { importCatalog } from "@/domain/catalog";
 import { addDays, zurichDate } from "@/domain/dates";
 import { ROLES, type Role } from "@/domain/rights";
@@ -100,10 +99,7 @@ export async function seedDemo(input: { catalog: unknown; now?: Date }) {
     if (!status) continue;
     await setAssessmentStatus(ctx, c.id, status, { reason: o?.reason });
     if (o?.dueInDays !== undefined) {
-      await db
-        .update(criterionAssessment)
-        .set({ dueDate: addDays(today, o.dueInDays) })
-        .where(and(eq(criterionAssessment.organizationId, org.id), eq(criterionAssessment.criterionId, c.id)));
+      await setAssessmentDueDate(ctx, c.id, addDays(today, o.dueInDays));
     }
   }
   await db.insert(deadline).values([

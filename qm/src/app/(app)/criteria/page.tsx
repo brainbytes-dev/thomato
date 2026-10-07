@@ -67,7 +67,7 @@ async function CriteriaTable({ searchParams }: { searchParams: SearchParams }) {
                 <tr key={r.criterionId} className="border-t border-border align-top">
                   <td className="whitespace-nowrap px-3 py-2 font-mono">
                     <Link
-                      href={`/criteria/${r.number}`}
+                      href={`/criteria/${encodeURIComponent(r.number)}`}
                       className="text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                     >
                       {r.number}

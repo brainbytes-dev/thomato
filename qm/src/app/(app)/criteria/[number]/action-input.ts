@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { ASSESSMENT_STATUSES } from "@/db/schema";
-import { isValidIsoDate } from "@/domain/assessments";
+import { isValidIsoDate } from "@/domain/dates";
 
 export const assessmentInput = z.object({
   number: z.string().min(1).max(40),
