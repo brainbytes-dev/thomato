@@ -34,6 +34,7 @@ const OVERRIDES: Record<string, { status: AssessmentStatus; dueInDays?: number; 
   "7.3.8": { status: "open", dueInDays: 40 },
   "7.3.2": { status: "open" },
   "7.9": { status: "not_applicable", reason: "Der Rettungsdienst betreibt keinen Rettungshelikopter (Demo-Angabe)." },
+  "6.10": { status: "not_applicable", reason: "Notärzte werden vom Spital gestellt, der Rettungsdienst delegiert keine Notarzt-Tätigkeiten (Demo-Angabe)." },
   "8.1": { status: "open" },
 };
 

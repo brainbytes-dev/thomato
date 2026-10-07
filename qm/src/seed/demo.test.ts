@@ -66,5 +66,9 @@ describe("seedDemo dashboard story", () => {
     expect(dash.expiry?.kind).toBe("months");
     expect(dash.expiry?.kind === "months" && dash.expiry.months).toBeGreaterThan(12);
     expect(dash.chapters.map((c) => c.chapter)).toContain("Ergebnis");
+    expect(dash.readiness.mandatory.notApplicable).toBe(2);
+    const na = (await listAssessments(ctx)).filter((r) => r.status === "not_applicable");
+    expect(na.map((r) => r.number).sort()).toEqual(["6.10", "7.9"]);
+    expect(na.every((r) => (r.notApplicableReason ?? "").length >= 10)).toBe(true);
   });
 });
