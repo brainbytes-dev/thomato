@@ -15,6 +15,10 @@ export type AssessmentRow = {
   title: string;
   chapter: string;
   mandatory: boolean;
+  mandatoryAccreditation: boolean;
+  shouldAccreditation: boolean;
+  mandatoryRenewal: boolean;
+  shouldRenewal: boolean;
   status: AssessmentStatus;
   dueDate: string | null;
 };
@@ -29,6 +33,10 @@ export async function listAssessments(ctx: OrgContext): Promise<AssessmentRow[]>
       title: criterion.title,
       chapter: criterion.chapter,
       mandatory: criterion.mandatoryAccreditation,
+      mandatoryAccreditation: criterion.mandatoryAccreditation,
+      shouldAccreditation: criterion.shouldAccreditation,
+      mandatoryRenewal: criterion.mandatoryRenewal,
+      shouldRenewal: criterion.shouldRenewal,
       status: criterionAssessment.status,
       dueDate: criterionAssessment.dueDate,
     })
