@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { auth } from "@/auth/auth";
+import { seedAuth } from "@/auth/seed-auth";
 import { ACTIVE_STANDARD_VERSION, auditEvent, criterionAssessment, member, measure } from "@/db/schema";
 import { importCatalog } from "./catalog";
 import { listAuditEvents } from "./audit";
@@ -327,7 +327,7 @@ describe("real Better Auth users", () => {
   beforeEach(resetDb);
 
   async function realMember(orgId: string, email: string) {
-    const { user } = await auth.api.signUpEmail({ body: { email, password: "correct-horse-battery-1", name: "Echte Person" } });
+    const { user } = await seedAuth.api.signUpEmail({ body: { email, password: "correct-horse-battery-1", name: "Echte Person" } });
     await db.insert(member).values({ id: randomUUID(), organizationId: orgId, userId: user.id, role: "editor", createdAt: new Date() });
     return user;
   }

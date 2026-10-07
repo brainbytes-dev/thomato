@@ -3,12 +3,13 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { member, organization, session } from "@/db/schema";
 import { auth } from "./auth";
+import { seedAuth } from "./seed-auth";
 import { authId, resetDb } from "@/test/helpers";
 
 const PASSWORD = "correct-horse-battery-1";
 
 async function signUp(email: string) {
-  const { user } = await auth.api.signUpEmail({ body: { email, password: PASSWORD, name: "T" } });
+  const { user } = await seedAuth.api.signUpEmail({ body: { email, password: PASSWORD, name: "T" } });
   return user;
 }
 

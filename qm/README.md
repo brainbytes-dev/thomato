@@ -41,6 +41,10 @@ Migrationen laufen manuell, nicht im Build, und gegen die Direct-URL:
 DATABASE_URL_DIRECT=<direct-url> pnpm db:migrate
 ```
 
+### Registrierung
+
+Die öffentliche Registrierung ist im Code abgeschaltet (`disableSignUp: true` in `src/auth/auth.ts`), es gibt keinen Env-Schalter. `POST /api/auth/sign-up/email` antwortet mit 400, `POST /api/auth/organization/create` mit 403. Nutzer und Organisationen legt nur der Betreiber an: Seed-Nutzer entstehen über die Seed-Instanz in `src/auth/seed-auth.ts` (gleiche Datenbank und gleiches Secret). Diese Datei importieren ausschliesslich Seed, Skripte und Tests; ein Guard-Test (`src/auth/registration.test.ts`) erzwingt das, damit sie nicht im Produktions-Bundle landet.
+
 ### Audit-Trigger vor Produktion
 
 `audit_event` ist per Trigger append-only. Eine DB-Rolle mit `ALTER`- oder `DISABLE TRIGGER`-Rechten kann ihn aushebeln. Vor dem Produktivbetrieb:

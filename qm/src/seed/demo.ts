@@ -1,5 +1,5 @@
 import { eq, sql } from "drizzle-orm";
-import { auth } from "@/auth/auth";
+import { seedAuth } from "@/auth/seed-auth";
 import { db } from "@/db";
 import {
   ACTIVE_STANDARD_VERSION,
@@ -75,7 +75,7 @@ export async function seedDemo(input: { catalog: unknown; now?: Date }) {
   const ids = {} as Record<Role, string>;
   for (const role of ROLES) {
     const email = `${role.replace("_", "-")}@demo.qm.test`;
-    const { user } = await auth.api.signUpEmail({
+    const { user } = await seedAuth.api.signUpEmail({
       body: { email, password: DEMO_PASSWORD, name: `Demo ${role}` },
     });
     users[role] = { email, password: DEMO_PASSWORD };

@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { auth } from "./auth";
+import { seedAuth } from "./seed-auth";
 import { resetDb } from "@/test/helpers";
 
 describe("auth", () => {
@@ -11,7 +12,7 @@ describe("auth", () => {
   });
 
   it("signs up a user and creates an organization with owner membership", async () => {
-    const { user } = await auth.api.signUpEmail({
+    const { user } = await seedAuth.api.signUpEmail({
       body: { email: "a@example.test", password: "correct-horse-battery-1", name: "A" },
     });
     const org = await auth.api.createOrganization({
