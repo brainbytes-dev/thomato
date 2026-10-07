@@ -127,7 +127,8 @@ describe("audit event order", () => {
     expect(history.map((h) => h.eventType)).toEqual(["evidence.linked", "document.created"]);
     const events = await listAuditEvents(ctxA);
     expect(events.map((e) => e.eventType)).toEqual(["evidence.linked", "document.created"]);
-    expect(history[0].createdAt.getTime()).toBeGreaterThan(history[1].createdAt.getTime());
+    // JS-Dates haben Millisekunden-Auflösung, Gleichstand ist möglich; die Reihenfolge selbst ist oben über die DB-Sortierung (Mikrosekunden) belegt.
+    expect(history[0].createdAt.getTime()).toBeGreaterThanOrEqual(history[1].createdAt.getTime());
   });
 });
 
