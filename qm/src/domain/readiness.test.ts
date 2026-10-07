@@ -90,9 +90,29 @@ describe("readinessSummary", () => {
     const openMany = computeReadiness([crit("open"), crit("not_assessed"), crit("met")], "accreditation", false);
     expect(readinessSummary(openMany)).toBe("2 Pflichtkriterien sind noch offen oder nicht bewertet.");
     expect(readinessSummary(computeReadiness([crit("met")], "accreditation", false))).toBe("Alle Pflichtkriterien sind erfüllt.");
-    expect(readinessSummary(computeReadiness([], "accreditation", false))).toBe("Noch kein Kriterium bewertet.");
+    expect(readinessSummary(computeReadiness([], "accreditation", false))).toBe(
+      "Keine anwendbaren Kriterien im Geltungsbereich.",
+    );
+    expect(readinessSummary(computeReadiness([crit("not_applicable")], "accreditation", false))).toBe(
+      "Keine anwendbaren Kriterien im Geltungsbereich.",
+    );
+    expect(readinessSummary(computeReadiness([crit("not_assessed"), crit("not_assessed")], "accreditation", false))).toBe(
+      "Noch kein Kriterium bewertet.",
+    );
     const shouldOnly = computeReadiness([crit("met"), should("critical")], "accreditation", false);
     expect(readinessSummary(shouldOnly)).toBe("1 Soll-Kriterium ist kritisch.");
+    const openAndShould = computeReadiness([crit("met"), crit("open"), should("critical")], "accreditation", false);
+    expect(readinessSummary(openAndShould)).toBe(
+      "1 Pflichtkriterium ist noch offen oder nicht bewertet, zudem 1 Soll-Kriterium kritisch.",
+    );
+    const manyAndShould = computeReadiness(
+      [crit("open"), crit("not_assessed"), should("critical"), should("critical"), crit("met")],
+      "accreditation",
+      false,
+    );
+    expect(readinessSummary(manyAndShould)).toBe(
+      "2 Pflichtkriterien sind noch offen oder nicht bewertet, zudem 2 Soll-Kriterien kritisch.",
+    );
   });
 });
 

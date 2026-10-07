@@ -91,7 +91,11 @@ export function computeReadiness(
 }
 
 export function readinessSummary(r: ReadinessResult): string {
-  if (r.status === "not_assessed") return "Noch kein Kriterium bewertet.";
+  if (r.status === "not_assessed") {
+    return r.applicable === 0
+      ? "Keine anwendbaren Kriterien im Geltungsbereich."
+      : "Noch kein Kriterium bewertet.";
+  }
   if (r.status === "critical") {
     const n = r.mandatory.critical;
     return n === 1
@@ -101,9 +105,17 @@ export function readinessSummary(r: ReadinessResult): string {
   if (r.status === "action_needed") {
     const k = r.mandatory.open + r.mandatory.notAssessed;
     if (k > 0) {
-      return k === 1
-        ? "1 Pflichtkriterium ist noch offen oder nicht bewertet."
-        : `${k} Pflichtkriterien sind noch offen oder nicht bewertet.`;
+      const base =
+        k === 1
+          ? "1 Pflichtkriterium ist noch offen oder nicht bewertet"
+          : `${k} Pflichtkriterien sind noch offen oder nicht bewertet`;
+      const extra =
+        r.shouldCritical === 0
+          ? ""
+          : r.shouldCritical === 1
+            ? ", zudem 1 Soll-Kriterium kritisch"
+            : `, zudem ${r.shouldCritical} Soll-Kriterien kritisch`;
+      return `${base}${extra}.`;
     }
     return r.shouldCritical === 1
       ? "1 Soll-Kriterium ist kritisch."
