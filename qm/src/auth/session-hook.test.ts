@@ -1,10 +1,9 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
-import { randomUUID } from "node:crypto";
 import { db } from "@/db";
 import { member, organization, session } from "@/db/schema";
 import { auth } from "./auth";
-import { resetDb } from "@/test/helpers";
+import { authId, resetDb } from "@/test/helpers";
 
 const PASSWORD = "correct-horse-battery-1";
 
@@ -16,9 +15,9 @@ async function signUp(email: string) {
 async function addOrg(slug: string, userId: string, createdAt: Date) {
   const [org] = await db
     .insert(organization)
-    .values({ id: randomUUID(), name: `Org ${slug}`, slug, createdAt })
+    .values({ id: authId(), name: `Org ${slug}`, slug, createdAt })
     .returning();
-  await db.insert(member).values({ id: randomUUID(), organizationId: org.id, userId, role: "owner", createdAt });
+  await db.insert(member).values({ id: authId(), organizationId: org.id, userId, role: "owner", createdAt });
   return org;
 }
 

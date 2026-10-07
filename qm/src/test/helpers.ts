@@ -1,10 +1,23 @@
 import { sql } from "drizzle-orm";
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { db } from "@/db";
 import { organization, member, user } from "@/db/schema";
 import type { OrgContext } from "@/domain/org-context";
 import type { Role } from "@/domain/rights";
 import { assertResetAllowed } from "@/seed/reset-guard";
+
+const ALPHANUMERIC = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+/** Id im Stil von Better Auth: 32 Zeichen aus [A-Za-z0-9], keine UUID. Rejection Sampling vermeidet Modulo-Bias. */
+export function authId(): string {
+  let out = "";
+  while (out.length < 32) {
+    for (const byte of randomBytes(48)) {
+      if (byte < 248 && out.length < 32) out += ALPHANUMERIC[byte % 62];
+    }
+  }
+  return out;
+}
 
 const TABLES = [
   "measure",
@@ -40,7 +53,7 @@ export async function makeUser(label: string) {
   const [u] = await db
     .insert(user)
     .values({
-      id: randomUUID(),
+      id: authId(),
       name: label,
       email: `${label}-${randomUUID().slice(0, 8)}@example.test`,
       emailVerified: true,
@@ -53,11 +66,11 @@ export async function makeOrg(slug: string, role: Role = "owner") {
   const u = await makeUser(`user-${slug}`);
   const [org] = await db
     .insert(organization)
-    .values({ id: randomUUID(), name: `Org ${slug}`, slug, createdAt: new Date() })
+    .values({ id: authId(), name: `Org ${slug}`, slug, createdAt: new Date() })
     .returning();
   await db
     .insert(member)
-    .values({ id: randomUUID(), organizationId: org.id, userId: u.id, role, createdAt: new Date() });
+    .values({ id: authId(), organizationId: org.id, userId: u.id, role, createdAt: new Date() });
   return { org, user: u };
 }
 
@@ -65,7 +78,7 @@ export async function addMemberTo(orgId: string, label: string, role: Role) {
   const u = await makeUser(label);
   await db
     .insert(member)
-    .values({ id: randomUUID(), organizationId: orgId, userId: u.id, role, createdAt: new Date() });
+    .values({ id: authId(), organizationId: orgId, userId: u.id, role, createdAt: new Date() });
   return u;
 }
 
