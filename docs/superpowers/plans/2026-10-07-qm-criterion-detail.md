@@ -167,7 +167,7 @@ git add qm/ && git commit -m "feat(qm): never report ready without applicable ma
 ### Task 2: Begründungspflicht, Frist und Detail-Services mit Audit
 
 **Files:**
-- Modify: `qm/src/db/schema/domain.ts`, `qm/src/domain/org-context.ts`, `qm/src/domain/assessments.ts`, `qm/src/domain/dates.ts`, `qm/src/domain/dashboard.test.ts` (nur der Hilfsbau `row()` bekommt das neue Feld)
+- Modify: `qm/src/db/schema/domain.ts`, `qm/src/domain/org-context.ts`, `qm/src/domain/assessments.ts`, `qm/src/domain/dates.ts`, `qm/src/seed/demo.ts` (nur Begründung für 7.9), `qm/src/domain/dashboard.test.ts` (nur der Hilfsbau `row()` bekommt das neue Feld)
 - Create: `qm/drizzle/0004_*.sql` (generiert), `qm/src/domain/audit-copy.ts`
 - Test: `qm/src/domain/assessment-na.test.ts`, `qm/src/domain/assessment-detail.test.ts`, `qm/src/domain/audit-copy.test.ts`, `qm/src/domain/dates.test.ts` (Fall ergänzen)
 
@@ -717,7 +717,8 @@ export async function listCriterionHistory(ctx: OrgContext, assessmentId: string
 Hinweis: Wenn zwei Events im selben Millisekunden-Zeitstempel liegen (gleiche Transaktionszeit ist nicht möglich, aber schnelle Folgen), ordnet `desc(auditEvent.id)` nicht chronologisch. Reihenfolge-Tests laufen mit je einer Transaktion pro Aufruf, deren `now()` sich unterscheidet; falls ein Test flackert, ein zusätzliches `await new Promise((r) => setTimeout(r, 5))` zwischen den Aufrufen im Test einfügen, nicht die Fachlogik ändern.
 
 7. In `qm/src/domain/dashboard.test.ts` im Hilfsbau `row()` das Feld `notApplicableReason: null,` ergänzen (sonst Typfehler); keine Assertion ändern.
-8. Die Audit-Payload hat jetzt die Form `{ status, reason }` statt `{ status }`. Bestehende Tests, die `beforeJson`/`afterJson` mit `toEqual({ status: ... })` prüfen (u.a. in `qm/src/domain/tenancy.test.ts`), werden auf `{ status: ..., reason: null }` angepasst: gleiche Strenge, nur die neue Form. Keine Assertion entfällt oder wird lockerer.
+8. Seed-Minimalfix (damit die Suite grün bleibt): in `qm/src/seed/demo.ts` bekommt der Override `"7.9"` ein Feld `reason: "Der Rettungsdienst betreibt keinen Rettungshelikopter (Demo-Angabe)."` (Typ von `OVERRIDES` um `reason?: string` erweitern) und der Aufruf `setAssessmentStatus(ctx, c.id, status)` wird zu `setAssessmentStatus(ctx, c.id, status, { reason: o?.reason })`. Das zweite n/a-Kriterium und der Seed-Test folgen in Task 5.
+9. Die Audit-Payload hat jetzt die Form `{ status, reason }` statt `{ status }`. Bestehende Tests, die `beforeJson`/`afterJson` mit `toEqual({ status: ... })` prüfen (u.a. in `qm/src/domain/tenancy.test.ts`), werden auf `{ status: ..., reason: null }` angepasst: gleiche Strenge, nur die neue Form. Keine Assertion entfällt oder wird lockerer.
 
 - [ ] **Step 5: Tests, Typecheck, Commit**
 
@@ -1163,18 +1164,17 @@ An `qm/src/seed/demo.test.ts` im Dashboard-Story-Test ergänzen:
 (`listAssessments` aus `@/domain/assessments` importieren, falls noch nicht vorhanden.)
 
 Run: `pnpm test src/seed/demo.test.ts`
-Expected: FAIL (Seed setzt `not_applicable` ohne Begründung: wirft jetzt `ValidationError`).
+Expected: FAIL (nur 7.9 ist im Seed als nicht anwendbar markiert, 6.10 fehlt).
 
 - [ ] **Step 2: Seed anpassen**
 
-In `qm/src/seed/demo.ts` den Typ von `OVERRIDES` auf `{ status: AssessmentStatus; dueInDays?: number; reason?: string }` erweitern und setzen:
+In `qm/src/seed/demo.ts` (der Typ `reason?: string` und der Aufruf mit `{ reason: o?.reason }` existieren seit Task 2) das zweite n/a-Pflichtkriterium ergänzen; der Eintrag für 7.9 steht schon da:
 
 ```ts
   "7.9": { status: "not_applicable", reason: "Der Rettungsdienst betreibt keinen Rettungshelikopter (Demo-Angabe)." },
   "6.10": { status: "not_applicable", reason: "Notärzte werden vom Spital gestellt, der Rettungsdienst delegiert keine Notarzt-Tätigkeiten (Demo-Angabe)." },
 ```
 
-Den Aufruf `await setAssessmentStatus(ctx, c.id, status);` ersetzen durch `await setAssessmentStatus(ctx, c.id, status, { reason: o?.reason });`.
 
 - [ ] **Step 3: Tests, Seed gegen qm_dev, Commit**
 
