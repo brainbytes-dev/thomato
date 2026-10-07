@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { ACTIVE_STANDARD_VERSION, criterion, criterionAssessment } from "@/db/schema";
 import { getAssessmentByNumber, listCriterionHistory, setAssessmentStatus } from "./assessments";
 import { importCatalog } from "./catalog";
+import { createDocument } from "./documents";
 import { ForbiddenError } from "./org-context";
 import { addMemberTo, ctxFor, makeOrg, resetDb } from "@/test/helpers";
 
@@ -13,9 +14,10 @@ async function setup() {
     label: "Entwurf",
     rows: [
       { nummer: "7.3.10", titel: "Hygiene", kapitel: "Prozess", anerkennung_muss: true, anerkennung_soll: false, erneuerung_muss: true, erneuerung_soll: false, sortierung: 1 },
+      { nummer: "6.3.2", titel: "Dienstplan", kapitel: "Prozess", anerkennung_muss: true, anerkennung_soll: false, erneuerung_muss: true, erneuerung_soll: false, sortierung: 2 },
     ],
   });
-  const [c] = await db.select().from(criterion).where(eq(criterion.standardVersionId, ACTIVE_STANDARD_VERSION));
+  const [c] = await db.select().from(criterion).where(eq(criterion.number, "7.3.10"));
   const a = await makeOrg("det-a");
   const b = await makeOrg("det-b");
   return { c, a, b, ctxA: ctxFor(a.org.id, a.user.id, "owner"), ctxB: ctxFor(b.org.id, b.user.id, "owner") };
@@ -56,7 +58,7 @@ describe("listCriterionHistory", () => {
     await setAssessmentStatus(ctxA, c.id, "open");
     await setAssessmentStatus(ctxA, c.id, "critical");
     const d = await getAssessmentByNumber(ctxA, "7.3.10");
-    const history = await listCriterionHistory(ctxA, d!.assessmentId!);
+    const history = await listCriterionHistory(ctxA, "7.3.10", d!.assessmentId!);
     expect(history).toHaveLength(2);
     expect(history[0].after).toEqual({ status: "critical", reason: null });
     expect(history[0].actorName).toMatch(/^user-det-a/);
@@ -67,7 +69,7 @@ describe("listCriterionHistory", () => {
     await setAssessmentStatus(ctxA, c.id, "open");
     const id = (await db.select().from(criterionAssessment))[0].id;
     const u = await addMemberTo(a.org.id, "qmadmin", "qm_admin");
-    await expect(listCriterionHistory(ctxFor(a.org.id, u.id, "qm_admin"), id)).resolves.toHaveLength(1);
+    await expect(listCriterionHistory(ctxFor(a.org.id, u.id, "qm_admin"), "7.3.10", id)).resolves.toHaveLength(1);
   });
 
   it("is only readable with the audit right", async () => {
@@ -76,7 +78,7 @@ describe("listCriterionHistory", () => {
     const id = (await db.select().from(criterionAssessment))[0].id;
     for (const role of ["reviewer", "editor", "viewer"] as const) {
       const u = await addMemberTo(a.org.id, role, role);
-      await expect(listCriterionHistory(ctxFor(a.org.id, u.id, role), id)).rejects.toBeInstanceOf(ForbiddenError);
+      await expect(listCriterionHistory(ctxFor(a.org.id, u.id, role), "7.3.10", id)).rejects.toBeInstanceOf(ForbiddenError);
     }
   });
 
@@ -84,6 +86,22 @@ describe("listCriterionHistory", () => {
     const { c, ctxA, ctxB } = await setup();
     await setAssessmentStatus(ctxA, c.id, "open");
     const id = (await db.select().from(criterionAssessment))[0].id;
-    expect(await listCriterionHistory(ctxB, id)).toEqual([]);
+    expect(await listCriterionHistory(ctxB, "7.3.10", id)).toEqual([]);
+  });
+
+  it("also lists document and evidence events of the criterion, even without an assessment", async () => {
+    const { c, ctxA, ctxB } = await setup();
+    const file = { name: "k.pdf", bytes: Buffer.from("%PDF-1.4\nx") };
+    await createDocument(ctxA, { title: "Hygienekonzept", file, validUntil: null, criterionNumbers: ["7.3.10"] });
+    await createDocument(ctxA, { title: "Anderes Konzept", file, validUntil: null, criterionNumbers: ["6.3.2"] });
+    const never = await listCriterionHistory(ctxA, "7.3.10", null);
+    expect(never.map((h) => h.eventType).sort()).toEqual(["document.created", "evidence.linked"]);
+    expect(never.every((h) => JSON.stringify(h.after).includes("7.3.10"))).toBe(true);
+    await setAssessmentStatus(ctxA, c.id, "open");
+    const d = await getAssessmentByNumber(ctxA, "7.3.10");
+    const withAssessment = await listCriterionHistory(ctxA, "7.3.10", d!.assessmentId);
+    expect(withAssessment.map((h) => h.eventType).sort()).toEqual(["criterion.status_changed", "document.created", "evidence.linked"]);
+    expect(await listCriterionHistory(ctxB, "7.3.10", null)).toEqual([]);
+    expect(await listCriterionHistory(ctxB, "7.3.10", d!.assessmentId)).toEqual([]);
   });
 });

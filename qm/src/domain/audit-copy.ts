@@ -25,6 +25,20 @@ function asDue(v: unknown): DuePayload | null {
   return { dueDate: typeof o.dueDate === "string" ? o.dueDate : null };
 }
 
+type DocPayload = { title: string | null; versionNumber: number | null; fileName: string | null; validUntil: string | null };
+
+function asDoc(v: unknown): DocPayload | null {
+  if (typeof v !== "object" || v === null) return null;
+  const o = v as Record<string, unknown>;
+  if (typeof o.title !== "string") return null;
+  return {
+    title: o.title,
+    versionNumber: typeof o.versionNumber === "number" ? o.versionNumber : null,
+    fileName: typeof o.fileName === "string" ? o.fileName : null,
+    validUntil: typeof o.validUntil === "string" ? o.validUntil : null,
+  };
+}
+
 const word = (s: string) => STATUS_WORD[s] ?? s;
 
 /** Menschenlesbare Beschreibung eines Audit-Events zu einem Kriterium. Unbekanntes fällt auf den Eventtyp zurück. */
@@ -48,6 +62,25 @@ export function describeAuditEvent(e: { eventType: string; before: unknown; afte
     if (a.dueDate && !b.dueDate) return `Frist gesetzt: ${formatDate(a.dueDate)}`;
     if (!a.dueDate && b.dueDate) return `Frist entfernt (war ${formatDate(b.dueDate)})`;
     if (a.dueDate && b.dueDate) return `Frist von ${formatDate(b.dueDate)} zu ${formatDate(a.dueDate)}`;
+  }
+  if (e.eventType === "document.created") {
+    const a = asDoc(e.after);
+    if (!a || a.versionNumber === null || a.fileName === null) return e.eventType;
+    return `Dokument «${a.title}» angelegt (Version ${a.versionNumber}, ${a.fileName})`;
+  }
+  if (e.eventType === "document.version_added") {
+    const a = asDoc(e.after);
+    if (!a || a.versionNumber === null || a.fileName === null) return e.eventType;
+    const until = a.validUntil ? `gültig bis ${formatDate(a.validUntil)}` : "ohne Ablaufdatum";
+    return `Neue Version ${a.versionNumber} von «${a.title}» (${a.fileName}), ${until}`;
+  }
+  if (e.eventType === "evidence.linked") {
+    const a = asDoc(e.after);
+    return a ? `Nachweis «${a.title}» verknüpft` : e.eventType;
+  }
+  if (e.eventType === "evidence.unlinked") {
+    const b = asDoc(e.before);
+    return b ? `Nachweis «${b.title}» gelöst` : e.eventType;
   }
   return e.eventType;
 }

@@ -47,3 +47,18 @@ describe("describeAuditEvent reason change", () => {
     ).toBe("Begründung geändert von «Kein Helikopter im Betrieb.» zu «Helikopter wird extern betrieben.»");
   });
 });
+
+describe("describeAuditEvent documents", () => {
+  it("describes document and evidence events", () => {
+    expect(describeAuditEvent({ eventType: "document.created", before: null, after: { title: "Hygienekonzept", versionNumber: 1, fileName: "h.pdf", criterionNumbers: ["7.3.10"] } }))
+      .toBe("Dokument «Hygienekonzept» angelegt (Version 1, h.pdf)");
+    expect(describeAuditEvent({ eventType: "document.version_added", before: { versionNumber: 1 }, after: { title: "Hygienekonzept", versionNumber: 2, fileName: "h2.pdf", validUntil: "2027-06-30", criterionNumbers: ["7.3.10"] } }))
+      .toBe("Neue Version 2 von «Hygienekonzept» (h2.pdf), gültig bis 30.06.2027");
+    expect(describeAuditEvent({ eventType: "document.version_added", before: { versionNumber: 1 }, after: { title: "Hygienekonzept", versionNumber: 2, fileName: "h2.pdf", validUntil: null, criterionNumbers: [] } }))
+      .toBe("Neue Version 2 von «Hygienekonzept» (h2.pdf), ohne Ablaufdatum");
+    expect(describeAuditEvent({ eventType: "evidence.linked", before: null, after: { title: "Hygienekonzept", criterionNumbers: ["7.3.10"] } }))
+      .toBe("Nachweis «Hygienekonzept» verknüpft");
+    expect(describeAuditEvent({ eventType: "evidence.unlinked", before: { title: "Hygienekonzept", criterionNumbers: ["7.3.10"] }, after: null }))
+      .toBe("Nachweis «Hygienekonzept» gelöst");
+  });
+});

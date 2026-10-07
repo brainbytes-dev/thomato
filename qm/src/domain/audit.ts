@@ -11,6 +11,19 @@ export type AuditEventInput = {
   after?: unknown;
 };
 
+/** Schreibt ein Audit-Event in die übergebene Transaktion. */
+export async function insertAuditEvent(tx: Tx, ctx: OrgContext, event: AuditEventInput): Promise<void> {
+  await tx.insert(auditEvent).values({
+    organizationId: ctx.organizationId,
+    actorUserId: ctx.userId,
+    eventType: event.eventType,
+    entityType: event.entityType,
+    entityId: event.entityId,
+    beforeJson: event.before ?? null,
+    afterJson: event.after ?? null,
+  });
+}
+
 /** Führt die Aktion und das Audit-Event in einer Transaktion aus: beides oder nichts. */
 export async function withAudit<T>(
   ctx: OrgContext,
@@ -18,15 +31,7 @@ export async function withAudit<T>(
 ): Promise<T> {
   return db.transaction(async (tx) => {
     const { result, event } = await fn(tx);
-    await tx.insert(auditEvent).values({
-      organizationId: ctx.organizationId,
-      actorUserId: ctx.userId,
-      eventType: event.eventType,
-      entityType: event.entityType,
-      entityId: event.entityId,
-      beforeJson: event.before ?? null,
-      afterJson: event.after ?? null,
-    });
+    await insertAuditEvent(tx, ctx, event);
     return result;
   });
 }

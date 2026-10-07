@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   ACTIVE_STANDARD_VERSION,
@@ -211,7 +211,12 @@ export type HistoryEntry = {
   after: unknown;
 };
 
-export async function listCriterionHistory(ctx: OrgContext, assessmentId: string): Promise<HistoryEntry[]> {
+/** Verlauf eines Kriteriums: Bewertungs-Events der Bewertung (falls vorhanden) plus Dokument- und Nachweis-Events, die die Nummer nennen. */
+export async function listCriterionHistory(
+  ctx: OrgContext,
+  number: string,
+  assessmentId: string | null,
+): Promise<HistoryEntry[]> {
   assertCan(ctx, "audit", "read");
   const rows = await db
     .select({
@@ -227,8 +232,13 @@ export async function listCriterionHistory(ctx: OrgContext, assessmentId: string
     .where(
       and(
         eq(auditEvent.organizationId, ctx.organizationId),
-        eq(auditEvent.entityType, "criterion_assessment"),
-        eq(auditEvent.entityId, assessmentId),
+        or(
+          assessmentId === null
+            ? undefined
+            : and(eq(auditEvent.entityType, "criterion_assessment"), eq(auditEvent.entityId, assessmentId)),
+          sql`jsonb_exists(${auditEvent.afterJson} -> 'criterionNumbers', ${number})`,
+          sql`jsonb_exists(${auditEvent.beforeJson} -> 'criterionNumbers', ${number})`,
+        ),
       ),
     )
     .orderBy(desc(auditEvent.createdAt), desc(auditEvent.id))

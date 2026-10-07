@@ -23,9 +23,7 @@ async function Detail({ params }: { params: Promise<{ number: string }> }) {
   if (!detail) notFound();
   const canWrite = can(ctx.role, "assessment", "write");
   const history =
-    can(ctx.role, "audit", "read") && detail.assessmentId
-      ? await listCriterionHistory(ctx, detail.assessmentId)
-      : null;
+    can(ctx.role, "audit", "read") ? await listCriterionHistory(ctx, number, detail.assessmentId) : null;
 
   return (
     <>
