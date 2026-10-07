@@ -867,7 +867,7 @@ git add qm/ && git commit -m "feat(qm): filterable criteria list with detail lin
 - Consumes: `getAssessmentByNumber`, `setAssessmentStatus`, `setAssessmentDueDate`, `listCriterionHistory`, `describeAuditEvent`, `formatDateTime`, `formatDate`, `can`, `STATUS_LABEL`, `STATUS_TONE`, `scopeLabel`, `ValidationError`, `ForbiddenError`.
 - Produces: Route `/criteria/[number]`; `updateAssessmentAction(prev: FormState, formData: FormData): Promise<FormState>`; `type FormState = { ok: boolean; message: string } | null`.
 
-Vor dem ersten `.tsx`: `impeccable:impeccable` versuchen (sonst nach `DESIGN.md` arbeiten). Tokens, Textlabels, Tabellen mit caption und th scope, sichtbarer Fokus, keine Em-Dashes. Dynamische Daten (Session, DB, `params`) stehen in einer async Komponente hinter `<Suspense>`.
+Client-Komponenten (hier das Formular) importieren NICHTS als Wert aus `@/db/schema`, `@/db` oder `@/domain/dashboard`; die Status-Optionen kommen als Props von der Server-Seite (siehe Code unten). Vor dem ersten `.tsx`: `impeccable:impeccable` versuchen (sonst nach `DESIGN.md` arbeiten). Tokens, Textlabels, Tabellen mit caption und th scope, sichtbarer Fokus, keine Em-Dashes. Dynamische Daten (Session, DB, `params`) stehen in einer async Komponente hinter `<Suspense>`.
 
 - [ ] **Step 1: Server Action**
 
@@ -931,8 +931,7 @@ Create `qm/src/app/(app)/criteria/[number]/assessment-form.tsx`:
 "use client";
 
 import { useActionState } from "react";
-import { ASSESSMENT_STATUSES, type AssessmentStatus } from "@/db/schema";
-import { STATUS_LABEL } from "@/components/criteria/status-copy";
+import type { AssessmentStatus } from "@/db/schema";
 import { updateAssessmentAction, type FormState } from "./actions";
 
 export function AssessmentForm(props: {
@@ -940,6 +939,7 @@ export function AssessmentForm(props: {
   status: AssessmentStatus;
   reason: string | null;
   dueDate: string | null;
+  statusOptions: { value: AssessmentStatus; label: string }[];
 }) {
   const [state, formAction, pending] = useActionState<FormState, FormData>(updateAssessmentAction, null);
   return (
@@ -952,8 +952,8 @@ export function AssessmentForm(props: {
           defaultValue={props.status}
           className="h-10 rounded-[var(--radius)] border border-field-border bg-surface px-3"
         >
-          {ASSESSMENT_STATUSES.map((s) => (
-            <option key={s} value={s}>{STATUS_LABEL[s]}</option>
+          {props.statusOptions.map((o) => (
+            <option key={o.value} value={o.value}>{o.label}</option>
           ))}
         </select>
       </label>
@@ -1004,6 +1004,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { STATUS_LABEL, STATUS_TONE, scopeLabel } from "@/components/criteria/status-copy";
+import { ASSESSMENT_STATUSES } from "@/db/schema";
 import { getAssessmentByNumber, listCriterionHistory } from "@/domain/assessments";
 import { describeAuditEvent } from "@/domain/audit-copy";
 import { formatDate, formatDateTime } from "@/domain/dates";
@@ -1070,6 +1071,7 @@ async function Detail({ params }: { params: Promise<{ number: string }> }) {
             status={detail.status}
             reason={detail.notApplicableReason}
             dueDate={detail.dueDate}
+            statusOptions={ASSESSMENT_STATUSES.map((s) => ({ value: s, label: STATUS_LABEL[s] }))}
           />
         ) : (
           <p className="text-text-muted">Mit Ihrer Rolle ist die Bewertung schreibgeschützt.</p>
