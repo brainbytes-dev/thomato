@@ -1,0 +1,50 @@
+const ZURICH = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Europe/Zurich",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+export const SOON_DAYS = 30;
+export type DeadlineUrgency = "overdue" | "soon" | "upcoming";
+
+function parts(iso: string): [number, number, number] {
+  const [y, m, d] = iso.split("-").map(Number);
+  return [y, m, d];
+}
+
+function dayNumber(iso: string): number {
+  const [y, m, d] = parts(iso);
+  return Date.UTC(y, m - 1, d) / 86_400_000;
+}
+
+/** Kalendertag in Zürich als YYYY-MM-DD. */
+export function zurichDate(now: Date): string {
+  return ZURICH.format(now);
+}
+
+export function daysUntil(due: string, now: Date): number {
+  return Math.round(dayNumber(due) - dayNumber(zurichDate(now)));
+}
+
+export function urgency(days: number): DeadlineUrgency {
+  if (days < 0) return "overdue";
+  return days <= SOON_DAYS ? "soon" : "upcoming";
+}
+
+/** Volle Monate bis zum Datum, nie negativ. */
+export function monthsUntil(due: string, now: Date): number {
+  const [ty, tm, td] = parts(zurichDate(now));
+  const [dy, dm, dd] = parts(due);
+  const months = (dy - ty) * 12 + (dm - tm) - (dd < td ? 1 : 0);
+  return Math.max(0, months);
+}
+
+export function addDays(iso: string, days: number): string {
+  return new Date((dayNumber(iso) + days) * 86_400_000).toISOString().slice(0, 10);
+}
+
+export function formatDate(iso: string): string {
+  const [y, m, d] = iso.split("-");
+  return `${d}.${m}.${y}`;
+}

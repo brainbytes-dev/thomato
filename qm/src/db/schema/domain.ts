@@ -100,3 +100,21 @@ export const auditEvent = pgTable(
 );
 
 export type AuditEventRow = typeof auditEvent.$inferSelect;
+
+export const DEADLINE_KINDS = ["application", "dossier", "expiry", "custom"] as const;
+export type DeadlineKind = (typeof DEADLINE_KINDS)[number];
+
+export const deadline = pgTable(
+  "deadline",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id),
+    kind: text("kind", { enum: DEADLINE_KINDS }).notNull(),
+    label: text("label").notNull(),
+    dueDate: date("due_date").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("deadline_org_due_idx").on(t.organizationId, t.dueDate)],
+);
