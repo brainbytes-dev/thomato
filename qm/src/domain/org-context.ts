@@ -21,3 +21,10 @@ export function assertCan<R extends Resource>(ctx: OrgContext, resource: R, acti
     throw new ForbiddenError(`${ctx.role} darf ${resource}.${action} nicht`);
   }
 }
+
+export class ValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ValidationError";
+  }
+}

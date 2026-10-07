@@ -1,0 +1,1 @@
+ALTER TABLE "criterion_assessment" ADD COLUMN "not_applicable_reason" text;

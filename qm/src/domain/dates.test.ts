@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addDays, daysUntil, formatDate, monthsUntil, urgency, zurichDate } from "./dates";
+import { addDays, daysUntil, formatDate, formatDateTime, monthsUntil, urgency, zurichDate } from "./dates";
 
 describe("dates (Europe/Zurich)", () => {
   it("uses the Zurich calendar day, not UTC", () => {
@@ -30,5 +30,9 @@ describe("dates (Europe/Zurich)", () => {
   });
   it("formats dates the Swiss way", () => {
     expect(formatDate("2026-10-07")).toBe("07.10.2026");
+  });
+  it("formats timestamps in Zurich time", () => {
+    expect(formatDateTime(new Date("2026-10-07T12:05:00Z"))).toBe("07.10.2026, 14:05");
+    expect(formatDateTime(new Date("2026-01-15T23:30:00Z"))).toBe("16.01.2026, 00:30");
   });
 });

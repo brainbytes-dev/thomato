@@ -25,6 +25,7 @@ function row(over: Partial<AssessmentRow>): AssessmentRow {
     shouldRenewal: false,
     status: "not_assessed",
     dueDate: null,
+    notApplicableReason: null,
     ...over,
   };
 }

@@ -27,13 +27,13 @@ const CHAPTER_DEFAULT: Record<string, AssessmentStatus | undefined> = {
   Struktur: "met",
   Prozess: "met",
 };
-const OVERRIDES: Record<string, { status: AssessmentStatus; dueInDays?: number }> = {
+const OVERRIDES: Record<string, { status: AssessmentStatus; dueInDays?: number; reason?: string }> = {
   "6.3.2": { status: "critical", dueInDays: 25 },
   "7.3.10": { status: "critical", dueInDays: 12 },
   "6.5.2": { status: "open", dueInDays: 40 },
   "7.3.8": { status: "open", dueInDays: 40 },
   "7.3.2": { status: "open" },
-  "7.9": { status: "not_applicable" },
+  "7.9": { status: "not_applicable", reason: "Der Rettungsdienst betreibt keinen Rettungshelikopter (Demo-Angabe)." },
   "8.1": { status: "open" },
 };
 
@@ -97,7 +97,7 @@ export async function seedDemo(input: { catalog: unknown; now?: Date }) {
     const o = OVERRIDES[c.number];
     const status = o?.status ?? CHAPTER_DEFAULT[c.chapter];
     if (!status) continue;
-    await setAssessmentStatus(ctx, c.id, status);
+    await setAssessmentStatus(ctx, c.id, status, { reason: o?.reason });
     if (o?.dueInDays !== undefined) {
       await db
         .update(criterionAssessment)

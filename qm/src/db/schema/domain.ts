@@ -72,6 +72,7 @@ export const criterionAssessment = pgTable(
     ownerUserId: text("owner_user_id").references(() => user.id),
     dueDate: date("due_date"),
     note: text("note"),
+    notApplicableReason: text("not_applicable_reason"),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [

@@ -57,3 +57,19 @@ export function formatMonths(n: number): string {
 export function formatDaysDative(n: number): string {
   return n === 1 ? "1 Tag" : `${n} Tagen`;
 }
+
+const ZURICH_DATE_TIME = new Intl.DateTimeFormat("de-CH", {
+  timeZone: "Europe/Zurich",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
+
+/** TT.MM.JJJJ, HH:MM in Zürcher Zeit. */
+export function formatDateTime(d: Date): string {
+  const p = Object.fromEntries(ZURICH_DATE_TIME.formatToParts(d).map((x) => [x.type, x.value]));
+  return `${p.day}.${p.month}.${p.year}, ${p.hour}:${p.minute}`;
+}

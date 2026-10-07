@@ -40,8 +40,8 @@ describe("tenant isolation", () => {
 
     const eventsB = await listAuditEvents(ctxB);
     expect(eventsB).toHaveLength(1);
-    expect(eventsB[0].beforeJson).toEqual({ status: "not_assessed" });
-    expect(eventsB[0].afterJson).toEqual({ status: "met" });
+    expect(eventsB[0].beforeJson).toEqual({ status: "not_assessed", reason: null });
+    expect(eventsB[0].afterJson).toEqual({ status: "met", reason: null });
     expect(await listAuditEvents(ctxA)).toHaveLength(1);
   });
 
