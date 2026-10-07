@@ -128,7 +128,11 @@ export async function createMeasure(
   });
 }
 
-export async function updateMeasure(ctx: OrgContext, id: string, input: MeasureFields): Promise<void> {
+export async function updateMeasure(
+  ctx: OrgContext,
+  id: string,
+  input: MeasureFields,
+): Promise<{ criterionNumber: string }> {
   assertCan(ctx, "measure", "write");
   const fields = validateFields(input);
 
@@ -140,7 +144,7 @@ export async function updateMeasure(ctx: OrgContext, id: string, input: MeasureF
       row.description === fields.description &&
       row.ownerUserId === fields.ownerUserId &&
       row.dueDate === fields.dueDate;
-    if (unchanged) return { result: undefined, event: null };
+    if (unchanged) return { result: { criterionNumber: row.criterionNumber }, event: null };
     // Nur bei einem Wechsel der Person prüfen; sonst bleibt eine reine Titeländerung auch nach deren Austritt möglich.
     const ownerName =
       fields.ownerUserId === row.ownerUserId
@@ -152,7 +156,7 @@ export async function updateMeasure(ctx: OrgContext, id: string, input: MeasureF
       .where(and(eq(measure.id, row.id), eq(measure.organizationId, ctx.organizationId)));
     const numbers = [row.criterionNumber];
     return {
-      result: undefined,
+      result: { criterionNumber: row.criterionNumber },
       event: {
         eventType: "measure.updated",
         entityType: "measure",
@@ -176,13 +180,13 @@ export async function setMeasureStatus(
   id: string,
   status: MeasureStatus,
   now: Date,
-): Promise<{ status: MeasureStatus; completedAt: Date | null }> {
+): Promise<{ status: MeasureStatus; completedAt: Date | null; criterionNumber: string }> {
   assertCan(ctx, "measure", "write");
   if (!MEASURE_STATUSES.includes(status)) throw new ValidationError("Der Status ist ungültig.");
 
   return withOptionalAudit(ctx, async (tx) => {
     const row = await lockMeasure(tx, ctx, id);
-    if (row.status === status) return { result: { status: row.status, completedAt: row.completedAt }, event: null };
+    if (row.status === status) return { result: { status: row.status, completedAt: row.completedAt, criterionNumber: row.criterionNumber }, event: null };
     const completedAt = status === "done" ? now : null;
     await tx
       .update(measure)
@@ -190,7 +194,7 @@ export async function setMeasureStatus(
       .where(and(eq(measure.id, row.id), eq(measure.organizationId, ctx.organizationId)));
     const numbers = [row.criterionNumber];
     return {
-      result: { status, completedAt },
+      result: { status, completedAt, criterionNumber: row.criterionNumber },
       event: {
         eventType: "measure.status_changed",
         entityType: "measure",

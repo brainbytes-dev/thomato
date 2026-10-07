@@ -5,6 +5,7 @@ import { auth } from "@/auth/auth";
 import { ACTIVE_STANDARD_VERSION, auditEvent, criterionAssessment, member, measure } from "@/db/schema";
 import { importCatalog } from "./catalog";
 import { listAuditEvents } from "./audit";
+import { listCriterionHistory } from "./assessments";
 import {
   createMeasure, listCriterionMeasures, listOpenMeasures, listOrgMembers, setMeasureStatus, updateMeasure,
 } from "./measures";
@@ -138,9 +139,9 @@ describe("setMeasureStatus", () => {
     const { id } = await createMeasure(ctxA, valid(a.user.id));
     const base = { title: "Hygieneschulung planen", criterionNumbers: ["7.3.10"] };
 
-    expect(await setMeasureStatus(ctxA, id, "in_progress", NOW)).toEqual({ status: "in_progress", completedAt: null });
-    expect(await setMeasureStatus(ctxA, id, "done", NOW)).toEqual({ status: "done", completedAt: NOW });
-    expect(await setMeasureStatus(ctxA, id, "open", NOW)).toEqual({ status: "open", completedAt: null });
+    expect(await setMeasureStatus(ctxA, id, "in_progress", NOW)).toEqual({ status: "in_progress", completedAt: null, criterionNumber: "7.3.10" });
+    expect(await setMeasureStatus(ctxA, id, "done", NOW)).toEqual({ status: "done", completedAt: NOW, criterionNumber: "7.3.10" });
+    expect(await setMeasureStatus(ctxA, id, "open", NOW)).toEqual({ status: "open", completedAt: null, criterionNumber: "7.3.10" });
 
     const events = (await listAuditEvents(ctxA))
       .filter((e) => e.eventType === "measure.status_changed")
@@ -157,7 +158,7 @@ describe("setMeasureStatus", () => {
     const { id } = await createMeasure(ctxA, valid(a.user.id));
     await setMeasureStatus(ctxA, id, "done", NOW);
     const later = new Date("2026-10-09T10:00:00Z");
-    expect(await setMeasureStatus(ctxA, id, "done", later)).toEqual({ status: "done", completedAt: NOW });
+    expect(await setMeasureStatus(ctxA, id, "done", later)).toEqual({ status: "done", completedAt: NOW, criterionNumber: "7.3.10" });
     expect((await listAuditEvents(ctxA)).filter((e) => e.eventType === "measure.status_changed")).toHaveLength(1);
     const [row] = await db.select().from(measure);
     expect(row.completedAt).toEqual(NOW);
@@ -283,6 +284,30 @@ describe("concurrency", () => {
         expect(row.completedAt).toBeNull();
       }
     }
+  });
+});
+
+describe("criterion history", () => {
+  beforeEach(resetDb);
+
+  it("lists measure events newest first and scoped to the organisation", async () => {
+    const { ctxA, ctxB, a, b } = await setup();
+    const { id } = await createMeasure(ctxA, valid(a.user.id));
+    await setMeasureStatus(ctxA, id, "in_progress", NOW);
+    await updateMeasure(ctxA, id, { title: "Neuer Titel", description: null, ownerUserId: a.user.id, dueDate: "2026-12-01" });
+    const own = (await listCriterionHistory(ctxA, "7.3.10", null)).map((h) => h.eventType);
+    expect(own).toEqual(["measure.updated", "measure.status_changed", "measure.created"]);
+    await createMeasure(ctxB, valid(b.user.id));
+    expect((await listCriterionHistory(ctxB, "7.3.10", null)).map((h) => h.eventType)).toEqual(["measure.created"]);
+    expect((await listCriterionHistory(ctxA, "6.3.2", null))).toEqual([]);
+  });
+
+  it("returns the criterion number from update and status changes, also for no-ops", async () => {
+    const { ctxA, a } = await setup();
+    const { id } = await createMeasure(ctxA, valid(a.user.id));
+    const same = { title: "Hygieneschulung planen", description: "Alle Teams", ownerUserId: a.user.id, dueDate: "2026-11-15" };
+    expect(await updateMeasure(ctxA, id, same)).toEqual({ criterionNumber: "7.3.10" });
+    expect(await updateMeasure(ctxA, id, { ...same, title: "Anderer Titel" })).toEqual({ criterionNumber: "7.3.10" });
   });
 });
 

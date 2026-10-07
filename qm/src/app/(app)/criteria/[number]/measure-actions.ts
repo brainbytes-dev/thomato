@@ -27,23 +27,24 @@ async function run<S extends z.ZodType<{ number: string }>>(
   schema: S,
   formData: FormData,
   success: string,
-  work: (ctx: OrgContext, data: z.output<S>, now: Date) => Promise<void>,
+  work: (ctx: OrgContext, data: z.output<S>, now: Date) => Promise<string>,
 ): Promise<MeasureFormState> {
+  const ctx = await requireOrgContextOrRedirect();
+  if (!can(ctx.role, "measure", "write")) return { ok: false, message: FORBIDDEN };
   const parsed = schema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) {
     const issue = parsed.error.issues.find((i) => FIELD_MESSAGES.has(String(i.path[0])));
     return { ok: false, message: issue?.message ?? INVALID };
   }
-  const ctx = await requireOrgContextOrRedirect();
-  if (!can(ctx.role, "measure", "write")) return { ok: false, message: FORBIDDEN };
+  let criterionNumber: string;
   try {
-    await work(ctx, parsed.data, new Date());
+    criterionNumber = await work(ctx, parsed.data, new Date());
   } catch (e) {
     if (e instanceof ValidationError) return { ok: false, message: e.message };
     if (e instanceof ForbiddenError) return { ok: false, message: FORBIDDEN };
     throw e;
   }
-  revalidateMeasures(parsed.data.number);
+  revalidateMeasures(criterionNumber);
   return { ok: true, message: success };
 }
 
@@ -56,22 +57,25 @@ export async function createMeasureAction(_prev: MeasureFormState, formData: For
       ownerUserId: data.ownerUserId,
       dueDate: data.dueDate,
     });
+    return data.number;
   });
 }
 
 export async function updateMeasureAction(_prev: MeasureFormState, formData: FormData): Promise<MeasureFormState> {
   return run(updateMeasureInput, formData, "Massnahme gespeichert.", async (ctx, data) => {
-    await updateMeasure(ctx, data.measureId, {
+    const { criterionNumber } = await updateMeasure(ctx, data.measureId, {
       title: data.title,
       description: data.description ? data.description : null,
       ownerUserId: data.ownerUserId,
       dueDate: data.dueDate,
     });
+    return criterionNumber;
   });
 }
 
 export async function setMeasureStatusAction(_prev: MeasureFormState, formData: FormData): Promise<MeasureFormState> {
   return run(statusInput, formData, "Status geändert.", async (ctx, data, now) => {
-    await setMeasureStatus(ctx, data.measureId, data.status, now);
+    const { criterionNumber } = await setMeasureStatus(ctx, data.measureId, data.status, now);
+    return criterionNumber;
   });
 }
