@@ -3,3 +3,10 @@
 # Die Python-Anwendung unter web/ivr und ihre Funktion unter web/api.
 __pycache__/
 *.pyc
+
+# Secrets und lokale Deploy-Artefakte
+.env*
+!.env.example
+.vercel
+*.pem
+tmp/
