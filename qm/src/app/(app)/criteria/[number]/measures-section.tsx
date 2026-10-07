@@ -86,6 +86,7 @@ export async function MeasuresSection({ ctx, number, now }: { ctx: OrgContext; n
                                 ownerUserId={m.ownerUserId}
                                 dueDate={m.dueDate}
                                 members={members}
+                                ownerName={m.ownerName}
                               />
                             </div>
                           </details>

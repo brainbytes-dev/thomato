@@ -6,6 +6,7 @@ import {
   startTransition,
   useActionState,
   useContext,
+  useEffect,
   useState,
   useTransition,
   type ReactNode,
@@ -87,6 +88,9 @@ export function CreateMeasureForm({
     setSeen(state);
     if (state?.ok) setResetKey((k) => k + 1);
   }
+  useEffect(() => {
+    if (resetKey > 0) focusHeading();
+  }, [resetKey]);
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const data = new FormData(e.currentTarget);
@@ -188,6 +192,7 @@ export function EditMeasureForm({
   ownerUserId,
   dueDate,
   members,
+  ownerName,
 }: {
   number: string;
   measureId: string;
@@ -196,10 +201,15 @@ export function EditMeasureForm({
   ownerUserId: string;
   dueDate: string;
   members: MemberOption[];
+  ownerName: string | null;
 }) {
   const f = useRowForm(updateMeasureAction);
-  // Ein ausgetretener Owner steht nicht in der Liste; ohne Vorauswahl muss bewusst eine Person gewählt werden.
-  const owner = members.some((m) => m.userId === ownerUserId) ? ownerUserId : "";
+  // Ein ausgetretener Owner bleibt wählbar, damit reine Titeländerungen keinen Personenwechsel erzwingen.
+  const isMember = members.some((m) => m.userId === ownerUserId);
+  const options = isMember
+    ? members
+    : [{ userId: ownerUserId, name: `${ownerName ?? "unbekannt"} (nicht mehr Mitglied)` }, ...members];
+  const owner = ownerUserId;
   return (
     <form onSubmit={f.onSubmit} className="flex max-w-xl flex-col gap-4">
       <input type="hidden" name="number" value={number} />
@@ -211,7 +221,7 @@ export function EditMeasureForm({
         <textarea name="description" maxLength={1000} rows={3} defaultValue={description ?? ""} className={AREA} />
       </Field>
       <Field label="Verantwortliche Person">
-        <MemberSelect members={members} defaultValue={owner} />
+        <MemberSelect members={options} defaultValue={owner} />
       </Field>
       <Field label="Frist">
         <input type="date" name="dueDate" required defaultValue={dueDate} className={FIELD} />
