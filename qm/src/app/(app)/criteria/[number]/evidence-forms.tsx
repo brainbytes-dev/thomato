@@ -34,7 +34,7 @@ function useEvidenceForm(action: Action, maxBytes: number | null) {
       action,
       maxBytes === null
         ? "Die Änderung konnte nicht gespeichert werden. Bitte versuchen Sie es noch einmal."
-        : `Die Datei konnte nicht übertragen werden. Sie darf höchstens ${maxBytes / (1024 * 1024)} MiB gross sein. Bitte prüfen Sie auch die Verbindung und versuchen Sie es noch einmal.`,
+        : `Die Datei konnte nicht übertragen werden (höchstens ${maxBytes / (1024 * 1024)} MiB). Bitte prüfen Sie die Verbindung und versuchen Sie es noch einmal. Besteht das Problem weiter, melden Sie es Ihrer QM-Verantwortlichen.`,
     ),
   );
   const [state, formAction, pending] = useActionState<EvidenceFormState, FormData>(guarded, null);

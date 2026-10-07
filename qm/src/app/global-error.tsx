@@ -11,7 +11,7 @@ export default function GlobalError({ retry }: { error: Error & { digest?: strin
       <body className="min-h-full">
         <title>Fehler</title>
         <main className="mx-auto flex min-h-screen max-w-xl flex-col justify-center gap-6 px-4 py-12">
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2" role="alert">
             <h1 className="text-xl font-semibold">{ERROR_COPY.title}</h1>
             <p className="text-text-muted">{ERROR_COPY.body}</p>
           </div>

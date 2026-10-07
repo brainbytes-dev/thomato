@@ -140,11 +140,12 @@ describe("invalid input leaves no trace", () => {
 describe("roles are enforced in the service layer", () => {
   beforeEach(resetDb);
 
-  it("viewer and reviewer cannot write documents or assessments; reviewer cannot read the audit log", async () => {
+  it("viewer cannot write documents or assessments; viewer and reviewer cannot read the audit log", async () => {
     const { c, ctxA, viewerCtx, reviewerCtx } = await setup();
     const { documentId } = await createDocument(ctxA, { title: "Konzept", file: pdf("v1"), validUntil: null, criterionNumbers: [] });
     const eventsBefore = (await listAuditEvents(ctxA)).length;
-    for (const ctx of [viewerCtx]) {
+    {
+      const ctx = viewerCtx;
       await expect(createDocument(ctx, { title: "Neu", file: pdf("x"), validUntil: null, criterionNumbers: [] })).rejects.toBeInstanceOf(ForbiddenError);
       await expect(addDocumentVersion(ctx, documentId, { file: pdf("x"), validUntil: null })).rejects.toBeInstanceOf(ForbiddenError);
       await expect(linkEvidence(ctx, documentId, "7.3.10")).rejects.toBeInstanceOf(ForbiddenError);

@@ -20,10 +20,10 @@ export const PRIMARY_ACTION = `${ACTION_BASE} bg-primary text-on-primary`;
 export const SECONDARY_ACTION = `${ACTION_BASE} border border-border bg-surface`;
 
 /** Ruhige, gemeinsame Fläche für Fehler- und 404-Seiten. Keine Technikdetails, kein Stacktrace. */
-export function ErrorState({ title, body, children }: { title: string; body: string; children: ReactNode }) {
+export function ErrorState({ title, body, children, alert = false }: { title: string; body: string; children: ReactNode; alert?: boolean }) {
   return (
     <main className="mx-auto flex min-h-[50vh] max-w-xl flex-col justify-center gap-6 px-4 py-12">
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2" role={alert ? "alert" : undefined}>
         <h1 className="text-xl font-semibold">{title}</h1>
         <p className="text-text-muted">{body}</p>
       </div>
