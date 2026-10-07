@@ -107,6 +107,21 @@ export function ReadinessHero({ data }: { data: DashboardData }) {
           </div>
         </dl>
       </div>
+      <div className="border-t border-border pt-4">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-text-muted">Massnahmen</h3>
+        <dl className="mt-2 grid grid-cols-2 gap-x-8 gap-y-3 sm:max-w-md">
+          <div>
+            <dt className="text-text-muted">Offene Massnahmen</dt>
+            <dd className="text-xl font-semibold">{data.measures.open}</dd>
+          </div>
+          <div>
+            <dt className="text-text-muted">Überfällige Massnahmen</dt>
+            <dd className={`text-xl font-semibold ${data.measures.overdue > 0 ? "text-critical" : ""}`}>
+              {data.measures.overdue}
+            </dd>
+          </div>
+        </dl>
+      </div>
     </section>
   );
 }

@@ -2,9 +2,10 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { ACTIVE_STANDARD_VERSION, standardVersion } from "@/db/schema";
 import { listAssessments, type AssessmentRow } from "./assessments";
-import { daysUntil, monthsUntil, SOON_DAYS } from "./dates";
+import { daysUntil, formatDaysDative, monthsUntil, SOON_DAYS } from "./dates";
 import { listDeadlines, type DeadlineView } from "./deadlines";
 import { getEvidenceInfo } from "./documents";
+import { listOpenMeasures, type OpenMeasureView } from "./measures";
 import { summarizeEvidence, type EvidenceState } from "./evidence";
 import { DEFAULT_PROCEDURE } from "./procedure";
 import { assertCan, type OrgContext } from "./org-context";
@@ -23,7 +24,7 @@ export type ActionItem = {
   dueInDays: number | null;
   statusLabel: string;
   href: string | null;
-  source: "criterion" | "deadline" | "evidence";
+  source: "criterion" | "deadline" | "evidence" | "measure";
 };
 
 export const BUNDLED_EVIDENCE_KEY = "evidence:missing";
@@ -65,10 +66,17 @@ function deadlineLabel(days: number): string {
   return `Frist in ${days} ${days === 1 ? "Tag" : "Tagen"}`;
 }
 
+function measureLabel(days: number): string {
+  if (days < 0) return `Massnahme überfällig (seit ${formatDaysDative(-days)})`;
+  if (days === 0) return "Massnahme fällig heute";
+  return `Massnahme fällig in ${formatDaysDative(days)}`;
+}
+
 export function buildActionItems(
   criteria: readonly AssessmentRow[],
   deadlines: readonly DeadlineView[],
   evidence: EvidenceInput,
+  measures: readonly OpenMeasureView[],
   mode: ProcedureMode,
   now: Date,
 ): ActionItem[] {
@@ -102,6 +110,20 @@ export function buildActionItems(
       statusLabel: deadlineLabel(d.days),
       href: null,
       source: "deadline",
+    });
+  }
+  for (const m of measures) {
+    if (m.status === "done" || m.days > SOON_DAYS) continue;
+    items.push({
+      key: `measure:${m.id}`,
+      priority: m.days < 0 ? "high" : "medium",
+      criterionNumber: m.criterionNumber,
+      topic: `${m.title} (${m.criterionNumber} ${m.criterionTitle})`,
+      dueDate: m.dueDate,
+      dueInDays: m.days,
+      statusLabel: measureLabel(m.days),
+      href: criterionHref(m.criterionNumber),
+      source: "measure",
     });
   }
   for (const e of evidence.stale) {
@@ -199,6 +221,8 @@ export type DashboardData = {
   deadlines: DeadlineView[];
   chapters: ChapterProgress[];
   evidence: EvidenceCounts;
+  /** Nicht erledigte Massnahmen (offen oder in Bearbeitung) und davon überfällige; ändert die Readiness nie. */
+  measures: { open: number; overdue: number };
   expiry: ExpiryInfo | null;
   /** Fristen mit days < 0. */
   overdueCount: number;
@@ -212,10 +236,11 @@ export async function getDashboard(
   mode: ProcedureMode = DEFAULT_PROCEDURE,
 ): Promise<DashboardData> {
   assertCan(ctx, "assessment", "read");
-  const [criteria, deadlines, evidenceInfo, versions] = await Promise.all([
+  const [criteria, deadlines, evidenceInfo, openMeasures, versions] = await Promise.all([
     listAssessments(ctx),
     listDeadlines(ctx, now),
     getEvidenceInfo(ctx, now),
+    listOpenMeasures(ctx, now),
     db
       .select({ status: standardVersion.validationStatus })
       .from(standardVersion)
@@ -223,13 +248,14 @@ export async function getDashboard(
   ]);
   const basisValidated = versions[0]?.status === "validated";
   const overview = evidenceOverview(criteria, evidenceInfo, mode);
-  const actions = buildActionItems(criteria, deadlines, overview.input, mode, now);
+  const actions = buildActionItems(criteria, deadlines, overview.input, openMeasures, mode, now);
   return {
     readiness: computeReadiness(criteria, mode, basisValidated),
     actions,
     deadlines,
     chapters: chapterProgress(criteria, mode),
     evidence: overview.counts,
+    measures: { open: openMeasures.length, overdue: openMeasures.filter((m) => m.days < 0).length },
     expiry: expiryOf(deadlines, now),
     overdueCount: deadlines.filter((d) => d.days < 0).length,
     soonCount: actions.filter((a) => a.source !== "evidence" && a.dueInDays !== null && a.dueInDays <= SOON_DAYS).length,

@@ -1,4 +1,4 @@
-import type { AssessmentStatus } from "@/db/schema";
+import type { AssessmentStatus, MeasureStatus } from "@/db/schema";
 import type { EvidenceState } from "@/domain/evidence";
 import { DEFAULT_PROCEDURE } from "@/domain/procedure";
 import { scopeOf, type CriterionInput } from "@/domain/readiness";
@@ -17,6 +17,12 @@ export const STATUS_TONE: Record<AssessmentStatus, string> = {
   open: "text-warning",
   critical: "text-critical",
   not_applicable: "text-text-muted",
+};
+
+export const MEASURE_STATUS_LABEL: Record<MeasureStatus, string> = {
+  open: "Offen",
+  in_progress: "In Bearbeitung",
+  done: "Erledigt",
 };
 
 export const EVIDENCE_LABEL: Record<EvidenceState, string> = {

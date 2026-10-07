@@ -8,6 +8,7 @@ import { importCatalog } from "./catalog";
 import { buildActionItems, chapterProgress, getDashboard, selectActionItems, type ActionItem } from "./dashboard";
 import { createDocument, getEvidenceInfo } from "./documents";
 import type { DeadlineView } from "./deadlines";
+import { createMeasure, setMeasureStatus, type OpenMeasureView } from "./measures";
 import { ctxFor, makeOrg, resetDb } from "@/test/helpers";
 import { eq } from "drizzle-orm";
 
@@ -51,6 +52,7 @@ describe("buildActionItems", () => {
       ],
       [],
       NO_EVIDENCE,
+      [],
       "accreditation",
       NOW,
     );
@@ -72,6 +74,7 @@ describe("buildActionItems", () => {
       ],
       [],
       NO_EVIDENCE,
+      [],
       "accreditation",
       NOW,
     );
@@ -89,6 +92,7 @@ describe("buildActionItems", () => {
         dl({ id: "4", label: "Fern", days: 90, urgency: "upcoming", dueDate: "2027-01-05" }),
       ],
       NO_EVIDENCE,
+      [],
       "accreditation",
       NOW,
     );
@@ -112,6 +116,7 @@ describe("buildActionItems with evidence", () => {
         ],
         missingMet: 0,
       },
+      [],
       "accreditation",
       NOW,
     );
@@ -130,7 +135,7 @@ describe("buildActionItems with evidence", () => {
   });
 
   it("bundles met mandatory criteria without evidence into exactly one medium item, singular for one", () => {
-    const plural = buildActionItems([], [], { stale: [], missingMet: 3 }, "accreditation", NOW);
+    const plural = buildActionItems([], [], { stale: [], missingMet: 3 }, [], "accreditation", NOW);
     expect(plural).toEqual([
       {
         key: "evidence:missing",
@@ -144,9 +149,9 @@ describe("buildActionItems with evidence", () => {
         source: "evidence",
       },
     ]);
-    const single = buildActionItems([], [], { stale: [], missingMet: 1 }, "accreditation", NOW);
+    const single = buildActionItems([], [], { stale: [], missingMet: 1 }, [], "accreditation", NOW);
     expect(single[0].topic).toBe("1 erfülltes Pflichtkriterium ohne Nachweis");
-    expect(buildActionItems([], [], NO_EVIDENCE, "accreditation", NOW)).toEqual([]);
+    expect(buildActionItems([], [], NO_EVIDENCE, [], "accreditation", NOW)).toEqual([]);
   });
 
   it("keeps critical before high before medium across criteria, deadlines and evidence", () => {
@@ -154,6 +159,7 @@ describe("buildActionItems with evidence", () => {
       [row({ number: "c", status: "critical" }), row({ number: "m", status: "not_assessed" })],
       [dl({ id: "1", label: "Heute", days: 0, urgency: "soon", dueDate: "2026-10-07" })],
       { stale: [{ number: "s", title: "Alt", validUntil: "2026-05-01" }], missingMet: 2 },
+      [],
       "accreditation",
       NOW,
     );
@@ -169,8 +175,91 @@ describe("buildActionItems with evidence", () => {
   });
 
   it("encodes criterion numbers in links", () => {
-    const [item] = buildActionItems([row({ number: "a/b c", status: "critical" })], [], NO_EVIDENCE, "accreditation", NOW);
+    const [item] = buildActionItems([row({ number: "a/b c", status: "critical" })], [], NO_EVIDENCE, [], "accreditation", NOW);
     expect(item.href).toBe("/criteria/a%2Fb%20c");
+  });
+});
+
+const mv = (over: Partial<OpenMeasureView>): OpenMeasureView => ({
+  id: "m1", criterionNumber: "7.3.10", criterionTitle: "Hygiene", title: "Schulung planen", description: null,
+  ownerUserId: "u", ownerName: "Anna", dueDate: "2026-10-20", status: "open", completedAt: null,
+  createdAt: NOW, days: 13, overdue: false, ...over,
+});
+
+describe("buildActionItems with measures", () => {
+  const build = (ms: OpenMeasureView[]) => buildActionItems([], [], NO_EVIDENCE, ms, "accreditation", NOW);
+
+  it("turns an overdue open measure into a high item with dative days and a criterion link", () => {
+    const [item] = build([mv({ id: "a", dueDate: "2026-10-01", days: -6, overdue: true })]);
+    expect(item).toEqual({
+      key: "measure:a",
+      priority: "high",
+      criterionNumber: "7.3.10",
+      topic: "Schulung planen (7.3.10 Hygiene)",
+      dueDate: "2026-10-01",
+      dueInDays: -6,
+      statusLabel: "Massnahme überfällig (seit 6 Tagen)",
+      href: "/criteria/7.3.10",
+      source: "measure",
+    });
+  });
+
+  it("uses singular for one day overdue and encodes the number", () => {
+    const [item] = build([mv({ criterionNumber: "a/b", dueDate: "2026-10-06", days: -1, overdue: true, status: "in_progress" })]);
+    expect(item.statusLabel).toBe("Massnahme überfällig (seit 1 Tag)");
+    expect(item.href).toBe("/criteria/a%2Fb");
+  });
+
+  it("turns a measure due within 30 days into a medium item, today and singular included", () => {
+    const items = build([
+      mv({ id: "t", dueDate: "2026-10-07", days: 0 }),
+      mv({ id: "o", dueDate: "2026-10-08", days: 1 }),
+      mv({ id: "s", dueDate: "2026-10-17", days: 10 }),
+      mv({ id: "e", dueDate: "2026-11-06", days: 30 }),
+    ]);
+    expect(items.map((i) => [i.key, i.priority, i.statusLabel])).toEqual([
+      ["measure:t", "medium", "Massnahme fällig heute"],
+      ["measure:o", "medium", "Massnahme fällig in 1 Tag"],
+      ["measure:s", "medium", "Massnahme fällig in 10 Tagen"],
+      ["measure:e", "medium", "Massnahme fällig in 30 Tagen"],
+    ]);
+  });
+
+  it("drops measures that are too far away or done", () => {
+    expect(
+      build([
+        mv({ id: "f", dueDate: "2026-11-07", days: 31 }),
+        mv({ id: "d", status: "done", dueDate: "2026-10-01", days: -6, overdue: true }),
+      ]),
+    ).toEqual([]);
+  });
+
+  it("sorts high measures before medium ones and by due date", () => {
+    const items = buildActionItems(
+      [row({ number: "n", status: "not_assessed" })],
+      [],
+      NO_EVIDENCE,
+      [mv({ id: "soon", dueDate: "2026-10-12", days: 5 }), mv({ id: "late", dueDate: "2026-10-01", days: -6, overdue: true })],
+      "accreditation",
+      NOW,
+    );
+    expect(items.map((i) => [i.source, i.priority, i.dueDate])).toEqual([
+      ["measure", "high", "2026-10-01"],
+      ["measure", "medium", "2026-10-12"],
+      ["criterion", "medium", null],
+    ]);
+  });
+
+  it("keeps the bundled evidence item reserved by selectActionItems next to measures", () => {
+    const items = buildActionItems(
+      [],
+      [],
+      { stale: [], missingMet: 2 },
+      [mv({ id: "a", days: 1, dueDate: "2026-10-08" }), mv({ id: "b", days: 2, dueDate: "2026-10-09" })],
+      "accreditation",
+      NOW,
+    );
+    expect(selectActionItems(items, 2).map((i) => i.key)).toEqual(["measure:a", "evidence:missing"]);
   });
 });
 
@@ -360,6 +449,55 @@ describe("getDashboard", () => {
     expect(only.soonCount).toBe(0);
     await db.insert(deadline).values({ organizationId: a.org.id, kind: "application", label: "Antrag", dueDate: "2026-10-20" });
     expect((await getDashboard(ctx, NOW)).soonCount).toBe(1);
+  });
+  it("shows measures only for the own organisation, counts them and leaves readiness untouched", async () => {
+    const crits = await seedCatalog();
+    const a = await makeOrg("dash-m-a");
+    const b = await makeOrg("dash-m-b");
+    const ctxA = ctxFor(a.org.id, a.user.id, "owner");
+    const ctxB = ctxFor(b.org.id, b.user.id, "owner");
+    await setAssessmentStatus(ctxA, crits[2].id, "critical");
+    const before = await getDashboard(ctxA, NOW);
+    expect(before.measures).toEqual({ open: 0, overdue: 0 });
+
+    const owner = a.user.id;
+    const base = { criterionNumber: "7.3.10", description: null, ownerUserId: owner };
+    await createMeasure(ctxA, { ...base, title: "Überfällig", dueDate: "2026-10-01" });
+    await createMeasure(ctxA, { ...base, title: "Bald", dueDate: "2026-10-17" });
+    await createMeasure(ctxA, { ...base, title: "Weit weg", dueDate: "2027-03-01" });
+    const { id: doneId } = await createMeasure(ctxA, { ...base, title: "Erledigt", dueDate: "2026-09-01" });
+    await setMeasureStatus(ctxA, doneId, "done", NOW);
+
+    const dash = await getDashboard(ctxA, NOW);
+    expect(dash.measures).toEqual({ open: 3, overdue: 1 });
+    expect(dash.readiness).toEqual(before.readiness);
+    expect(dash.readiness.status).toBe("critical");
+    const items = dash.actions.filter((i) => i.source === "measure");
+    expect(items.map((i) => [i.topic, i.priority, i.statusLabel])).toEqual([
+      ["Überfällig (7.3.10 K 7.3.10)", "high", "Massnahme überfällig (seit 6 Tagen)"],
+      ["Bald (7.3.10 K 7.3.10)", "medium", "Massnahme fällig in 10 Tagen"],
+    ]);
+    expect(dash.soonCount).toBe(2);
+
+    const dashB = await getDashboard(ctxB, NOW);
+    expect(dashB.measures).toEqual({ open: 0, overdue: 0 });
+    expect(dashB.actions.some((i) => i.source === "measure")).toBe(false);
+    expect(dashB.soonCount).toBe(0);
+  });
+
+  it("counts a due measure in soonCount next to a deadline but not an evidence item", async () => {
+    const crits = await seedCatalog();
+    const a = await makeOrg("dash-m-soon");
+    const ctx = ctxFor(a.org.id, a.user.id, "owner");
+    for (const c of crits) await setAssessmentStatus(ctx, c.id, "met");
+    await createDocument(ctx, { title: "Alt", file: pdf("y"), validUntil: "2026-01-01", criterionNumbers: ["5.2.1"] });
+    expect((await getDashboard(ctx, NOW)).soonCount).toBe(0);
+    await createMeasure(ctx, { criterionNumber: "6.1", title: "Prozess klären", description: null, ownerUserId: a.user.id, dueDate: "2026-10-12" });
+    const dash = await getDashboard(ctx, NOW);
+    expect(dash.actions.filter((i) => i.source === "evidence").length).toBeGreaterThan(0);
+    expect(dash.soonCount).toBe(1);
+    await db.insert(deadline).values({ organizationId: a.org.id, kind: "application", label: "Antrag", dueDate: "2026-10-20" });
+    expect((await getDashboard(ctx, NOW)).soonCount).toBe(2);
   });
 });
 
