@@ -5,9 +5,10 @@ import { db } from "@/db";
 import { member, organization, user } from "@/db/schema";
 import { listAssessments, setAssessmentStatus } from "@/domain/assessments";
 import { listAuditEvents } from "@/domain/audit";
-import { DEFAULT_PROCEDURE, getDashboard } from "@/domain/dashboard";
+import { ACTION_CENTER_LIMIT, DEFAULT_PROCEDURE, getDashboard, selectActionItems } from "@/domain/dashboard";
 import { addDays, zurichDate } from "@/domain/dates";
 import { addDocumentVersion, listCriterionEvidence } from "@/domain/documents";
+import { listCriterionMeasures } from "@/domain/measures";
 import { buildDemoPdf } from "./demo-documents";
 import { scopeOf } from "@/domain/readiness";
 import { resetDb } from "@/test/helpers";
@@ -133,5 +134,43 @@ describe("seedDemo evidence story", () => {
     await setAssessmentStatus(ctx, id7310, "met");
     const met = await getDashboard(ctx, NOW);
     expect(met.readiness.mandatory.critical).toBe(1);
+  });
+});
+
+describe("seedDemo measures story", () => {
+  beforeEach(resetDb);
+  const NOW = new Date("2026-10-07T10:00:00Z");
+
+  it("seeds four measures that surface in counters and action center without touching readiness", async () => {
+    await seedDemo({ catalog, now: NOW });
+    const [org] = await db.select().from(organization);
+    const owner = (await db.select().from(member)).find((m) => m.role === "owner");
+    const ctx = { organizationId: org.id, userId: owner!.userId, role: "owner" as const };
+    const dash = await getDashboard(ctx, NOW);
+
+    expect(dash.measures).toEqual({ open: 3, overdue: 1 });
+    const items = dash.actions.filter((a) => a.source === "measure");
+    expect(items).toHaveLength(3);
+    expect(items.find((a) => a.criterionNumber === "7.3.8")?.statusLabel).toBe("Massnahme überfällig (seit 4 Tagen)");
+    expect(items.find((a) => a.criterionNumber === "7.3.10")?.statusLabel).toBe("Massnahme fällig in 12 Tagen");
+    expect(items.some((a) => a.criterionNumber === "5.2.2")).toBe(false);
+    expect(dash.readiness.status).toBe("critical");
+    expect(dash.readiness.mandatory.critical).toBe(2);
+
+    const mine = await listCriterionMeasures(ctx, "7.3.10", NOW);
+    expect(mine).toHaveLength(1);
+    expect(mine[0].title).toBe("Hygienekonzept überarbeiten und neu freigeben (Demo)");
+    expect(mine[0].ownerName).toBe("Demo qm_admin");
+    expect(mine[0].status).toBe("in_progress");
+
+    const done = await listCriterionMeasures(ctx, "5.2.2", NOW);
+    expect(done).toHaveLength(1);
+    expect(done[0].status).toBe("done");
+    expect(done[0].completedAt).not.toBeNull();
+
+    // Das Limit des Action Centers schneidet die zwei anstehenden Massnahmen ab; Kritisches und Überfälliges bleiben sichtbar.
+    const visible = selectActionItems(dash.actions, ACTION_CENTER_LIMIT);
+    expect(visible.filter((a) => a.priority === "critical").map((a) => a.criterionNumber).sort()).toEqual(["6.3.2", "7.3.10"]);
+    expect(visible.some((a) => a.source === "measure" && a.criterionNumber === "7.3.8")).toBe(true);
   });
 });

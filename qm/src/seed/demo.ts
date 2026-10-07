@@ -11,6 +11,7 @@ import {
 import type { AssessmentStatus } from "@/db/schema";
 import { setAssessmentDueDate, setAssessmentStatus } from "@/domain/assessments";
 import { importCatalog } from "@/domain/catalog";
+import { createMeasure, setMeasureStatus } from "@/domain/measures";
 import { addDays, zurichDate } from "@/domain/dates";
 import { ROLES, type Role } from "@/domain/rights";
 import { seedDemoDocuments } from "./demo-documents";
@@ -37,6 +38,22 @@ const OVERRIDES: Record<string, { status: AssessmentStatus; dueInDays?: number; 
   "6.10": { status: "not_applicable", reason: "Notärzte werden vom Spital gestellt, der Rettungsdienst delegiert keine Notarzt-Tätigkeiten (Demo-Angabe)." },
   "8.1": { status: "open" },
 };
+
+type DemoMeasure = {
+  criterion: string;
+  title: string;
+  owner: Role;
+  dueInDays: number;
+  status: "open" | "in_progress" | "done";
+};
+
+// Eine laufende, eine offene, eine überfällige und eine erledigte Massnahme; die erledigte darf nirgends als offen zählen.
+const DEMO_MEASURES: DemoMeasure[] = [
+  { criterion: "7.3.10", title: "Hygienekonzept überarbeiten und neu freigeben (Demo)", owner: "qm_admin", dueInDays: 12, status: "in_progress" },
+  { criterion: "6.3.2", title: "Statusmeldungen an die SNZ 144 technisch sicherstellen (Demo)", owner: "editor", dueInDays: 25, status: "open" },
+  { criterion: "7.3.8", title: "Wartungsplan für Fahrzeuge vervollständigen (Demo)", owner: "reviewer", dueInDays: -4, status: "open" },
+  { criterion: "5.2.2", title: "Organigramm aktualisiert (Demo)", owner: "owner", dueInDays: -30, status: "done" },
+];
 
 export async function seedDemo(input: { catalog: unknown; now?: Date }) {
   assertResetAllowed(process.env);
@@ -104,6 +121,17 @@ export async function seedDemo(input: { catalog: unknown; now?: Date }) {
     }
   }
   await seedDemoDocuments(ctx, now);
+  for (const m of DEMO_MEASURES) {
+    if (!known.has(m.criterion)) throw new Error(`Kriterium ${m.criterion} fehlt im Katalog (Massnahme nicht anlegbar)`);
+    const { id } = await createMeasure(ctx, {
+      criterionNumber: m.criterion,
+      title: m.title,
+      description: null,
+      ownerUserId: ids[m.owner],
+      dueDate: addDays(today, m.dueInDays),
+    });
+    if (m.status !== "open") await setMeasureStatus(ctx, id, m.status, now);
+  }
   await db.insert(deadline).values([
     { organizationId: org.id, kind: "application", label: "Antrag einreichen", dueDate: addDays(today, 20) },
     { organizationId: org.id, kind: "custom", label: "Besuchstermin der Expertinnen und Experten", dueDate: addDays(today, 60) },
