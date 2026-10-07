@@ -8,6 +8,20 @@
       "when": 1791384692529,
       "tag": "0000_naive_mojo",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791384812165,
+      "tag": "0001_elite_blockbuster",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791384812513,
+      "tag": "0002_audit_append_only",
+      "breakpoints": true
     }
   ]
 }

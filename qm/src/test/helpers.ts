@@ -1,5 +1,9 @@
 import { sql } from "drizzle-orm";
+import { randomUUID } from "node:crypto";
 import { db } from "@/db";
+import { organization, member, user } from "@/db/schema";
+import type { OrgContext } from "@/domain/org-context";
+import type { Role } from "@/domain/rights";
 
 const TABLES = [
   "audit_event",
@@ -26,4 +30,41 @@ export async function resetDb() {
   const present = TABLES.filter((t) => have.has(t.replaceAll('"', "")));
   if (present.length === 0) return;
   await db.execute(sql.raw(`TRUNCATE ${present.join(", ")} RESTART IDENTITY CASCADE`));
+}
+
+export async function makeUser(label: string) {
+  const [u] = await db
+    .insert(user)
+    .values({
+      id: randomUUID(),
+      name: label,
+      email: `${label}-${randomUUID().slice(0, 8)}@example.test`,
+      emailVerified: true,
+    })
+    .returning();
+  return u;
+}
+
+export async function makeOrg(slug: string, role: Role = "owner") {
+  const u = await makeUser(`user-${slug}`);
+  const [org] = await db
+    .insert(organization)
+    .values({ id: randomUUID(), name: `Org ${slug}`, slug, createdAt: new Date() })
+    .returning();
+  await db
+    .insert(member)
+    .values({ id: randomUUID(), organizationId: org.id, userId: u.id, role, createdAt: new Date() });
+  return { org, user: u };
+}
+
+export async function addMemberTo(orgId: string, label: string, role: Role) {
+  const u = await makeUser(label);
+  await db
+    .insert(member)
+    .values({ id: randomUUID(), organizationId: orgId, userId: u.id, role, createdAt: new Date() });
+  return u;
+}
+
+export function ctxFor(orgId: string, userId: string, role: Role): OrgContext {
+  return { organizationId: orgId, userId, role };
 }
