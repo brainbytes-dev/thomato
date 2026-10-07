@@ -18,8 +18,6 @@ $$;
 
 -- Kein attributändernder ALTER ROLE (NOSUPERUSER usw. verlangt SUPERUSER, z. B. auf Neon nicht verfügbar).
 -- Stattdessen wird geprüft und abgebrochen, falls eine bereits vorhandene Rolle zu mächtig ist.
-ALTER ROLE qm_app CONNECTION LIMIT 20;
-
 DO $$
 DECLARE
   r pg_roles%ROWTYPE;
@@ -31,6 +29,8 @@ BEGIN
   END IF;
 END
 $$;
+
+ALTER ROLE qm_app CONNECTION LIMIT 20;
 
 GRANT USAGE ON SCHEMA public TO qm_app;
 REVOKE CREATE ON SCHEMA public FROM qm_app;

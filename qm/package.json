@@ -12,7 +12,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:roles": "tsx scripts/apply-roles.ts",
-    "db:deploy": "pnpm db:migrate && pnpm db:roles",
+    "db:deploy": "DATABASE_URL=$DATABASE_URL_DIRECT pnpm db:migrate && pnpm db:roles",
     "seed:demo": "tsx scripts/seed-demo.ts",
     "import:catalog": "tsx scripts/import-catalog.ts"
   },

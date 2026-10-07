@@ -8,7 +8,13 @@ async function main() {
   const password = process.env.QM_APP_PASSWORD;
   if (!url) throw new Error("DATABASE_URL_DIRECT fehlt (Besitzer-Verbindung, direkt, ohne Pooler; nur aus der Umgebung).");
   if (!password) throw new Error("QM_APP_PASSWORD fehlt (Passwort der Rolle qm_app; nur aus der Umgebung).");
-  const parsed = new URL(url);
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    // Feste Meldung: der Fehler von new URL() würde die komplette URL samt Passwort enthalten.
+    throw new Error("DATABASE_URL_DIRECT ist keine gültige URL.");
+  }
   if (parsed.hostname.includes("-pooler")) {
     throw new Error("DATABASE_URL_DIRECT zeigt auf einen Pooler (-pooler). Bitte die Direct-URL des Besitzers verwenden.");
   }
