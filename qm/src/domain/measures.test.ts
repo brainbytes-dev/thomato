@@ -1,13 +1,15 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { ACTIVE_STANDARD_VERSION, auditEvent, criterionAssessment, measure } from "@/db/schema";
+import { auth } from "@/auth/auth";
+import { ACTIVE_STANDARD_VERSION, auditEvent, criterionAssessment, member, measure } from "@/db/schema";
 import { importCatalog } from "./catalog";
 import { listAuditEvents } from "./audit";
 import {
   createMeasure, listCriterionMeasures, listOpenMeasures, listOrgMembers, setMeasureStatus, updateMeasure,
 } from "./measures";
 import { ForbiddenError, ValidationError } from "./org-context";
+import { randomUUID } from "node:crypto";
 import { addMemberTo, ctxFor, makeOrg, resetDb } from "@/test/helpers";
 
 const NOW = new Date("2026-10-08T10:00:00Z");
@@ -82,7 +84,7 @@ describe("createMeasure", () => {
   });
 
   it("rejects invalid input without writing a row or an audit event", async () => {
-    const { ctxA, a, b, colleague } = await setup();
+    const { ctxA, b, colleague } = await setup();
     const ok = valid(colleague.id);
     const cases = [
       { ...ok, title: "ab" },
@@ -96,7 +98,6 @@ describe("createMeasure", () => {
       { ...ok, ownerUserId: "00000000-0000-4000-8000-000000000000" },
     ];
     for (const c of cases) await expect(createMeasure(ctxA, c)).rejects.toBeInstanceOf(ValidationError);
-    expect(a.user.id).toBeTruthy();
     expect(await db.select().from(measure)).toEqual([]);
     expect(await listAuditEvents(ctxA)).toEqual([]);
   });
@@ -241,14 +242,13 @@ describe("listings", () => {
   it("sorts open by due date first, then done by completion descending; open list excludes done and has criterionTitle", async () => {
     const { ctxA, a } = await setup();
     const late = await createMeasure(ctxA, { ...valid(a.user.id), title: "Spät", dueDate: "2026-12-01" });
-    const early = await createMeasure(ctxA, { ...valid(a.user.id), title: "Früh", dueDate: "2026-10-20" });
+    await createMeasure(ctxA, { ...valid(a.user.id), title: "Früh", dueDate: "2026-10-20" });
     const d1 = await createMeasure(ctxA, { ...valid(a.user.id), title: "Erledigt eins", dueDate: "2026-09-01" });
     const d2 = await createMeasure(ctxA, { ...valid(a.user.id), title: "Erledigt zwei", dueDate: "2026-09-02" });
     await createMeasure(ctxA, { ...valid(a.user.id), title: "Andere Nummer", criterionNumber: "6.3.2", dueDate: "2026-10-10" });
     await setMeasureStatus(ctxA, d1.id, "done", new Date("2026-10-01T10:00:00Z"));
     await setMeasureStatus(ctxA, d2.id, "done", new Date("2026-10-05T10:00:00Z"));
     await setMeasureStatus(ctxA, late.id, "in_progress", NOW);
-    expect(early.id).toBeTruthy();
 
     const list = await listCriterionMeasures(ctxA, "7.3.10", NOW);
     expect(list.map((m) => m.title)).toEqual(["Früh", "Spät", "Erledigt zwei", "Erledigt eins"]);
@@ -295,5 +295,52 @@ describe("side effects", () => {
     await setMeasureStatus(ctxA, id, "done", NOW);
     await updateMeasure(ctxA, id, { title: "Anderer Titel", description: null, ownerUserId: a.user.id, dueDate: "2026-12-01" });
     expect(await db.select().from(criterionAssessment)).toEqual([]);
+  });
+});
+
+describe("real Better Auth users", () => {
+  beforeEach(resetDb);
+
+  async function realMember(orgId: string, email: string) {
+    const { user } = await auth.api.signUpEmail({ body: { email, password: "correct-horse-battery-1", name: "Echte Person" } });
+    await db.insert(member).values({ id: randomUUID(), organizationId: orgId, userId: user.id, role: "editor", createdAt: new Date() });
+    return user;
+  }
+
+  it("accepts a non-UUID owner id in create and update", async () => {
+    const { ctxA, a } = await setup();
+    const real = await realMember(a.org.id, "real-owner@example.test");
+    expect(real.id).not.toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+    const { id } = await createMeasure(ctxA, valid(real.id));
+    const [created] = await listCriterionMeasures(ctxA, "7.3.10", NOW);
+    expect(created).toMatchObject({ id, ownerUserId: real.id, ownerName: "Echte Person" });
+    await updateMeasure(ctxA, id, { title: "Neuer Titel", description: null, ownerUserId: a.user.id, dueDate: "2026-12-01" });
+    await updateMeasure(ctxA, id, { title: "Neuer Titel", description: null, ownerUserId: real.id, dueDate: "2026-12-01" });
+    const [row] = await db.select().from(measure);
+    expect(row.ownerUserId).toBe(real.id);
+  });
+
+  it("rejects an empty or oversized owner id", async () => {
+    const { ctxA } = await setup();
+    for (const bad of ["", "x".repeat(65)]) {
+      await expect(createMeasure(ctxA, valid(bad))).rejects.toBeInstanceOf(ValidationError);
+    }
+  });
+
+  it("allows a title-only edit after the owner left, but not a switch to a non-member", async () => {
+    const { ctxA, a, b, colleague } = await setup();
+    const { id } = await createMeasure(ctxA, valid(colleague.id));
+    await db.delete(member).where(and(eq(member.organizationId, a.org.id), eq(member.userId, colleague.id)));
+    const keep = { description: "Alle Teams", ownerUserId: colleague.id, dueDate: "2026-11-15" };
+    await updateMeasure(ctxA, id, { ...keep, title: "Nur der Titel" });
+    const [row] = await db.select().from(measure);
+    expect(row).toMatchObject({ title: "Nur der Titel", ownerUserId: colleague.id });
+    const updated = (await listAuditEvents(ctxA)).find((e) => e.eventType === "measure.updated")!;
+    expect(updated.afterJson).toMatchObject({ ownerName: "Kollegin", title: "Nur der Titel" });
+    await expect(
+      updateMeasure(ctxA, id, { ...keep, title: "Nur der Titel", ownerUserId: b.user.id }),
+    ).rejects.toBeInstanceOf(ValidationError);
+    const [after] = await db.select().from(measure);
+    expect(after.ownerUserId).toBe(colleague.id);
   });
 });

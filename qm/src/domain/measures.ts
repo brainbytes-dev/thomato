@@ -30,6 +30,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const TITLE_MIN = 3;
 const TITLE_MAX = 120;
 const DESCRIPTION_MAX = 1000;
+const OWNER_ID_MAX = 64;
 const NOT_FOUND = "Massnahme nicht gefunden.";
 
 function validateFields(input: MeasureFields): MeasureFields {
@@ -43,7 +44,10 @@ function validateFields(input: MeasureFields): MeasureFields {
     throw new ValidationError(`Die Beschreibung darf höchstens ${DESCRIPTION_MAX} Zeichen lang sein.`);
   }
   if (!isValidIsoDate(input.dueDate)) throw new ValidationError("Die Frist ist ungültig.");
-  if (!UUID.test(input.ownerUserId)) throw new ValidationError("Die verantwortliche Person ist ungültig.");
+  // Better Auth vergibt keine UUIDs; die Mitgliedschaftsprüfung in der Transaktion ist die eigentliche Validierung.
+  if (input.ownerUserId.length < 1 || input.ownerUserId.length > OWNER_ID_MAX) {
+    throw new ValidationError("Die verantwortliche Person ist ungültig.");
+  }
   return { title, description: trimmed === "" ? null : trimmed, ownerUserId: input.ownerUserId, dueDate: input.dueDate };
 }
 
@@ -137,7 +141,11 @@ export async function updateMeasure(ctx: OrgContext, id: string, input: MeasureF
       row.ownerUserId === fields.ownerUserId &&
       row.dueDate === fields.dueDate;
     if (unchanged) return { result: undefined, event: null };
-    const ownerName = await ownerNameOf(tx, ctx, fields.ownerUserId);
+    // Nur bei einem Wechsel der Person prüfen; sonst bleibt eine reine Titeländerung auch nach deren Austritt möglich.
+    const ownerName =
+      fields.ownerUserId === row.ownerUserId
+        ? (beforeOwner?.name ?? null)
+        : await ownerNameOf(tx, ctx, fields.ownerUserId);
     await tx
       .update(measure)
       .set({ ...fields, updatedAt: new Date() })
