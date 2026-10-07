@@ -1,10 +1,18 @@
 import { and, eq, sql } from "drizzle-orm";
 import { auth } from "@/auth/auth";
 import { db } from "@/db";
-import { ACTIVE_STANDARD_VERSION, criterion, member, organization } from "@/db/schema";
+import {
+  ACTIVE_STANDARD_VERSION,
+  criterion,
+  criterionAssessment,
+  deadline,
+  member,
+  organization,
+} from "@/db/schema";
 import type { AssessmentStatus } from "@/db/schema";
 import { setAssessmentStatus } from "@/domain/assessments";
 import { importCatalog } from "@/domain/catalog";
+import { addDays, zurichDate } from "@/domain/dates";
 import { ROLES, type Role } from "@/domain/rights";
 import { assertResetAllowed } from "./reset-guard";
 
@@ -12,16 +20,24 @@ export { assertResetAllowed };
 
 const DEMO_PASSWORD = "Demo-QM-2026";
 
-// Story: wenige bewusst offene Pflichtpunkte, einige erfüllte, der Rest unbewertet.
-const STORY: ReadonlyArray<{ number: string; status: AssessmentStatus }> = [
-  { number: "5.2.1", status: "met" },
-  { number: "5.2.2", status: "met" },
-  { number: "7.3.10", status: "critical" },
-  { number: "7.3.8", status: "open" },
-  { number: "8.1", status: "open" },
-];
+// Story: Antrag, Struktur und Prozess sind weitgehend erfüllt (hoher Fortschritt), Ergebnis ist unbewertet.
+// Zwei kritische Pflichtpunkte machen den Status trotzdem kritisch: Fortschritt ist nicht Readiness.
+const CHAPTER_DEFAULT: Record<string, AssessmentStatus | undefined> = {
+  Antrag: "met",
+  Struktur: "met",
+  Prozess: "met",
+};
+const OVERRIDES: Record<string, { status: AssessmentStatus; dueInDays?: number }> = {
+  "6.3.2": { status: "critical", dueInDays: 25 },
+  "7.3.10": { status: "critical", dueInDays: 12 },
+  "6.5.2": { status: "open", dueInDays: 40 },
+  "7.3.8": { status: "open", dueInDays: 40 },
+  "7.3.2": { status: "open" },
+  "7.9": { status: "not_applicable" },
+  "8.1": { status: "open" },
+};
 
-export async function seedDemo(input: { catalog: unknown }) {
+export async function seedDemo(input: { catalog: unknown; now?: Date }) {
   assertResetAllowed(process.env);
   if (!Array.isArray(input.catalog)) throw new Error("Katalog muss ein Array sein");
   const rows: unknown[] = input.catalog;
@@ -66,18 +82,34 @@ export async function seedDemo(input: { catalog: unknown }) {
   }
 
   const ctx = { organizationId: org.id, userId: ids.owner, role: "owner" as const };
-  for (const step of STORY) {
-    const [c] = await db
-      .select({ id: criterion.id })
-      .from(criterion)
-      .where(
-        and(
-          eq(criterion.standardVersionId, ACTIVE_STANDARD_VERSION),
-          eq(criterion.number, step.number),
-        ),
-      );
-    if (!c) throw new Error(`Kriterium ${step.number} fehlt im Katalog (Story-Schritt nicht ausführbar)`);
-    await setAssessmentStatus(ctx, c.id, step.status);
+  const now = input.now ?? new Date();
+  const catalogRows = await db
+    .select({ id: criterion.id, number: criterion.number, chapter: criterion.chapter })
+    .from(criterion)
+    .where(eq(criterion.standardVersionId, ACTIVE_STANDARD_VERSION))
+    .orderBy(criterion.sortOrder);
+  const known = new Set(catalogRows.map((c) => c.number));
+  for (const nr of Object.keys(OVERRIDES)) {
+    if (!known.has(nr)) throw new Error(`Kriterium ${nr} fehlt im Katalog (Story-Schritt nicht ausführbar)`);
   }
+  const today = zurichDate(now);
+  for (const c of catalogRows) {
+    const o = OVERRIDES[c.number];
+    const status = o?.status ?? CHAPTER_DEFAULT[c.chapter];
+    if (!status) continue;
+    await setAssessmentStatus(ctx, c.id, status);
+    if (o?.dueInDays !== undefined) {
+      await db
+        .update(criterionAssessment)
+        .set({ dueDate: addDays(today, o.dueInDays) })
+        .where(and(eq(criterionAssessment.organizationId, org.id), eq(criterionAssessment.criterionId, c.id)));
+    }
+  }
+  await db.insert(deadline).values([
+    { organizationId: org.id, kind: "application", label: "Antrag einreichen", dueDate: addDays(today, 20) },
+    { organizationId: org.id, kind: "custom", label: "Besuchstermin der Expertinnen und Experten", dueDate: addDays(today, 60) },
+    { organizationId: org.id, kind: "dossier", label: "Vollständiges Dossier abgeben", dueDate: addDays(today, 95) },
+    { organizationId: org.id, kind: "expiry", label: "Ablauf der Anerkennung", dueDate: addDays(today, 640) },
+  ]);
   return { organizationId: org.id, users };
 }
