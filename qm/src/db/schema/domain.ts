@@ -1,5 +1,7 @@
+import { sql } from "drizzle-orm";
 import {
   boolean,
+  check,
   date,
   index,
   integer,
@@ -78,6 +80,10 @@ export const criterionAssessment = pgTable(
   (t) => [
     unique("assessment_org_criterion").on(t.organizationId, t.criterionId),
     index("assessment_org_idx").on(t.organizationId),
+    check(
+      "assessment_na_reason_check",
+      sql`(${t.status} = 'not_applicable' AND ${t.notApplicableReason} IS NOT NULL AND char_length(btrim(${t.notApplicableReason})) BETWEEN 10 AND 500) OR (${t.status} <> 'not_applicable' AND ${t.notApplicableReason} IS NULL)`,
+    ),
   ],
 );
 

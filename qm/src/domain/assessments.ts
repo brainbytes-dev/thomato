@@ -60,8 +60,9 @@ export const NA_REASON_MIN = 10;
 export const NA_REASON_MAX = 500;
 
 function requireReason(reason: string | null | undefined): string {
-  const trimmed = (reason ?? "").trim();
-  if (trimmed.length < NA_REASON_MIN || trimmed.length > NA_REASON_MAX) {
+  const trimmed = typeof reason === "string" ? reason.trim() : "";
+  const length = [...trimmed].length;
+  if (length < NA_REASON_MIN || length > NA_REASON_MAX) {
     throw new ValidationError(
       `Für «Entfällt» ist eine Begründung mit ${NA_REASON_MIN} bis ${NA_REASON_MAX} Zeichen nötig.`,
     );

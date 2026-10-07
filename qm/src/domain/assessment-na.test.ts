@@ -115,3 +115,55 @@ describe("due date", () => {
     expect(rows).toHaveLength(0);
   });
 });
+
+async function rejectionText(p: Promise<unknown>): Promise<string> {
+  try {
+    await p;
+  } catch (error) {
+    const cause = error instanceof Error && error.cause instanceof Error ? error.cause.message : "";
+    return `${error instanceof Error ? error.message : String(error)} ${cause}`;
+  }
+  throw new Error("erwartete Ablehnung blieb aus");
+}
+
+describe("database enforces the reason rule", () => {
+  beforeEach(resetDb);
+
+  it("rejects not applicable without a reason and accepts one with a reason", async () => {
+    const { c, a } = await setup();
+    const text = await rejectionText(
+      db.insert(criterionAssessment).values({ organizationId: a.org.id, criterionId: c.id, status: "not_applicable" }),
+    );
+    expect(text).toMatch(/assessment_na_reason_check|check/i);
+    await db
+      .insert(criterionAssessment)
+      .values({ organizationId: a.org.id, criterionId: c.id, status: "not_applicable", notApplicableReason: REASON });
+    expect(await db.select().from(criterionAssessment)).toHaveLength(1);
+  });
+
+  it("rejects a reason on a row that is not not applicable", async () => {
+    const { c, a } = await setup();
+    await db.insert(criterionAssessment).values({ organizationId: a.org.id, criterionId: c.id, status: "open" });
+    const text = await rejectionText(db.update(criterionAssessment).set({ notApplicableReason: REASON }));
+    expect(text).toMatch(/assessment_na_reason_check|check/i);
+  });
+});
+
+describe("reason length counts code points", () => {
+  beforeEach(resetDb);
+
+  it("rejects 5 emoji and accepts 10 emoji", async () => {
+    const { c, ctxA } = await setup();
+    await expect(setAssessmentStatus(ctxA, c.id, "not_applicable", { reason: "😀".repeat(5) })).rejects.toBeInstanceOf(ValidationError);
+    await setAssessmentStatus(ctxA, c.id, "not_applicable", { reason: "😀".repeat(10) });
+    const [row] = await db.select().from(criterionAssessment);
+    expect(row.notApplicableReason).toBe("😀".repeat(10));
+  });
+
+  it("raises ValidationError for a non-string reason", async () => {
+    const { c, ctxA } = await setup();
+    await expect(
+      setAssessmentStatus(ctxA, c.id, "not_applicable", { reason: 12345678901234 as unknown as string }),
+    ).rejects.toBeInstanceOf(ValidationError);
+  });
+});
