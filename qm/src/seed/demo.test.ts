@@ -166,7 +166,9 @@ describe("seedDemo measures story", () => {
     const done = await listCriterionMeasures(ctx, "5.2.2", NOW);
     expect(done).toHaveLength(1);
     expect(done[0].status).toBe("done");
-    expect(done[0].completedAt).not.toBeNull();
+    expect(done[0].title).toBe("Organigramm aktualisieren (Demo)");
+    expect(done[0].completedAt).toEqual(new Date(NOW.getTime() - 32 * 86_400_000));
+    expect(done[0].completedAt!.getTime()).toBeLessThan(new Date(`${done[0].dueDate}T23:59:59Z`).getTime());
 
     // Das Limit des Action Centers schneidet die zwei anstehenden Massnahmen ab; Kritisches und Überfälliges bleiben sichtbar.
     const visible = selectActionItems(dash.actions, ACTION_CENTER_LIMIT);

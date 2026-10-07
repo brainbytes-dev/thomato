@@ -45,6 +45,8 @@ type DemoMeasure = {
   owner: Role;
   dueInDays: number;
   status: "open" | "in_progress" | "done";
+  /** Nur für erledigte Massnahmen: Erledigung liegt so viele Tage vor dem Seed-Zeitpunkt. */
+  completedDaysAgo?: number;
 };
 
 // Eine laufende, eine offene, eine überfällige und eine erledigte Massnahme; die erledigte darf nirgends als offen zählen.
@@ -52,7 +54,7 @@ const DEMO_MEASURES: DemoMeasure[] = [
   { criterion: "7.3.10", title: "Hygienekonzept überarbeiten und neu freigeben (Demo)", owner: "qm_admin", dueInDays: 12, status: "in_progress" },
   { criterion: "6.3.2", title: "Statusmeldungen an die SNZ 144 technisch sicherstellen (Demo)", owner: "editor", dueInDays: 25, status: "open" },
   { criterion: "7.3.8", title: "Wartungsplan für Fahrzeuge vervollständigen (Demo)", owner: "reviewer", dueInDays: -4, status: "open" },
-  { criterion: "5.2.2", title: "Organigramm aktualisiert (Demo)", owner: "owner", dueInDays: -30, status: "done" },
+  { criterion: "5.2.2", title: "Organigramm aktualisieren (Demo)", owner: "owner", dueInDays: -30, status: "done", completedDaysAgo: 32 },
 ];
 
 export async function seedDemo(input: { catalog: unknown; now?: Date }) {
@@ -130,7 +132,10 @@ export async function seedDemo(input: { catalog: unknown; now?: Date }) {
       ownerUserId: ids[m.owner],
       dueDate: addDays(today, m.dueInDays),
     });
-    if (m.status !== "open") await setMeasureStatus(ctx, id, m.status, now);
+    if (m.status !== "open") {
+      const at = m.completedDaysAgo === undefined ? now : new Date(now.getTime() - m.completedDaysAgo * 86_400_000);
+      await setMeasureStatus(ctx, id, m.status, at);
+    }
   }
   await db.insert(deadline).values([
     { organizationId: org.id, kind: "application", label: "Antrag einreichen", dueDate: addDays(today, 20) },
