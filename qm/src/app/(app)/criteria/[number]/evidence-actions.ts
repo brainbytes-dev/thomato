@@ -26,20 +26,22 @@ async function run<S extends z.ZodType<{ number: string }>>(
   schema: S,
   formData: FormData,
   success: string,
-  work: (ctx: OrgContext, data: z.output<S>, now: Date) => Promise<void>,
+  work: (ctx: OrgContext, data: z.output<S>, now: Date) => Promise<{ criterionNumber: string } | void>,
 ): Promise<EvidenceFormState> {
   const parsed = schema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { ok: false, message: INVALID };
   const ctx = await requireOrgContextOrRedirect();
   if (!can(ctx.role, "document", "write")) return { ok: false, message: FORBIDDEN };
+  let revalidated = parsed.data.number;
   try {
-    await work(ctx, parsed.data, new Date());
+    const done = await work(ctx, parsed.data, new Date());
+    if (done) revalidated = done.criterionNumber;
   } catch (e) {
     if (e instanceof ValidationError) return { ok: false, message: e.message };
     if (e instanceof ForbiddenError) return { ok: false, message: FORBIDDEN };
     throw e;
   }
-  revalidateEvidence(parsed.data.number);
+  revalidateEvidence(revalidated);
   return { ok: true, message: success };
 }
 
@@ -74,6 +76,6 @@ export async function linkEvidenceAction(_prev: EvidenceFormState, formData: For
 
 export async function unlinkEvidenceAction(_prev: EvidenceFormState, formData: FormData): Promise<EvidenceFormState> {
   return run(unlinkInput, formData, "Verknüpfung gelöst.", async (ctx, data) => {
-    await unlinkEvidence(ctx, data.linkId);
+    return unlinkEvidence(ctx, data.linkId);
   });
 }

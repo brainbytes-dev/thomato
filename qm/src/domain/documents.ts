@@ -103,7 +103,7 @@ export async function createDocument(
   const content = Buffer.from(input.file.bytes);
   const sha256 = createHash("sha256").update(content).digest("hex");
 
-  return withAudit(ctx, async (tx) => {
+  return db.transaction(async (tx) => {
     const [doc] = await tx
       .insert(document)
       .values({ organizationId: ctx.organizationId, title, createdBy: ctx.userId })
@@ -123,6 +123,14 @@ export async function createDocument(
         uploadedBy: ctx.userId,
       })
       .returning({ id: documentVersion.id });
+    // Reihenfolge = Schreibreihenfolge: erst das Dokument, dann die Verknüpfungen (Verlauf sortiert nach created_at).
+    await insertAuditEvent(tx, ctx, {
+      eventType: "document.created",
+      entityType: "document",
+      entityId: doc.id,
+      before: null,
+      after: { title, versionNumber: 1, fileName: file.fileName, validUntil, criterionNumbers: numbers },
+    });
     for (const number of numbers) {
       const [link] = await tx
         .insert(evidenceLink)
@@ -142,16 +150,7 @@ export async function createDocument(
         after: { title, documentId: doc.id, criterionNumbers: [number] },
       });
     }
-    return {
-      result: { documentId: doc.id, versionId: version.id },
-      event: {
-        eventType: "document.created",
-        entityType: "document",
-        entityId: doc.id,
-        before: null,
-        after: { title, versionNumber: 1, fileName: file.fileName, validUntil, criterionNumbers: numbers },
-      },
-    };
+    return { documentId: doc.id, versionId: version.id };
   });
 }
 
@@ -263,11 +262,11 @@ export async function linkEvidence(
   });
 }
 
-export async function unlinkEvidence(ctx: OrgContext, linkId: string): Promise<void> {
+export async function unlinkEvidence(ctx: OrgContext, linkId: string): Promise<{ criterionNumber: string }> {
   assertCan(ctx, "document", "write");
   if (!UUID.test(linkId)) throw new ValidationError("Verknüpfung nicht gefunden.");
 
-  await withAudit(ctx, async (tx) => {
+  return withAudit(ctx, async (tx) => {
     const [row] = await tx
       .select({
         id: evidenceLink.id,
@@ -287,7 +286,7 @@ export async function unlinkEvidence(ctx: OrgContext, linkId: string): Promise<v
       .delete(evidenceLink)
       .where(and(eq(evidenceLink.id, row.id), eq(evidenceLink.organizationId, ctx.organizationId)));
     return {
-      result: undefined,
+      result: { criterionNumber: row.number },
       event: {
         eventType: "evidence.unlinked",
         entityType: "evidence_link",

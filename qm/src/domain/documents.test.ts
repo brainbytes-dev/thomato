@@ -9,7 +9,7 @@ import {
   listCriterionEvidence, listDocuments, listLinkableDocuments, unlinkEvidence,
 } from "./documents";
 import { ForbiddenError, ValidationError } from "./org-context";
-import { setAssessmentStatus } from "./assessments";
+import { listCriterionHistory, setAssessmentStatus } from "./assessments";
 import { addMemberTo, ctxFor, makeOrg, resetDb } from "@/test/helpers";
 
 const NOW = new Date("2026-10-08T10:00:00Z");
@@ -117,6 +117,20 @@ describe("addDocumentVersion", () => {
   });
 });
 
+describe("audit event order", () => {
+  beforeEach(resetDb);
+
+  it("keeps write order for events of one transaction in the criterion history", async () => {
+    const { ctxA } = await setup();
+    await createDocument(ctxA, { title: "Hygienekonzept", file: pdf("v1"), validUntil: null, criterionNumbers: ["7.3.10"] });
+    const history = await listCriterionHistory(ctxA, "7.3.10", null);
+    expect(history.map((h) => h.eventType)).toEqual(["evidence.linked", "document.created"]);
+    const events = await listAuditEvents(ctxA);
+    expect(events.map((e) => e.eventType)).toEqual(["evidence.linked", "document.created"]);
+    expect(history[0].createdAt.getTime()).toBeGreaterThan(history[1].createdAt.getTime());
+  });
+});
+
 describe("linking", () => {
   beforeEach(resetDb);
 
@@ -127,12 +141,24 @@ describe("linking", () => {
     const { linkId } = await linkEvidence(ctxA, documentId, "7.3.10");
     expect(await listLinkableDocuments(ctxA, "7.3.10")).toEqual([]);
     await expect(linkEvidence(ctxA, documentId, "7.3.10")).rejects.toBeInstanceOf(ValidationError);
-    await unlinkEvidence(ctxA, linkId);
+    expect(await unlinkEvidence(ctxA, linkId)).toEqual({ criterionNumber: "7.3.10" });
     expect((await listCriterionEvidence(ctxA, "7.3.10", NOW)).state).toBe("none");
     const types = (await listAuditEvents(ctxA)).map((e) => e.eventType).sort();
     expect(types).toEqual(["document.created", "evidence.linked", "evidence.unlinked"]);
     const unlinked = (await listAuditEvents(ctxA)).find((e) => e.eventType === "evidence.unlinked")!;
     expect(unlinked.beforeJson).toMatchObject({ criterionNumbers: ["7.3.10"] });
+  });
+
+  it("listLinkableDocuments is tenant scoped and excludes already linked documents", async () => {
+    const { ctxA, ctxB } = await setup();
+    const linked = await createDocument(ctxA, { title: "Verknüpft", file: pdf("a"), validUntil: null, criterionNumbers: ["7.3.10"] });
+    const free = await createDocument(ctxA, { title: "Frei", file: pdf("b"), validUntil: null, criterionNumbers: [] });
+    expect((await listLinkableDocuments(ctxA, "7.3.10")).map((d) => d.documentId)).toEqual([free.documentId]);
+    expect((await listLinkableDocuments(ctxA, "6.3.2")).map((d) => d.documentId).sort()).toEqual(
+      [linked.documentId, free.documentId].sort(),
+    );
+    expect(await listLinkableDocuments(ctxB, "7.3.10")).toEqual([]);
+    expect(await listLinkableDocuments(ctxB, "6.3.2")).toEqual([]);
   });
 
   it("refuses unknown criteria and foreign documents or links", async () => {

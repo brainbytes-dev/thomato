@@ -1,0 +1,1 @@
+ALTER TABLE "audit_event" ALTER COLUMN "created_at" SET DEFAULT clock_timestamp();

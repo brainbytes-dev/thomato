@@ -103,7 +103,7 @@ export const auditEvent = pgTable(
     beforeJson: jsonb("before_json"),
     afterJson: jsonb("after_json"),
     requestId: text("request_id"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`clock_timestamp()`),
   },
   (t) => [index("audit_org_created_idx").on(t.organizationId, t.createdAt)],
 );
