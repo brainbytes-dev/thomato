@@ -166,3 +166,28 @@ describe("not applicable mandatory criteria (Henrik 2026-10-07)", () => {
     expect(readinessSummary(r)).toBe("Keine anwendbaren Pflichtkriterien im Geltungsbereich.");
   });
 });
+
+describe("deliberate rule effects", () => {
+  it("a lone critical should criterion is not_assessed but still counted", () => {
+    const r = computeReadiness([should("critical")], "accreditation", false);
+    expect(r.status).toBe("not_assessed");
+    expect(r.shouldCritical).toBe(1);
+  });
+
+  it("names critical should criteria when no mandatory criterion is applicable", () => {
+    const one = computeReadiness([crit("not_applicable"), should("critical")], "accreditation", false);
+    expect(readinessSummary(one)).toBe(
+      "Keine anwendbaren Pflichtkriterien im Geltungsbereich, zudem 1 Soll-Kriterium kritisch.",
+    );
+    const two = computeReadiness([crit("not_applicable"), should("critical"), should("critical")], "accreditation", false);
+    expect(readinessSummary(two)).toBe(
+      "Keine anwendbaren Pflichtkriterien im Geltungsbereich, zudem 2 Soll-Kriterien kritisch.",
+    );
+  });
+
+  it("counts mandatory.notApplicable per procedure mode", () => {
+    const onlyAccreditation = crit("not_applicable", { mandatoryRenewal: false, shouldRenewal: true });
+    expect(computeReadiness([onlyAccreditation], "accreditation", false).mandatory.notApplicable).toBe(1);
+    expect(computeReadiness([onlyAccreditation], "renewal", false).mandatory.notApplicable).toBe(0);
+  });
+});

@@ -80,6 +80,57 @@ describe("not applicable needs a reason", () => {
   });
 });
 
+describe("reason change while not applicable", () => {
+  beforeEach(resetDb);
+
+  it("audits a changed reason as not_applicable_changed with old and new reason", async () => {
+    const { c, ctxA } = await setup();
+    const NEW_REASON = "Der Helikopter wird von einem Partnerdienst gestellt.";
+    await setAssessmentStatus(ctxA, c.id, "not_applicable", { reason: REASON });
+    await setAssessmentStatus(ctxA, c.id, "not_applicable", { reason: NEW_REASON });
+    const [latest] = await listAuditEvents(ctxA);
+    expect(latest.eventType).toBe("criterion.not_applicable_changed");
+    expect(latest.beforeJson).toEqual({ status: "not_applicable", reason: REASON });
+    expect(latest.afterJson).toEqual({ status: "not_applicable", reason: NEW_REASON });
+  });
+});
+
+describe("concurrent saves", () => {
+  beforeEach(resetDb);
+
+  it("serializes writers so no audit event reads a stale before", async () => {
+    for (let round = 0; round < 5; round += 1) {
+      await resetDb();
+      const { c, ctxA } = await setup();
+      await Promise.all([
+        setAssessmentStatus(ctxA, c.id, "not_applicable", { reason: REASON }),
+        setAssessmentStatus(ctxA, c.id, "met"),
+      ]);
+      const events = await listAuditEvents(ctxA);
+      expect(events).toHaveLength(2);
+      const first = events.find((e) => (e.beforeJson as { status: string }).status === "not_assessed");
+      expect(first).toBeDefined();
+      const second = events.find((e) => e !== first)!;
+      expect(events.filter((e) => (e.beforeJson as { status: string }).status === "not_assessed")).toHaveLength(1);
+      expect(second.beforeJson).toEqual(first!.afterJson);
+      const touchesNa = (e: typeof first) =>
+        [e!.beforeJson, e!.afterJson].some((p) => (p as { status: string }).status === "not_applicable");
+      for (const e of events) {
+        if (touchesNa(e)) expect(e.eventType).toBe("criterion.not_applicable_changed");
+      }
+      expect(events.some((e) => e.eventType === "criterion.not_applicable_changed")).toBe(true);
+    }
+  });
+
+  it("serializes concurrent due date and status saves", async () => {
+    const { c, ctxA } = await setup();
+    await Promise.all([setAssessmentDueDate(ctxA, c.id, "2026-11-15"), setAssessmentStatus(ctxA, c.id, "critical")]);
+    const [row] = await db.select().from(criterionAssessment);
+    expect(row).toMatchObject({ status: "critical", dueDate: "2026-11-15" });
+    expect(await listAuditEvents(ctxA)).toHaveLength(2);
+  });
+});
+
 describe("due date", () => {
   beforeEach(resetDb);
 
@@ -134,7 +185,7 @@ describe("database enforces the reason rule", () => {
     const text = await rejectionText(
       db.insert(criterionAssessment).values({ organizationId: a.org.id, criterionId: c.id, status: "not_applicable" }),
     );
-    expect(text).toMatch(/assessment_na_reason_check|check/i);
+    expect(text).toMatch(/assessment_na_reason_check/);
     await db
       .insert(criterionAssessment)
       .values({ organizationId: a.org.id, criterionId: c.id, status: "not_applicable", notApplicableReason: REASON });
@@ -145,7 +196,7 @@ describe("database enforces the reason rule", () => {
     const { c, a } = await setup();
     await db.insert(criterionAssessment).values({ organizationId: a.org.id, criterionId: c.id, status: "open" });
     const text = await rejectionText(db.update(criterionAssessment).set({ notApplicableReason: REASON }));
-    expect(text).toMatch(/assessment_na_reason_check|check/i);
+    expect(text).toMatch(/assessment_na_reason_check/);
   });
 });
 

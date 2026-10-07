@@ -62,6 +62,14 @@ describe("listCriterionHistory", () => {
     expect(history[0].actorName).toMatch(/^user-det-a/);
   });
 
+  it("is readable for a qm_admin", async () => {
+    const { c, a, ctxA } = await setup();
+    await setAssessmentStatus(ctxA, c.id, "open");
+    const id = (await db.select().from(criterionAssessment))[0].id;
+    const u = await addMemberTo(a.org.id, "qmadmin", "qm_admin");
+    await expect(listCriterionHistory(ctxFor(a.org.id, u.id, "qm_admin"), id)).resolves.toHaveLength(1);
+  });
+
   it("is only readable with the audit right", async () => {
     const { c, a, ctxA } = await setup();
     await setAssessmentStatus(ctxA, c.id, "open");
