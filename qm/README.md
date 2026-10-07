@@ -72,6 +72,15 @@ Regeln:
 - **Benutzer löschen:** Löschen ist blockiert: Fremdschlüssel (`audit_event`, `document`, `measure` u. a.) verhindern das Löschen eines Benutzers, und die Rolle `qm_app` darf Massnahmen und Audit-Ereignisse ohnehin nicht löschen. Vorgehen: Benutzer anonymisieren (Name und E-Mail ersetzen, Sessions und Konten löschen, Mitgliedschaft entfernen), nicht löschen.
 - Die Tests laufen als Besitzer. `vitest.global-setup.ts` legt `qm_app` in `qm_test` mit einem Wegwerf-Passwort an; `src/db/runtime-role*.test.ts` prüfen die Rechte und die Kern-Services mit der Rolle.
 
+### Stand des Demo-Deployments
+
+- Vercel-Projekt `qm-rettungsdienst-demo` (Root Directory `qm`, Build Machine `standard`, Funktionsregion `fra1`, Elastic Concurrency aus). Deployments laufen nur über die Git-Integration (Push auf `feat/qm-foundation`).
+- Schutz: Vercel Authentication für **alle** Deployments (Production und Preview). Anonyme Aufrufe werden auf die Vercel-Anmeldung umgeleitet; das Passwortschutz-Add-on wird nicht verwendet.
+- Datenbank: Neon (Free-Plan, Region Frankfurt, über die Vercel-Integration). Die Laufzeit nutzt ausschliesslich die Rolle `qm_app` über den Pooler; Besitzer-Zugangsdaten sind aus den Projekt-Umgebungsvariablen entfernt und liegen nur lokal ausserhalb des Repos.
+- Umgebungsvariablen im Projekt: `DATABASE_URL` (qm_app, gepoolt, `sslmode=verify-full`), `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` (nur Production, stabiler Alias `https://qm-rettungsdienst-demo.vercel.app`). Auf Neon lehnt die Control Plane vorberechnete Passwort-Verifier ab, deshalb setzt `db:roles` dort das Passwort im Klartext über TLS (automatischer Rückfall).
+- Demo-Passwort: wird beim Seeden aus `QM_DEMO_PASSWORD` gesetzt und steht nicht im Repo. Seed gegen das Deployment: `DATABASE_URL`/`DATABASE_URL_DIRECT` auf die Besitzer-Direct-URL, `ALLOW_DEMO_RESET_REMOTE=1`, `pnpm seed:demo -- --yes-reset`.
+- Die Anwendung darf nur über den Alias aufgerufen werden, weil `BETTER_AUTH_URL` die erlaubte Herkunft festlegt.
+
 ## Browser-Smoke-Test
 
 `scripts/smoke/demo_story.py` spielt die Demo-Story mit Playwright (Python 3, Sync-API) im Browser durch: Login als Owner, veralteter Nachweis zu 7.3.10, neue Version hochladen, Dashboard, Stand auf «Erfüllt». Pro Schritt eine PASS/FAIL-Zeile, Exit-Code ungleich 0 bei Fehlern, Screenshots in `OUT_DIR`.
