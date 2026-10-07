@@ -53,6 +53,7 @@ export function formatMonths(n: number): string {
   return n === 1 ? "1 Monat" : `${n} Monate`;
 }
 
-export function formatDays(n: number): string {
-  return n === 1 ? "1 Tag" : `${n} Tage`;
+/** Dativ, z. B. nach "seit" oder "in". */
+export function formatDaysDative(n: number): string {
+  return n === 1 ? "1 Tag" : `${n} Tagen`;
 }
