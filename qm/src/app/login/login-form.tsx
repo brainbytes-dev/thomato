@@ -25,7 +25,7 @@ export function LoginForm() {
         setError(failure);
       } else {
         succeeded = true;
-        router.push("/criteria");
+        router.push("/");
       }
     } catch {
       setError(failure);
