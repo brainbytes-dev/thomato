@@ -43,7 +43,7 @@ export async function seedDemo(input: { catalog: unknown; now?: Date }) {
   const rows: unknown[] = input.catalog;
 
   await db.execute(
-    sql`TRUNCATE deadline, audit_event, criterion_assessment, invitation, member, session, account, verification, organization, "user" RESTART IDENTITY CASCADE`,
+    sql`TRUNCATE evidence_link, document_version, document, deadline, audit_event, criterion_assessment, invitation, member, session, account, verification, organization, "user" RESTART IDENTITY CASCADE`,
   );
   await importCatalog(db, {
     standardVersionId: ACTIVE_STANDARD_VERSION,

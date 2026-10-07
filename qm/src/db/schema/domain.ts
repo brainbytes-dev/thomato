@@ -2,7 +2,9 @@ import { sql } from "drizzle-orm";
 import {
   boolean,
   check,
+  customType,
   date,
+  foreignKey,
   index,
   integer,
   jsonb,
@@ -124,4 +126,81 @@ export const deadline = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("deadline_org_due_idx").on(t.organizationId, t.dueDate)],
+);
+
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({
+  dataType() {
+    return "bytea";
+  },
+});
+
+export const document = pgTable(
+  "document",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id),
+    title: text("title").notNull(),
+    createdBy: text("created_by").references(() => user.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique("document_id_org").on(t.id, t.organizationId),
+    index("document_org_idx").on(t.organizationId),
+  ],
+);
+
+export const documentVersion = pgTable(
+  "document_version",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: text("organization_id").notNull(),
+    documentId: uuid("document_id").notNull(),
+    versionNumber: integer("version_number").notNull(),
+    fileName: text("file_name").notNull(),
+    mimeType: text("mime_type").notNull(),
+    sizeBytes: integer("size_bytes").notNull(),
+    sha256: text("sha256").notNull(),
+    content: bytea("content").notNull(),
+    validUntil: date("valid_until"),
+    uploadedBy: text("uploaded_by").references(() => user.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique("document_version_number").on(t.documentId, t.versionNumber),
+    foreignKey({
+      name: "document_version_document_fk",
+      columns: [t.documentId, t.organizationId],
+      foreignColumns: [document.id, document.organizationId],
+    }),
+    index("document_version_org_idx").on(t.organizationId),
+  ],
+);
+
+export const evidenceLink = pgTable(
+  "evidence_link",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: text("organization_id").notNull(),
+    documentId: uuid("document_id").notNull(),
+    standardVersionId: text("standard_version_id").notNull(),
+    criterionNumber: text("criterion_number").notNull(),
+    linkedBy: text("linked_by").references(() => user.id),
+    linkedAt: timestamp("linked_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique("evidence_link_unique").on(t.organizationId, t.documentId, t.standardVersionId, t.criterionNumber),
+    foreignKey({
+      name: "evidence_link_document_fk",
+      columns: [t.documentId, t.organizationId],
+      foreignColumns: [document.id, document.organizationId],
+    }),
+    foreignKey({
+      name: "evidence_link_criterion_fk",
+      columns: [t.standardVersionId, t.criterionNumber],
+      foreignColumns: [criterion.standardVersionId, criterion.number],
+    }),
+    index("evidence_link_org_criterion_idx").on(t.organizationId, t.criterionNumber),
+  ],
 );
