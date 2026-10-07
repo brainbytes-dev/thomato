@@ -5,6 +5,7 @@ ACHTUNG: Das Skript VERAENDERT Daten (laedt eine Version hoch und setzt 7.3.10 a
 Danach die Datenbank neu seeden: pnpm seed:demo -- --yes-reset
 
 Umgebungsvariablen: BASE_URL, QM_EMAIL, QM_PASSWORD, CHROMIUM_PATH, OUT_DIR, EXTRA_HTTP_HEADERS (JSON).
+Gegen ein nicht lokales Ziel bricht das Skript mit Exit-Code 2 ab, ausser SMOKE_ALLOW_MUTATION=1 ist gesetzt.
 Exit-Code 0 nur, wenn alle Schritte bestanden sind.
 """
 
@@ -14,9 +15,11 @@ import json
 import os
 import sys
 import tempfile
-from datetime import date, timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Callable
+from urllib.parse import urlparse
+from zoneinfo import ZoneInfo
 
 from playwright.sync_api import Page, expect, sync_playwright
 
@@ -27,6 +30,11 @@ CHROMIUM_PATH = os.environ.get("CHROMIUM_PATH") or None
 OUT_DIR = Path(os.environ.get("OUT_DIR") or tempfile.mkdtemp(prefix="qm-smoke-"))
 CRITERION = "7.3.10"
 TIMEOUT_MS = 20_000
+LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1"}
+
+
+def is_local(url: str) -> bool:
+    return (urlparse(url).hostname or "") in LOCAL_HOSTS
 
 
 def demo_pdf(title: str) -> bytes:
@@ -80,10 +88,17 @@ def action_row_present(page: Page) -> bool:
 
 
 def main() -> int:
+    if not is_local(BASE_URL) and os.environ.get("SMOKE_ALLOW_MUTATION") != "1":
+        print(
+            f"ABBRUCH: BASE_URL {BASE_URL} ist nicht lokal. Das Skript veraendert Daten "
+            "(Versions-Upload, 7.3.10 auf «Erfüllt»). Mit SMOKE_ALLOW_MUTATION=1 bewusst freigeben.",
+            file=sys.stderr,
+        )
+        return 2
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     headers_raw = os.environ.get("EXTRA_HTTP_HEADERS")
     headers: dict[str, str] = json.loads(headers_raw) if headers_raw else {}
-    future = (date.today() + timedelta(days=365)).isoformat()
+    future = (datetime.now(ZoneInfo("Europe/Zurich")).date() + timedelta(days=365)).isoformat()
     pdf_path = OUT_DIR / "hygienekonzept-demo-v2.pdf"
     pdf_path.write_bytes(demo_pdf("Hygienekonzept (Demo) Version 2"))
     print(f"Screenshots: {OUT_DIR}")
@@ -148,6 +163,7 @@ def main() -> int:
         def history() -> None:
             hist = page.locator("section[aria-labelledby=history-heading]")
             expect(hist).to_contain_text("Neue Version 2 von «Hygienekonzept (Demo)»")
+            expect(hist.locator("li, tr").first).to_contain_text("Neue Version 2")
             expect(hist).to_contain_text("Demo owner")
             hist.scroll_into_view_if_needed()
             shot(page, "05-verlauf")
@@ -171,6 +187,7 @@ def main() -> int:
             page.wait_for_selector("text=Hygienekonzept (Demo)")
             hist = page.locator("section[aria-labelledby=history-heading]")
             expect(hist).to_contain_text("Stand von «Kritisch» zu «Erfüllt»")
+            expect(hist.locator("li, tr").first).to_contain_text("zu «Erfüllt»")
             shot(page, "07-kriterium-erfuellt")
 
         def dashboard_final() -> None:
@@ -179,17 +196,19 @@ def main() -> int:
             assert stat(page, "Kritische Pflichtkriterien") == 1, "Kritische Pflichtkriterien sollten auf 1 sinken"
             shot(page, "08-dashboard-nachher")
 
-        step("Login als Owner", login)
-        step("Dashboard: Kritisch, Fortschritt getrennt, Veraltet 2, kritisch 2", dashboard_before)
-        step("Action Center: Nachweis veraltet fuer 7.3.10", action_center)
-        step("Kriterium 7.3.10 zeigt den veralteten Nachweis", open_criterion)
-        step("Neue Version mit Ablaufdatum in der Zukunft hochladen", upload_version)
-        step("V2 aktuell, V1 ersetzt aber vorhanden, Hinweis sichtbar", version_list)
-        step("Verlauf zeigt Upload und neue Version (Owner)", history)
-        step("Dashboard: Eintrag weg, Veraltet 1, Readiness unveraendert", dashboard_after_upload)
-        step("Stand bewusst auf «Erfüllt» setzen, Verlauf zeigt Statuswechsel", set_met)
-        step("Dashboard: kritische Pflichtkriterien 2 -> 1", dashboard_final)
-        browser.close()
+        try:
+            step("Login als Owner", login)
+            step("Dashboard: Kritisch, Fortschritt getrennt, Veraltet 2, kritisch 2", dashboard_before)
+            step("Action Center: Nachweis veraltet fuer 7.3.10", action_center)
+            step("Kriterium 7.3.10 zeigt den veralteten Nachweis", open_criterion)
+            step("Neue Version mit Ablaufdatum in der Zukunft hochladen", upload_version)
+            step("V2 aktuell, V1 ersetzt aber vorhanden, Hinweis sichtbar", version_list)
+            step("Verlauf zeigt Upload und neue Version (Owner)", history)
+            step("Dashboard: Eintrag weg, Veraltet 1, Readiness unveraendert", dashboard_after_upload)
+            step("Stand bewusst auf «Erfüllt» setzen, Verlauf zeigt Statuswechsel", set_met)
+            step("Dashboard: kritische Pflichtkriterien 2 -> 1", dashboard_final)
+        finally:
+            browser.close()
 
     if failures:
         print(f"\n{len(failures)} Schritt(e) fehlgeschlagen. Die Daten wurden veraendert: neu seeden.")

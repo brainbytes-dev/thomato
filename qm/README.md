@@ -62,6 +62,9 @@ Das Skript **verändert Daten** (zusätzliche Version, geänderter Stand). Es er
 | `CHROMIUM_PATH` | optionaler Pfad zur Chromium-Binärdatei | Playwright-Standard |
 | `OUT_DIR` | Verzeichnis für Screenshots | temporäres Verzeichnis |
 | `EXTRA_HTTP_HEADERS` | optional, JSON, z. B. für Protection-Bypass-Header | keine |
+| `SMOKE_ALLOW_MUTATION` | auf `1` setzen, um ein nicht lokales `BASE_URL` zu erlauben | nicht gesetzt |
+
+Schutz vor Versehen: Ist der Host von `BASE_URL` nicht `localhost`, `127.0.0.1` oder `::1`, bricht das Skript vor dem ersten Request mit Exit-Code 2 ab, ausser `SMOKE_ALLOW_MUTATION=1` ist gesetzt. Nach einem Lauf gegen ein freigegebenes Ziel ist ein erneutes Seeden nötig (hochgeladene Version, 7.3.10 auf «Erfüllt»).
 
 ```bash
 BETTER_AUTH_URL=http://localhost:3100 pnpm exec next dev -p 3100   # in einem zweiten Terminal
