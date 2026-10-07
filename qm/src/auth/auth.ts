@@ -15,7 +15,16 @@ export const auth = betterAuth({
     requireEmailVerification: false,
   },
   plugins: [
-    organization({ ac, roles, creatorRole: "owner" }),
+    // Organisationen legt nur der Betreiber an (Seed/Admin-Skript), nicht die Endnutzer.
+    // Serverseitige Aufrufe mit userId (auth.api.createOrganization) bleiben möglich.
+    // Löschen ist gesperrt, weil Audit-Events an der Organisation hängen.
+    organization({
+      ac,
+      roles,
+      creatorRole: "owner",
+      allowUserToCreateOrganization: false,
+      disableOrganizationDeletion: true,
+    }),
     nextCookies(),
   ],
   databaseHooks: {
