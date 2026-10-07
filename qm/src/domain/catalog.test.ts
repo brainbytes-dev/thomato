@@ -52,10 +52,23 @@ describe("importCatalog", () => {
     expect(await db.select().from(criterion)).toHaveLength(0);
   });
 
-  it("does not turn the version validated when one rule is validated", async () => {
-    await importCatalog(db, { standardVersionId: "v", label: "V", rows: [row("8.1")] });
-    await db.update(criterion).set({ ruleValidationStatus: "validated" });
-    const [v] = await db.select().from(standardVersion);
+  it("keeps a validated rule and the draft version status on re-import", async () => {
+    const input = { standardVersionId: "v", label: "V", rows: [row("8.1"), row("8.2")] };
+    await importCatalog(db, input);
+    await db.update(criterion).set({ ruleValidationStatus: "validated" }).where(eq(criterion.number, "8.1"));
+    await importCatalog(db, input);
+    const [c] = await db.select().from(criterion).where(eq(criterion.number, "8.1"));
+    expect(c.ruleValidationStatus).toBe("validated");
+    const [v] = await db.select().from(standardVersion).where(eq(standardVersion.id, "v"));
     expect(v.validationStatus).toBe("draft_extracted");
+  });
+
+  it("does not downgrade a manually validated version on re-import", async () => {
+    const input = { standardVersionId: "v", label: "V", rows: [row("8.1")] };
+    await importCatalog(db, input);
+    await db.update(standardVersion).set({ validationStatus: "validated" }).where(eq(standardVersion.id, "v"));
+    await importCatalog(db, input);
+    const [v] = await db.select().from(standardVersion).where(eq(standardVersion.id, "v"));
+    expect(v.validationStatus).toBe("validated");
   });
 });
