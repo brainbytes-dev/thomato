@@ -57,6 +57,7 @@ describe("serveVersion", () => {
     expect(Buffer.from(r.body ?? new Uint8Array()).equals(bytes)).toBe(true);
     expect(r.headers["Content-Type"]).toBe("application/pdf");
     expect(r.headers["X-Content-Type-Options"]).toBe("nosniff");
+    expect(r.headers["Content-Security-Policy"]).toBe("sandbox");
     expect(r.headers["Cache-Control"]).toBe("private, no-store");
     expect(r.headers["Content-Length"]).toBe(String(bytes.length));
     const cd = r.headers["Content-Disposition"];

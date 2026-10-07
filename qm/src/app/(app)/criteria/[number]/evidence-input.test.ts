@@ -15,6 +15,10 @@ describe("uploadInput", () => {
     expect(uploadInput.safeParse({ ...base, title: "abc" }).success).toBe(true);
     expect(uploadInput.safeParse({ ...base, title: "ab" }).success).toBe(false);
   });
+  it("limits the title to 120 characters like the service and the label", () => {
+    expect(uploadInput.safeParse({ ...base, title: "a".repeat(120) }).success).toBe(true);
+    expect(uploadInput.safeParse({ ...base, title: "a".repeat(121) }).success).toBe(false);
+  });
   it("accepts an empty validUntil and rejects an impossible one", () => {
     expect(uploadInput.safeParse({ ...base, validUntil: "" }).success).toBe(true);
     expect(uploadInput.safeParse({ ...base, validUntil: "2026-12-31" }).success).toBe(true);

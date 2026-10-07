@@ -59,7 +59,13 @@ async function Documents() {
                     )}
                   </td>
                   <td className={`${TD} whitespace-nowrap`}>
-                    <a href={`/documents/versions/${r.latest.id}`} className="text-primary underline">Herunterladen</a>
+                    <a
+                      href={`/documents/versions/${r.latest.id}`}
+                      aria-label={`${r.title}, V${r.latest.versionNumber} herunterladen`}
+                      className="text-primary underline"
+                    >
+                      Herunterladen
+                    </a>
                   </td>
                 </tr>
               ))}

@@ -12,7 +12,7 @@ const validUntil = z
 
 export const uploadInput = z.object({
   number,
-  title: z.string().trim().min(3).max(200),
+  title: z.string().trim().min(3).max(120),
   validUntil,
 });
 

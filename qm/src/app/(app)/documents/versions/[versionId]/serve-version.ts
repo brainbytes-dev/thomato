@@ -36,6 +36,7 @@ export async function serveVersion(resolve: () => Promise<OrgContext>, versionId
     throw e;
   }
   if (!found) return EMPTY(404);
+  // Kopie bewusst: Buffer.buffer ist ArrayBufferLike, Response verlangt ArrayBuffer-basierte Bytes (ohne Cast keine View).
   const body = new Uint8Array(found.content);
   return {
     status: 200,
@@ -44,6 +45,7 @@ export async function serveVersion(resolve: () => Promise<OrgContext>, versionId
       "Content-Length": String(body.length),
       "Content-Disposition": `attachment; filename="${asciiFallback(found.fileName)}"; filename*=UTF-8''${encodeRfc5987(found.fileName)}`,
       "X-Content-Type-Options": "nosniff",
+      "Content-Security-Policy": "sandbox",
       "Cache-Control": "private, no-store",
     },
     body,

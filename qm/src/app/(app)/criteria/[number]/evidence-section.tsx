@@ -6,15 +6,19 @@ import { listCriterionEvidence, listLinkableDocuments, type VersionView } from "
 import { MAX_FILE_BYTES } from "@/domain/file-validation";
 import type { OrgContext } from "@/domain/org-context";
 import { can } from "@/domain/rights";
-import { AddVersionForm, LinkDocumentForm, UnlinkForm, UploadDocumentForm } from "./evidence-forms";
+import { AddVersionForm, LinkDocumentForm, UnlinkForm, UnlinkNoticeScope, UploadDocumentForm } from "./evidence-forms";
 
 const TH = "whitespace-nowrap px-3 py-2";
 const TD = "px-3 py-2 align-top";
 const SUMMARY = "cursor-pointer font-medium text-primary underline";
 
-function Download({ version, label }: { version: VersionView; label: string }) {
+function Download({ version, label, title }: { version: VersionView; label: string; title: string }) {
   return (
-    <a href={`/documents/versions/${version.id}`} className="text-primary underline">
+    <a
+      href={`/documents/versions/${version.id}`}
+      aria-label={`${title}, V${version.versionNumber} herunterladen`}
+      className="text-primary underline"
+    >
       {label}
     </a>
   );
@@ -53,7 +57,15 @@ export async function EvidenceSection({
 
   return (
     <section aria-labelledby="evidence-heading" className="flex flex-col gap-4">
-      <h2 id="evidence-heading" className="text-xs font-semibold uppercase tracking-wide text-text-muted">Nachweise</h2>
+      <h2
+        id="evidence-heading"
+        tabIndex={-1}
+        className="text-xs font-semibold uppercase tracking-wide text-text-muted"
+      >
+        Nachweise
+      </h2>
+
+      <UnlinkNoticeScope>
 
       <dl className="grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-3">
         <Indicator label="Nachweis" value={EVIDENCE_LABEL[state]} tone={EVIDENCE_TONE[state]} />
@@ -96,7 +108,7 @@ export async function EvidenceSection({
                   <td className={`${TD} whitespace-nowrap font-medium ${EVIDENCE_TONE[d.state]}`}>
                     {EVIDENCE_LABEL[d.state]}
                   </td>
-                  <td className={`${TD} whitespace-nowrap`}><Download version={d.latest} label="Herunterladen" /></td>
+                  <td className={`${TD} whitespace-nowrap`}><Download version={d.latest} label="Herunterladen" title={d.title} /></td>
                 </tr>
                 <tr>
                   <td colSpan={5} className="px-3 pb-3">
@@ -134,7 +146,7 @@ export async function EvidenceSection({
                                 <td className={`${TD} whitespace-nowrap`}>{formatDateTime(v.createdAt)}</td>
                                 <td className={`${TD} whitespace-nowrap`}>{validUntilText(v.validUntil)}</td>
                                 <td className={`${TD} whitespace-nowrap`}>
-                                  <Download version={v} label={`V${v.versionNumber} herunterladen`} />
+                                  <Download version={v} label={`V${v.versionNumber} herunterladen`} title={d.title} />
                                 </td>
                               </tr>
                             ))}
@@ -179,6 +191,7 @@ export async function EvidenceSection({
       ) : (
         <p className="text-text-muted">Mit Ihrer Rolle sind Nachweise schreibgeschützt.</p>
       )}
+      </UnlinkNoticeScope>
     </section>
   );
 }
