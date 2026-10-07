@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { eq, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { ACTIVE_STANDARD_VERSION, criterion, document, documentVersion, evidenceLink } from "@/db/schema";
+import { ACTIVE_STANDARD_VERSION, document, documentVersion, evidenceLink } from "@/db/schema";
 import { importCatalog } from "@/domain/catalog";
 import { makeOrg, resetDb } from "@/test/helpers";
 
@@ -66,6 +66,7 @@ describe("document tables", () => {
     await expect(
       db.insert(evidenceLink).values({ organizationId: a.org.id, documentId: doc.id, standardVersionId: ACTIVE_STANDARD_VERSION, criterionNumber: "9.9.9", linkedBy: a.user.id }),
     ).rejects.toSatisfy((e) => /foreign key/i.test(errorText(e)));
+    expect(await db.select().from(evidenceLink).where(eq(evidenceLink.organizationId, b.org.id))).toHaveLength(0);
     const [ok] = await db
       .insert(evidenceLink)
       .values({ organizationId: a.org.id, documentId: doc.id, standardVersionId: ACTIVE_STANDARD_VERSION, criterionNumber: "7.3.10", linkedBy: a.user.id })
@@ -74,6 +75,5 @@ describe("document tables", () => {
     await expect(
       db.insert(evidenceLink).values({ organizationId: a.org.id, documentId: doc.id, standardVersionId: ACTIVE_STANDARD_VERSION, criterionNumber: "7.3.10", linkedBy: a.user.id }),
     ).rejects.toSatisfy((e) => /unique|duplicate/i.test(errorText(e)));
-    expect((await db.select().from(criterion).where(eq(criterion.number, "7.3.10"))).length).toBe(1);
   });
 });

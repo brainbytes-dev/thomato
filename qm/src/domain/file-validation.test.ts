@@ -45,6 +45,29 @@ describe("validateUpload", () => {
     expect(validateUpload({ name: "x.pdf", bytes: exact })).toMatchObject({ ok: true });
   });
 
+  it("rejects inherited object keys as extensions without throwing", () => {
+    for (const name of ["x.constructor", "x.toString", "x.valueOf", "x.__proto__", "x.hasOwnProperty"]) {
+      expect(validateUpload({ name, bytes: PDF })).toMatchObject({ ok: false });
+    }
+  });
+
+  it("handles dots, double extensions and short content", () => {
+    expect(validateUpload({ name: "a.pdf.", bytes: PDF })).toMatchObject({ ok: false });
+    expect(validateUpload({ name: "a.pdf.exe", bytes: PDF })).toMatchObject({ ok: false });
+    expect(validateUpload({ name: "a.exe.pdf", bytes: PDF })).toMatchObject({
+      ok: true,
+      file: { mimeType: "application/pdf" },
+    });
+    expect(validateUpload({ name: ".pdf", bytes: PDF })).toMatchObject({ ok: true, file: { fileName: "dokument.pdf" } });
+    expect(validateUpload({ name: "x.pdf", bytes: bytes(0x25, 0x50) })).toMatchObject({ ok: false });
+  });
+
+  it("reports the size limit in MiB", () => {
+    const big = new Uint8Array(MAX_FILE_BYTES + 1);
+    big.set(PDF);
+    expect(validateUpload({ name: "x.pdf", bytes: big })).toEqual({ ok: false, error: "Die Datei ist grösser als 4 MiB." });
+  });
+
   it("stores a sanitized file name", () => {
     expect(validateUpload({ name: "../../etc/passwd.pdf", bytes: PDF })).toMatchObject({
       ok: true,
@@ -63,5 +86,15 @@ describe("sanitizeFileName", () => {
     const out = sanitizeFileName(long);
     expect(out.length).toBeLessThanOrEqual(120);
     expect(out.endsWith(".pdf")).toBe(true);
+  });
+
+  it("strips C1 controls and bidi overrides, caps extension and total length", () => {
+    expect(sanitizeFileName("evil\u202Efdp.exe")).toBe("evilfdp.exe");
+    expect(sanitizeFileName("a\u0085b\u200e\u200f\u2066c\u2069.pdf")).toBe("abc.pdf");
+    const longExt = sanitizeFileName(`a.${"b".repeat(50)}`);
+    expect([...longExt].length).toBeLessThanOrEqual(120);
+    expect([...longExt.slice(longExt.lastIndexOf("."))].length).toBeLessThanOrEqual(10);
+    expect([...sanitizeFileName(`${"ä".repeat(300)}.${"x".repeat(50)}`)].length).toBeLessThanOrEqual(120);
+    expect(sanitizeFileName("a.pdf.")).toBe("a.pdf.");
   });
 });
