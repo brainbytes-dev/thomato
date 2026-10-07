@@ -19,7 +19,15 @@ import { assertResetAllowed } from "./reset-guard";
 
 export { assertResetAllowed };
 
-const DEMO_PASSWORD = "Demo-QM-2026";
+const DEFAULT_DEMO_PASSWORD = "Demo-QM-2026";
+
+// Lokal gilt das bekannte Demo-Passwort. Für ein Deployment setzt QM_DEMO_PASSWORD ein eigenes (mind. 12 Zeichen), das nie im Repo steht.
+function demoPassword(): string {
+  const custom = process.env.QM_DEMO_PASSWORD;
+  if (custom === undefined || custom === "") return DEFAULT_DEMO_PASSWORD;
+  if (custom.length < 12) throw new Error("QM_DEMO_PASSWORD muss mindestens 12 Zeichen lang sein.");
+  return custom;
+}
 
 // Story: Antrag, Struktur und Prozess sind weitgehend erfüllt (hoher Fortschritt), Ergebnis ist unbewertet.
 // Zwei kritische Pflichtpunkte machen den Status trotzdem kritisch: Fortschritt ist nicht Readiness.
@@ -73,12 +81,13 @@ export async function seedDemo(input: { catalog: unknown; now?: Date }) {
 
   const users = {} as Record<Role, { email: string; password: string }>;
   const ids = {} as Record<Role, string>;
+  const password = demoPassword();
   for (const role of ROLES) {
     const email = `${role.replace("_", "-")}@demo.qm.test`;
     const { user } = await seedAuth.api.signUpEmail({
-      body: { email, password: DEMO_PASSWORD, name: `Demo ${role}` },
+      body: { email, password, name: `Demo ${role}` },
     });
-    users[role] = { email, password: DEMO_PASSWORD };
+    users[role] = { email, password };
     ids[role] = user.id;
   }
 

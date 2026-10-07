@@ -16,7 +16,7 @@ async function main() {
   const { seedDemo } = await import("@/seed/demo");
   const out = await seedDemo({ catalog });
   console.log("Demo bereit. Organisation:", out.organizationId);
-  for (const [role, u] of Object.entries(out.users)) console.log(role, u.email, u.password);
+  for (const [role, u] of Object.entries(out.users)) console.log(role, u.email, process.env.QM_DEMO_PASSWORD ? "<QM_DEMO_PASSWORD>" : u.password);
 }
 
 main().then(

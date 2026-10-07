@@ -41,6 +41,20 @@ describe("seedDemo", () => {
     expect((await listAuditEvents(ctx)).length).toBeGreaterThan(0);
   });
 
+  it("uses QM_DEMO_PASSWORD when set and refuses a short one", async () => {
+    const previous = process.env.QM_DEMO_PASSWORD;
+    try {
+      process.env.QM_DEMO_PASSWORD = "kurz";
+      await expect(seedDemo({ catalog })).rejects.toThrow("mindestens 12 Zeichen");
+      process.env.QM_DEMO_PASSWORD = "Ein-Zufallswert-2026-xyz";
+      const out = await seedDemo({ catalog });
+      expect(out.users.owner.password).toBe("Ein-Zufallswert-2026-xyz");
+    } finally {
+      if (previous === undefined) delete process.env.QM_DEMO_PASSWORD;
+      else process.env.QM_DEMO_PASSWORD = previous;
+    }
+  });
+
   it("is repeatable", async () => {
     await seedDemo({ catalog });
     await seedDemo({ catalog });
