@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { organization, member, user } from "@/db/schema";
 import type { OrgContext } from "@/domain/org-context";
 import type { Role } from "@/domain/rights";
+import { assertResetAllowed } from "@/seed/reset-guard";
 
 const TABLES = [
   "audit_event",
@@ -20,9 +21,7 @@ const TABLES = [
 ];
 
 export async function resetDb() {
-  if (process.env.ALLOW_DEMO_RESET !== "1") {
-    throw new Error("resetDb nur mit ALLOW_DEMO_RESET=1");
-  }
+  assertResetAllowed(process.env);
   const existing = await db.execute<{ tablename: string }>(
     sql`SELECT tablename FROM pg_tables WHERE schemaname = 'public'`,
   );

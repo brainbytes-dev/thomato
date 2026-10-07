@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { db } from "@/db";
-import { member, organization } from "@/db/schema";
+import { member, organization, user } from "@/db/schema";
 import { listAssessments } from "@/domain/assessments";
 import { listAuditEvents } from "@/domain/audit";
 import { resetDb } from "@/test/helpers";
@@ -19,10 +19,9 @@ describe("seedDemo", () => {
     const out = await seedDemo({ catalog });
     const [org] = await db.select().from(organization);
     expect(org.name).toContain("Demo");
-    expect(await db.select().from(member)).toHaveLength(5);
-    expect(Object.keys(out.users).sort()).toEqual(
-      ["editor", "owner", "qm_admin", "reviewer", "viewer"],
-    );
+    const dbRoles = (await db.select().from(member)).map((m) => m.role).sort();
+    expect(dbRoles).toEqual(["editor", "owner", "qm_admin", "reviewer", "viewer"]);
+    expect(Object.keys(out.users).sort()).toEqual(dbRoles);
   });
 
   it("leaves a story: critical mandatory items and untouched criteria", async () => {
@@ -40,5 +39,7 @@ describe("seedDemo", () => {
     await seedDemo({ catalog });
     await seedDemo({ catalog });
     expect(await db.select().from(organization)).toHaveLength(1);
+    expect(await db.select().from(member)).toHaveLength(5);
+    expect(await db.select().from(user)).toHaveLength(5);
   });
 });

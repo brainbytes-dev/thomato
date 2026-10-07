@@ -1,4 +1,4 @@
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { auth } from "@/auth/auth";
 import { db } from "@/db";
 import { ACTIVE_STANDARD_VERSION, criterion, member, organization } from "@/db/schema";
@@ -6,6 +6,9 @@ import type { AssessmentStatus } from "@/db/schema";
 import { setAssessmentStatus } from "@/domain/assessments";
 import { importCatalog } from "@/domain/catalog";
 import { ROLES, type Role } from "@/domain/rights";
+import { assertResetAllowed } from "./reset-guard";
+
+export { assertResetAllowed };
 
 const DEMO_PASSWORD = "Demo-QM-2026";
 
@@ -17,26 +20,6 @@ const STORY: ReadonlyArray<{ number: string; status: AssessmentStatus }> = [
   { number: "7.3.8", status: "open" },
   { number: "8.1", status: "open" },
 ];
-
-const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
-
-// Zwei Hürden vor dem TRUNCATE: explizites Flag und lokale Datenbank (oder explizite Remote-Freigabe).
-export function assertResetAllowed(env: Readonly<Record<string, string | undefined>>): void {
-  if (env.ALLOW_DEMO_RESET !== "1") {
-    throw new Error("seedDemo setzt die Datenbank zurück: nur mit ALLOW_DEMO_RESET=1");
-  }
-  let host: string;
-  try {
-    host = new URL(env.DATABASE_URL ?? "").hostname;
-  } catch {
-    throw new Error("seedDemo verweigert den Reset: DATABASE_URL fehlt oder ist ungültig");
-  }
-  if (!LOCAL_HOSTS.has(host) && env.ALLOW_DEMO_RESET_REMOTE !== "1") {
-    throw new Error(
-      `seedDemo verweigert den Reset auf ${host}: nur lokale Datenbanken, sonst ALLOW_DEMO_RESET_REMOTE=1`,
-    );
-  }
-}
 
 export async function seedDemo(input: { catalog: unknown }) {
   assertResetAllowed(process.env);
@@ -87,8 +70,14 @@ export async function seedDemo(input: { catalog: unknown }) {
     const [c] = await db
       .select({ id: criterion.id })
       .from(criterion)
-      .where(eq(criterion.number, step.number));
-    if (c) await setAssessmentStatus(ctx, c.id, step.status);
+      .where(
+        and(
+          eq(criterion.standardVersionId, ACTIVE_STANDARD_VERSION),
+          eq(criterion.number, step.number),
+        ),
+      );
+    if (!c) throw new Error(`Kriterium ${step.number} fehlt im Katalog (Story-Schritt nicht ausführbar)`);
+    await setAssessmentStatus(ctx, c.id, step.status);
   }
   return { organizationId: org.id, users };
 }
