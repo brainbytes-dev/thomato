@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useActionState } from "react";
+import { Fragment, startTransition, useActionState } from "react";
 import type { AssessmentStatus } from "@/db/schema";
 import { updateAssessmentAction, type FormState } from "./actions";
 
@@ -13,7 +13,14 @@ export function AssessmentForm(props: {
 }) {
   const [state, formAction, pending] = useActionState<FormState, FormData>(updateAssessmentAction, null);
   return (
-    <form action={formAction} className="flex max-w-xl flex-col gap-4">
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        const data = new FormData(e.currentTarget);
+        startTransition(() => formAction(data));
+      }}
+      className="flex max-w-xl flex-col gap-4"
+    >
       <input type="hidden" name="number" value={props.number} />
       <Fragment key={`${props.status}|${props.reason ?? ""}|${props.dueDate ?? ""}`}>
       <label className="flex flex-col gap-1">
@@ -48,11 +55,8 @@ export function AssessmentForm(props: {
         />
       </label>
       </Fragment>
-      {state && (
-        <p role={state.ok ? "status" : "alert"} className={state.ok ? "text-success" : "text-critical"}>
-          {state.message}
-        </p>
-      )}
+      <p role="status" className="text-success empty:hidden">{state?.ok ? state.message : ""}</p>
+      <p role="alert" className="text-critical empty:hidden">{state && !state.ok ? state.message : ""}</p>
       <button
         type="submit"
         disabled={pending}
