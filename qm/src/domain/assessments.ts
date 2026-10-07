@@ -10,6 +10,7 @@ import {
   type AssessmentStatus,
 } from "@/db/schema";
 import { withAudit } from "./audit";
+import { isValidIsoDate } from "./dates";
 import { assertCan, ValidationError, type OrgContext } from "./org-context";
 
 export type AssessmentRow = {
@@ -56,6 +57,8 @@ export async function listAssessments(ctx: OrgContext): Promise<AssessmentRow[]>
   return rows.map((r) => ({ ...r, status: r.status ?? "not_assessed" }));
 }
 
+export { isValidIsoDate };
+
 export const NA_REASON_MIN = 10;
 export const NA_REASON_MAX = 500;
 
@@ -64,17 +67,38 @@ function requireReason(reason: string | null | undefined): string {
   const length = [...trimmed].length;
   if (length < NA_REASON_MIN || length > NA_REASON_MAX) {
     throw new ValidationError(
-      `Für «Entfällt» ist eine Begründung mit ${NA_REASON_MIN} bis ${NA_REASON_MAX} Zeichen nötig.`,
+      `Für «Nicht anwendbar» ist eine Begründung mit ${NA_REASON_MIN} bis ${NA_REASON_MAX} Zeichen nötig.`,
     );
   }
   return trimmed;
 }
 
-export function isValidIsoDate(value: string): boolean {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-  const [y, m, d] = value.split("-").map(Number);
-  const date = new Date(Date.UTC(y, m - 1, d));
-  return date.getUTCFullYear() === y && date.getUTCMonth() === m - 1 && date.getUTCDate() === d;
+type Tx = Parameters<Parameters<typeof withAudit>[1]>[0];
+
+/**
+ * Locks the (organization, criterion) row for the rest of the transaction.
+ * The row is created first (default status not_assessed) so that there is
+ * always something to lock; concurrent writers then serialize here and each
+ * one reads the committed result of the previous one as its "before". Without
+ * the lock two parallel saves could log a stale "before" and lose the
+ * not_applicable audit event.
+ */
+async function lockAssessment(tx: Tx, ctx: OrgContext, criterionId: string) {
+  await tx
+    .insert(criterionAssessment)
+    .values({ organizationId: ctx.organizationId, criterionId })
+    .onConflictDoNothing();
+  const [row] = await tx
+    .select()
+    .from(criterionAssessment)
+    .where(
+      and(
+        eq(criterionAssessment.organizationId, ctx.organizationId),
+        eq(criterionAssessment.criterionId, criterionId),
+      ),
+    )
+    .for("update");
+  return row;
 }
 
 export async function setAssessmentStatus(
@@ -86,24 +110,13 @@ export async function setAssessmentStatus(
   assertCan(ctx, "assessment", "write");
   const reason = status === "not_applicable" ? requireReason(opts.reason) : null;
   return withAudit(ctx, async (tx) => {
-    const [before] = await tx
-      .select()
-      .from(criterionAssessment)
-      .where(
-        and(
-          eq(criterionAssessment.organizationId, ctx.organizationId),
-          eq(criterionAssessment.criterionId, criterionId),
-        ),
-      );
+    const before = await lockAssessment(tx, ctx, criterionId);
     const [after] = await tx
-      .insert(criterionAssessment)
-      .values({ organizationId: ctx.organizationId, criterionId, status, notApplicableReason: reason })
-      .onConflictDoUpdate({
-        target: [criterionAssessment.organizationId, criterionAssessment.criterionId],
-        set: { status, notApplicableReason: reason, updatedAt: new Date() },
-      })
+      .update(criterionAssessment)
+      .set({ status, notApplicableReason: reason, updatedAt: new Date() })
+      .where(eq(criterionAssessment.id, before.id))
       .returning();
-    const beforeStatus = before?.status ?? "not_assessed";
+    const beforeStatus = before.status;
     const touchesNa = beforeStatus === "not_applicable" || after.status === "not_applicable";
     return {
       result: { id: after.id, status: after.status },
@@ -111,7 +124,7 @@ export async function setAssessmentStatus(
         eventType: touchesNa ? "criterion.not_applicable_changed" : "criterion.status_changed",
         entityType: "criterion_assessment",
         entityId: after.id,
-        before: { status: beforeStatus, reason: before?.notApplicableReason ?? null },
+        before: { status: beforeStatus, reason: before.notApplicableReason },
         after: { status: after.status, reason: after.notApplicableReason },
       },
     };
@@ -128,17 +141,11 @@ export async function setAssessmentDueDate(
     throw new ValidationError("Die Frist muss ein gültiges Datum sein.");
   }
   return withAudit(ctx, async (tx) => {
-    const [before] = await tx
-      .select()
-      .from(criterionAssessment)
-      .where(and(eq(criterionAssessment.organizationId, ctx.organizationId), eq(criterionAssessment.criterionId, criterionId)));
+    const before = await lockAssessment(tx, ctx, criterionId);
     const [after] = await tx
-      .insert(criterionAssessment)
-      .values({ organizationId: ctx.organizationId, criterionId, dueDate })
-      .onConflictDoUpdate({
-        target: [criterionAssessment.organizationId, criterionAssessment.criterionId],
-        set: { dueDate, updatedAt: new Date() },
-      })
+      .update(criterionAssessment)
+      .set({ dueDate, updatedAt: new Date() })
+      .where(eq(criterionAssessment.id, before.id))
       .returning();
     return {
       result: { id: after.id, dueDate: after.dueDate },
@@ -146,7 +153,7 @@ export async function setAssessmentDueDate(
         eventType: "criterion.due_date_changed",
         entityType: "criterion_assessment",
         entityId: after.id,
-        before: { dueDate: before?.dueDate ?? null },
+        before: { dueDate: before.dueDate },
         after: { dueDate: after.dueDate },
       },
     };
