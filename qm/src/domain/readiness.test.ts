@@ -132,3 +132,37 @@ describe("progress rounding", () => {
     expect(percentOf(0, 0)).toBeNull();
   });
 });
+
+describe("not applicable mandatory criteria (Henrik 2026-10-07)", () => {
+  it("never yields ready when there is no applicable mandatory criterion", () => {
+    const allNa = computeReadiness([crit("not_applicable"), crit("not_applicable"), should("met")], "accreditation", false);
+    expect(allNa.status).toBe("not_assessed");
+    expect(allNa.mandatory.total).toBe(0);
+    expect(allNa.mandatory.notApplicable).toBe(2);
+    const onlyShould = computeReadiness([should("met"), should("met")], "accreditation", false);
+    expect(onlyShould.status).toBe("not_assessed");
+  });
+
+  it("counts not applicable mandatory criteria without changing the status of the rest", () => {
+    const r = computeReadiness([crit("met"), crit("not_applicable"), crit("not_applicable")], "accreditation", false);
+    expect(r.status).toBe("ready");
+    expect(r.mandatory.notApplicable).toBe(2);
+    expect(r.mandatory.total).toBe(1);
+  });
+
+  it("excludes not applicable criteria from the progress", () => {
+    const r = computeReadiness([crit("met"), crit("not_applicable"), crit("open")], "accreditation", false);
+    expect(r.progressPercent).toBe(50);
+  });
+
+  it("does not count not applicable should criteria as mandatory", () => {
+    const r = computeReadiness([crit("met"), should("not_applicable")], "accreditation", false);
+    expect(r.mandatory.notApplicable).toBe(0);
+    expect(r.notApplicable).toBe(1);
+  });
+
+  it("explains the special case in the summary", () => {
+    const r = computeReadiness([crit("not_applicable"), should("met")], "accreditation", false);
+    expect(readinessSummary(r)).toBe("Keine anwendbaren Pflichtkriterien im Geltungsbereich.");
+  });
+});

@@ -20,7 +20,7 @@ export type ReadinessResult = {
   applicable: number;
   met: number;
   notApplicable: number;
-  mandatory: { total: number; met: number; critical: number; open: number; notAssessed: number };
+  mandatory: { total: number; met: number; critical: number; open: number; notAssessed: number; notApplicable: number };
   shouldCritical: number;
   blockers: string[];
 };
@@ -45,7 +45,7 @@ export function computeReadiness(
   let notApplicable = 0;
   let notAssessed = 0;
   let shouldCritical = 0;
-  const mandatory = { total: 0, met: 0, critical: 0, open: 0, notAssessed: 0 };
+  const mandatory = { total: 0, met: 0, critical: 0, open: 0, notAssessed: 0, notApplicable: 0 };
   const blockers: string[] = [];
 
   for (const c of criteria) {
@@ -53,6 +53,7 @@ export function computeReadiness(
     if (!scope.mandatory && !scope.should) continue;
     if (c.status === "not_applicable") {
       notApplicable += 1;
+      if (scope.mandatory) mandatory.notApplicable += 1;
       continue;
     }
     applicable += 1;
@@ -72,7 +73,7 @@ export function computeReadiness(
   }
 
   let status: ReadinessStatus;
-  if (applicable === 0 || notAssessed === applicable) status = "not_assessed";
+  if (applicable === 0 || notAssessed === applicable || mandatory.total === 0) status = "not_assessed";
   else if (mandatory.critical > 0) status = "critical";
   else if (mandatory.met < mandatory.total || shouldCritical > 0) status = "action_needed";
   else status = "ready";
@@ -92,9 +93,9 @@ export function computeReadiness(
 
 export function readinessSummary(r: ReadinessResult): string {
   if (r.status === "not_assessed") {
-    return r.applicable === 0
-      ? "Keine anwendbaren Kriterien im Geltungsbereich."
-      : "Noch kein Kriterium bewertet.";
+    if (r.applicable === 0) return "Keine anwendbaren Kriterien im Geltungsbereich.";
+    if (r.mandatory.total === 0) return "Keine anwendbaren Pflichtkriterien im Geltungsbereich.";
+    return "Noch kein Kriterium bewertet.";
   }
   if (r.status === "critical") {
     const n = r.mandatory.critical;
