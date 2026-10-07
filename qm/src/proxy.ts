@@ -9,4 +9,4 @@ export function proxy(request: NextRequest) {
   return NextResponse.next();
 }
 
-export const config = { matcher: ["/", "/criteria/:path*"] };
+export const config = { matcher: ["/", "/criteria/:path*", "/documents/:path*"] };
