@@ -6,7 +6,14 @@ const globalForDb = globalThis as unknown as { pool?: Pool };
 
 const pool =
   globalForDb.pool ??
-  new Pool({ connectionString: process.env.DATABASE_URL, max: 5 });
+  // Serverless: kurze Timeouts, damit hängende Verbindungen nicht Funktionsinstanzen blockieren und
+  // ungenutzte Verbindungen schnell an den Pooler zurückgehen (R49).
+  new Pool({
+    connectionString: process.env.DATABASE_URL,
+    max: 5,
+    connectionTimeoutMillis: 10_000,
+    idleTimeoutMillis: 10_000,
+  });
 
 if (process.env.NODE_ENV !== "production") globalForDb.pool = pool;
 

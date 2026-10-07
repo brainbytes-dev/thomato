@@ -11,6 +11,7 @@
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
+    "db:roles": "tsx scripts/apply-roles.ts",
     "seed:demo": "tsx scripts/seed-demo.ts",
     "import:catalog": "tsx scripts/import-catalog.ts"
   },

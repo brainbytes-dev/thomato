@@ -1,6 +1,7 @@
 import { defineConfig } from "vitest/config";
 import { config } from "dotenv";
 import path from "node:path";
+import { appUrlFrom } from "./vitest.app-role.mjs";
 
 config({ path: ".env" });
 
@@ -12,6 +13,8 @@ export default defineConfig({
     fileParallelism: false,
     env: {
       DATABASE_URL: process.env.TEST_DATABASE_URL ?? "",
+      TEST_DATABASE_URL: process.env.TEST_DATABASE_URL ?? "",
+      TEST_APP_DATABASE_URL: process.env.TEST_DATABASE_URL ? appUrlFrom(process.env.TEST_DATABASE_URL) : "",
       ALLOW_DEMO_RESET: "1",
       BETTER_AUTH_SECRET: "test-secret-test-secret-test-secret-1234",
       BETTER_AUTH_URL: "http://localhost:3000",

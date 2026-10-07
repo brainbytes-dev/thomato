@@ -4,6 +4,8 @@ import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { Pool } from "pg";
 import path from "node:path";
 import { existsSync } from "node:fs";
+import { applyRoles } from "./scripts/roles-lib";
+import { TEST_APP_PASSWORD } from "./vitest.app-role.mjs";
 
 config({ path: ".env" });
 
@@ -15,6 +17,8 @@ export default async function setup() {
   const pool = new Pool({ connectionString: url, max: 1 });
   try {
     await migrate(drizzle(pool), { migrationsFolder: folder });
+    // Laufzeitrolle nach den Migrationen (idempotent); Wegwerf-Passwort nur für die Test-DB.
+    await applyRoles(pool, TEST_APP_PASSWORD);
   } finally {
     await pool.end();
   }

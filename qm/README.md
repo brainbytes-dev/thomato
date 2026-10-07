@@ -20,7 +20,7 @@ docker compose exec db psql -U qm -d qm_dev -c '\l'
 
 ## Skripte
 
-`pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm build`, `pnpm db:generate`, `pnpm db:migrate`.
+`pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm build`, `pnpm db:generate`, `pnpm db:migrate`, `pnpm db:roles`.
 
 ## Deployment (Vercel + Neon)
 
@@ -28,12 +28,13 @@ Vercel-Projekt mit Root Directory `qm`. Deploy ausschliesslich über die Git-Int
 
 | Variable | Verwendung | Wert |
 | --- | --- | --- |
-| `DATABASE_URL` | App zur Laufzeit (`src/db/index.ts`) | Neon **Pooled**-URL (Host mit `-pooler`) |
-| `DATABASE_URL_DIRECT` | Migrationen (`drizzle.config.ts`) | Neon **Direct**-URL (ohne Pooler) |
+| `DATABASE_URL` | App zur Laufzeit (`src/db/index.ts`) | Neon **Pooled**-URL (Host mit `-pooler`) mit Benutzer **`qm_app`** (eingeschränkte Rolle, nicht der Besitzer) |
+| `DATABASE_URL_DIRECT` | Migrationen, `db:roles`, Seed (`drizzle.config.ts`) | Neon **Direct**-URL (ohne Pooler) mit dem **Besitzer** |
+| `QM_APP_PASSWORD` | nur `pnpm db:roles` | Passwort der Rolle `qm_app`; wird nicht in Vercel gesetzt, nur lokal im Terminal des Betreibers |
 | `BETTER_AUTH_SECRET` | Session-Signatur (`src/auth/auth.ts`) | `openssl rand -base64 32`, pro Umgebung eigenes Secret |
 | `BETTER_AUTH_URL` | Basis-URL für Callbacks und Redirects | öffentliche URL der Umgebung, z. B. `https://...vercel.app` |
 
-Alle vier in Vercel für **Preview und Production** setzen. `TEST_DATABASE_URL` wird nur lokal für Tests gebraucht.
+`DATABASE_URL`, `DATABASE_URL_DIRECT`, `BETTER_AUTH_SECRET` und `BETTER_AUTH_URL` in Vercel für **Preview und Production** setzen (`QM_APP_PASSWORD` nicht). `TEST_DATABASE_URL` wird nur lokal für Tests gebraucht.
 
 Migrationen laufen manuell, nicht im Build, und gegen die Direct-URL:
 
@@ -45,12 +46,27 @@ DATABASE_URL_DIRECT=<direct-url> pnpm db:migrate
 
 Die öffentliche Registrierung ist im Code abgeschaltet (`disableSignUp: true` in `src/auth/auth.ts`), es gibt keinen Env-Schalter. `POST /api/auth/sign-up/email` antwortet mit 400, `POST /api/auth/organization/create` mit 403. Nutzer und Organisationen legt nur der Betreiber an: Seed-Nutzer entstehen über die Seed-Instanz in `src/auth/seed-auth.ts` (gleiche Datenbank und gleiches Secret). Diese Datei importieren ausschliesslich Seed, Skripte und Tests; ein Guard-Test (`src/auth/registration.test.ts`) erzwingt das, damit sie nicht im Produktions-Bundle landet.
 
-### Audit-Trigger vor Produktion
+### Betriebsmodell: Besitzer und Laufzeitrolle
 
-`audit_event` ist per Trigger append-only. Eine DB-Rolle mit `ALTER`- oder `DISABLE TRIGGER`-Rechten kann ihn aushebeln. Vor dem Produktivbetrieb:
+Zwei Datenbankrollen mit getrennten Aufgaben (R36, R48, R49):
 
-- App-Rolle (in `DATABASE_URL`): nur `INSERT` und `SELECT` auf `audit_event`, keine Owner-Rechte.
-- Migrationen mit einer separaten Owner-Rolle (in `DATABASE_URL_DIRECT`).
+- **Besitzer** (`DATABASE_URL_DIRECT`): Migrationen, `pnpm db:roles`, Seed (inklusive `TRUNCATE`). Nur lokal beim Betreiber, nie in der laufenden App.
+- **`qm_app`** (`DATABASE_URL`, gepoolt): Laufzeit der App. `SELECT`, `INSERT`, `UPDATE`, `DELETE` auf die Tabellen mit Ausnahmen: `audit_event` und `document_version` nur `SELECT` und `INSERT`, `measure` ohne `DELETE`, nirgends `TRUNCATE`, kein `CREATE`/`ALTER`/`DROP`, kein Zugriff auf das Schema `drizzle`. Die Rolle ist kein Besitzer und kann die Unveränderlichkeits-Trigger nicht abschalten.
+
+Rolle anlegen oder aktualisieren (idempotent, Passwort nur aus der Umgebung, nie im Repo):
+
+```bash
+DATABASE_URL_DIRECT=<owner-direct-url> QM_APP_PASSWORD=<passwort> pnpm db:roles
+```
+
+Regeln:
+
+- **Nach jeder Migration `pnpm db:roles` ausführen.** Die Rechte (inklusive der Ausnahmen) werden dabei jedes Mal neu erzwungen.
+- Default-Privilegien für künftige Tabellen gelten nur für Objekte, die die ausführende Rolle anlegt. Migrationen und `db:roles` müssen deshalb mit demselben Besitzer laufen.
+- Neue unveränderliche Tabellen müssen im Block «Ausnahmen» in `db/roles.sql` ergänzt werden; sonst erhalten sie volle Rechte.
+- **Passwortwechsel:** `pnpm db:roles` mit neuem `QM_APP_PASSWORD` ausführen, danach `DATABASE_URL` in Vercel (Preview und Production) auf das neue Passwort setzen und neu deployen. Zwischen beiden Schritten schlagen neue Verbindungen der App fehl; im Wartungsfenster ausführen.
+- **Benutzer löschen:** Löschen ist blockiert: Fremdschlüssel (`audit_event`, `document`, `measure` u. a.) verhindern das Löschen eines Benutzers, und die Rolle `qm_app` darf Massnahmen und Audit-Ereignisse ohnehin nicht löschen. Vorgehen: Benutzer anonymisieren (Name und E-Mail ersetzen, Sessions und Konten löschen, Mitgliedschaft entfernen), nicht löschen.
+- Die Tests laufen als Besitzer. `vitest.global-setup.ts` legt `qm_app` in `qm_test` mit einem Wegwerf-Passwort an; `src/db/runtime-role*.test.ts` prüfen die Rechte und die Kern-Services mit der Rolle.
 
 ## Browser-Smoke-Test
 
