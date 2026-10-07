@@ -10,6 +10,7 @@ import { requireOrgContextOrRedirect } from "@/domain/request-context";
 import { can } from "@/domain/rights";
 import { AssessmentForm } from "./assessment-form";
 import { EvidenceSection } from "./evidence-section";
+import { MeasuresSection } from "./measures-section";
 
 async function Detail({ params }: { params: Promise<{ number: string }> }) {
   const { number: raw } = await params;
@@ -83,6 +84,10 @@ async function Detail({ params }: { params: Promise<{ number: string }> }) {
 
       <Suspense fallback={<p className="text-text-muted">Nachweise werden geladen...</p>}>
         <EvidenceSection ctx={ctx} number={detail.number} status={detail.status} now={now} />
+      </Suspense>
+
+      <Suspense fallback={<p className="text-text-muted">Massnahmen werden geladen...</p>}>
+        <MeasuresSection ctx={ctx} number={detail.number} now={now} />
       </Suspense>
 
       {history && (
