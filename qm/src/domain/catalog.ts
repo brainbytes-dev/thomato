@@ -2,6 +2,11 @@ import { z } from "zod";
 import type { Db } from "@/db";
 import { criterion, standardVersion } from "@/db/schema";
 
+/** Entfernt Private-Use-, Steuer- und Format-Zeichen (Extraktionsreste aus dem PDF) und normalisiert Leerraum. */
+function cleanTitle(raw: string): string {
+  return raw.replace(/[\p{Co}\p{Cc}\p{Cf}]/gu, " ").replace(/\s+/g, " ").trim();
+}
+
 export const catalogRowSchema = z.object({
   nummer: z.string().min(1),
   titel: z.string().min(1),
@@ -33,7 +38,7 @@ export async function importCatalog(db: Db, input: CatalogInput): Promise<{ impo
         .values({
           standardVersionId: input.standardVersionId,
           number: r.nummer,
-          title: r.titel,
+          title: cleanTitle(r.titel),
           chapter: r.kapitel,
           mandatoryAccreditation: r.anerkennung_muss,
           shouldAccreditation: r.anerkennung_soll,
@@ -44,7 +49,7 @@ export async function importCatalog(db: Db, input: CatalogInput): Promise<{ impo
         .onConflictDoUpdate({
           target: [criterion.standardVersionId, criterion.number],
           set: {
-            title: r.titel,
+            title: cleanTitle(r.titel),
             chapter: r.kapitel,
             mandatoryAccreditation: r.anerkennung_muss,
             shouldAccreditation: r.anerkennung_soll,

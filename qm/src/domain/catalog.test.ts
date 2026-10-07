@@ -34,6 +34,17 @@ describe("importCatalog", () => {
     expect(rows[0].title).toBe("Neu");
   });
 
+  it("strips private-use and control characters from titles", async () => {
+    await importCatalog(db, {
+      standardVersionId: "v",
+      label: "V",
+      rows: [row("6.7", "Personalplanung gemäss Punkt 7.8\uF020"), row("6.8", " A\u200B  b\tc ")],
+    });
+    const rows = await db.select().from(criterion);
+    expect(rows.find((r) => r.number === "6.7")?.title).toBe("Personalplanung gemäss Punkt 7.8");
+    expect(rows.find((r) => r.number === "6.8")?.title).toBe("A b c");
+  });
+
   it("aborts the whole import when one row has no number", async () => {
     await expect(
       importCatalog(db, { standardVersionId: "v", label: "V", rows: [row("8.1"), { ...row("x"), nummer: "" }] }),
