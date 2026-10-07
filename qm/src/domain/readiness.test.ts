@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { AssessmentStatus } from "@/db/schema";
-import { computeReadiness, readinessSummary, type CriterionInput } from "./readiness";
+import { computeReadiness, percentOf, readinessSummary, type CriterionInput } from "./readiness";
 
 let n = 0;
 function crit(
@@ -93,5 +93,22 @@ describe("readinessSummary", () => {
     expect(readinessSummary(computeReadiness([], "accreditation", false))).toBe("Noch kein Kriterium bewertet.");
     const shouldOnly = computeReadiness([crit("met"), should("critical")], "accreditation", false);
     expect(readinessSummary(shouldOnly)).toBe("1 Soll-Kriterium ist kritisch.");
+  });
+});
+
+describe("progress rounding", () => {
+  it("never shows 100 percent while a criterion is unmet", () => {
+    const list = [...Array.from({ length: 199 }, () => crit("met")), crit("open")];
+    const r = computeReadiness(list, "accreditation", false);
+    expect(r.progressPercent).toBe(99);
+    expect(r.status).toBe("action_needed");
+  });
+
+  it("percentOf rounds down and is exact for integer boundaries", () => {
+    expect(percentOf(100, 100)).toBe(100);
+    expect(percentOf(29, 100)).toBe(29);
+    expect(percentOf(1, 3)).toBe(33);
+    expect(percentOf(2, 3)).toBe(66);
+    expect(percentOf(0, 0)).toBeNull();
   });
 });

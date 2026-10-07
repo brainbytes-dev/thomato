@@ -31,6 +31,10 @@ export function scopeOf(c: CriterionInput, mode: ProcedureMode): { mandatory: bo
     : { mandatory: c.mandatoryRenewal, should: c.shouldRenewal };
 }
 
+export function percentOf(met: number, total: number): number | null {
+  return total === 0 ? null : Math.floor((met * 100) / total);
+}
+
 export function computeReadiness(
   criteria: readonly CriterionInput[],
   mode: ProcedureMode,
@@ -76,7 +80,7 @@ export function computeReadiness(
   return {
     status,
     basisValidated,
-    progressPercent: applicable === 0 ? null : Math.round((met / applicable) * 100),
+    progressPercent: percentOf(met, applicable),
     applicable,
     met,
     notApplicable,
