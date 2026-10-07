@@ -85,9 +85,14 @@ describe("atomic audit", () => {
 
   it("rolls back the domain change when the audit insert fails", async () => {
     const { c1, ctxA } = await setup();
-    await expect(
-      setAssessmentStatus({ ...ctxA, userId: "nonexistent-user" }, c1.id, "met"),
-    ).rejects.toThrow();
+    const error: unknown = await setAssessmentStatus({ ...ctxA, userId: "nonexistent-user" }, c1.id, "met").then(
+      () => null,
+      (e: unknown) => e,
+    );
+    expect(error).toBeInstanceOf(Error);
+    // drizzle verpackt den PG-Fehler: die FK-Meldung steht in error.cause.
+    const text = `${(error as Error).message} ${(error as Error).cause instanceof Error ? ((error as Error).cause as Error).message : ""}`;
+    expect(text).toMatch(/foreign key/i);
     expect(await db.select().from(criterionAssessment)).toHaveLength(0);
     expect(await db.select().from(auditEvent)).toHaveLength(0);
   });
