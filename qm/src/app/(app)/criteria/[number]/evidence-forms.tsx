@@ -11,6 +11,7 @@ import {
   type ReactNode,
 } from "react";
 import { checkClientFile } from "@/components/criteria/file-check";
+import { guardAction } from "@/components/criteria/guard-action";
 import {
   addVersionAction,
   linkEvidenceAction,
@@ -28,7 +29,15 @@ type Action = (prev: EvidenceFormState, formData: FormData) => Promise<EvidenceF
 
 /** Gemeinsamer Ablauf: Datei vorab prüfen, FormData synchron bilden, Felder nach Erfolg neu einhängen. */
 function useEvidenceForm(action: Action, maxBytes: number | null) {
-  const [state, formAction, pending] = useActionState<EvidenceFormState, FormData>(action, null);
+  const [guarded] = useState(() =>
+    guardAction(
+      action,
+      maxBytes === null
+        ? "Die Änderung konnte nicht gespeichert werden. Bitte versuchen Sie es noch einmal."
+        : `Die Datei konnte nicht übertragen werden. Sie darf höchstens ${maxBytes / (1024 * 1024)} MiB gross sein. Bitte prüfen Sie auch die Verbindung und versuchen Sie es noch einmal.`,
+    ),
+  );
+  const [state, formAction, pending] = useActionState<EvidenceFormState, FormData>(guarded, null);
   const [localError, setLocalError] = useState<string | null>(null);
   const [resetKey, setResetKey] = useState(0);
   const [seen, setSeen] = useState<EvidenceFormState>(null);

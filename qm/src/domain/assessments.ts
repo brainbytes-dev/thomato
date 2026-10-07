@@ -59,6 +59,9 @@ export async function listAssessments(ctx: OrgContext): Promise<AssessmentRow[]>
 
 export { isValidIsoDate };
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const CRITERION_NOT_FOUND = "Kriterium nicht gefunden.";
+
 export const NA_REASON_MIN = 10;
 export const NA_REASON_MAX = 500;
 
@@ -84,6 +87,10 @@ type Tx = Parameters<Parameters<typeof withAudit>[1]>[0];
  * not_applicable audit event.
  */
 async function lockAssessment(tx: Tx, ctx: OrgContext, criterionId: string) {
+  // Unbekannte oder ungültige IDs sind ein erwartbarer Fehler, kein Datenbankfehler.
+  if (!UUID.test(criterionId)) throw new ValidationError(CRITERION_NOT_FOUND);
+  const [known] = await tx.select({ id: criterion.id }).from(criterion).where(eq(criterion.id, criterionId));
+  if (!known) throw new ValidationError(CRITERION_NOT_FOUND);
   await tx
     .insert(criterionAssessment)
     .values({ organizationId: ctx.organizationId, criterionId })
