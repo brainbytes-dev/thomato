@@ -2,7 +2,7 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
 import { nextCookies } from "better-auth/next-js";
 import { organization } from "better-auth/plugins";
-import { eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { ac, roles } from "./permissions";
@@ -21,12 +21,13 @@ export const auth = betterAuth({
   databaseHooks: {
     session: {
       create: {
-        // Ein Rettungsdienst pro User: die erste Mitgliedschaft wird aktiv.
+        // Ein Rettungsdienst pro User: die älteste Mitgliedschaft wird aktiv (deterministisch).
         before: async (session) => {
           const [first] = await db
             .select({ organizationId: schema.member.organizationId })
             .from(schema.member)
             .where(eq(schema.member.userId, session.userId))
+            .orderBy(asc(schema.member.createdAt), asc(schema.member.id))
             .limit(1);
           return {
             data: { ...session, activeOrganizationId: first?.organizationId ?? null },
