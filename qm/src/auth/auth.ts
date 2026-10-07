@@ -1,0 +1,38 @@
+import { betterAuth } from "better-auth";
+import { drizzleAdapter } from "@better-auth/drizzle-adapter";
+import { nextCookies } from "better-auth/next-js";
+import { organization } from "better-auth/plugins";
+import { eq } from "drizzle-orm";
+import { db } from "@/db";
+import * as schema from "@/db/schema";
+import { ac, roles } from "./permissions";
+
+export const auth = betterAuth({
+  database: drizzleAdapter(db, { provider: "pg", schema }),
+  emailAndPassword: {
+    enabled: true,
+    // E-Mail-Verifikation und Reset kommen mit Resend nach dem Pitch.
+    requireEmailVerification: false,
+  },
+  plugins: [
+    organization({ ac, roles, creatorRole: "owner" }),
+    nextCookies(),
+  ],
+  databaseHooks: {
+    session: {
+      create: {
+        // Ein Rettungsdienst pro User: die erste Mitgliedschaft wird aktiv.
+        before: async (session) => {
+          const [first] = await db
+            .select({ organizationId: schema.member.organizationId })
+            .from(schema.member)
+            .where(eq(schema.member.userId, session.userId))
+            .limit(1);
+          return {
+            data: { ...session, activeOrganizationId: first?.organizationId ?? null },
+          };
+        },
+      },
+    },
+  },
+});
