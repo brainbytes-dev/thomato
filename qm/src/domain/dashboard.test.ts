@@ -5,7 +5,7 @@ import type { AssessmentRow } from "./assessments";
 import { listAssessments, setAssessmentStatus } from "./assessments";
 import { filterCriteria } from "./criteria-filter";
 import { importCatalog } from "./catalog";
-import { buildActionItems, chapterProgress, getDashboard } from "./dashboard";
+import { buildActionItems, chapterProgress, getDashboard, selectActionItems, type ActionItem } from "./dashboard";
 import { createDocument, getEvidenceInfo } from "./documents";
 import type { DeadlineView } from "./deadlines";
 import { ctxFor, makeOrg, resetDb } from "@/test/helpers";
@@ -360,5 +360,53 @@ describe("getDashboard", () => {
     expect(only.soonCount).toBe(0);
     await db.insert(deadline).values({ organizationId: a.org.id, kind: "application", label: "Antrag", dueDate: "2026-10-20" });
     expect((await getDashboard(ctx, NOW)).soonCount).toBe(1);
+  });
+});
+
+describe("selectActionItems", () => {
+  const item = (key: string, source: ActionItem["source"] = "criterion"): ActionItem => ({
+    key,
+    priority: "medium",
+    criterionNumber: null,
+    topic: key,
+    dueDate: null,
+    dueInDays: null,
+    statusLabel: "x",
+    href: null,
+    source,
+  });
+  const bundled = () => item("evidence:missing", "evidence");
+  const keys = (l: ActionItem[]) => l.map((i) => i.key);
+
+  it("slices plainly without a bundled item", () => {
+    const list = ["a", "b", "c", "d"].map((k) => item(k));
+    expect(keys(selectActionItems(list, 3))).toEqual(["a", "b", "c"]);
+  });
+
+  it("leaves the list unchanged when the bundled item is within the limit", () => {
+    const list = [item("a"), bundled(), item("c"), item("d")];
+    expect(keys(selectActionItems(list, 3))).toEqual(["a", "evidence:missing", "c"]);
+  });
+
+  it("lets the bundled item replace the last slot when it would be cut", () => {
+    const list = [item("a"), item("b"), item("c"), item("d"), bundled()];
+    expect(keys(selectActionItems(list, 3))).toEqual(["a", "b", "evidence:missing"]);
+  });
+
+  it("keeps only the bundled item for limit 1", () => {
+    const list = [item("a"), item("b"), bundled()];
+    expect(keys(selectActionItems(list, 1))).toEqual(["evidence:missing"]);
+    expect(keys(selectActionItems([item("a"), item("b")], 1))).toEqual(["a"]);
+  });
+
+  it("returns nothing for limit 0 or below and for an empty list", () => {
+    expect(selectActionItems([item("a"), bundled()], 0)).toEqual([]);
+    expect(selectActionItems([item("a")], -2)).toEqual([]);
+    expect(selectActionItems([], 10)).toEqual([]);
+  });
+
+  it("returns the bundled item when it is the only one", () => {
+    expect(keys(selectActionItems([bundled()], 10))).toEqual(["evidence:missing"]);
+    expect(keys(selectActionItems([bundled()], 1))).toEqual(["evidence:missing"]);
   });
 });

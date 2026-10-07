@@ -26,6 +26,18 @@ export type ActionItem = {
   source: "criterion" | "deadline" | "evidence";
 };
 
+export const BUNDLED_EVIDENCE_KEY = "evidence:missing";
+
+/** Erste `limit` Einträge; der gebündelte Hinweis «ohne Nachweis» ersetzt bei Bedarf den letzten Platz, statt abgeschnitten zu werden. */
+export function selectActionItems(actions: ActionItem[], limit: number): ActionItem[] {
+  const n = Math.max(0, Math.floor(limit));
+  if (n === 0) return [];
+  const head = actions.slice(0, n);
+  const bundled = actions.find((a) => a.key === BUNDLED_EVIDENCE_KEY);
+  if (!bundled || head.includes(bundled)) return head;
+  return [...head.slice(0, n - 1), bundled];
+}
+
 export type StaleEvidence = { number: string; title: string; validUntil: string };
 export type EvidenceInput = { stale: StaleEvidence[]; missingMet: number };
 export type EvidenceCounts = { current: number; stale: number; missing: number };
