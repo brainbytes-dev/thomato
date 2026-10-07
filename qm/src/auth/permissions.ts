@@ -1,14 +1,7 @@
 import { createAccessControl } from "better-auth/plugins/access";
-import { ROLE_RIGHTS } from "@/domain/rights";
+import { RESOURCE_ACTIONS, ROLE_RIGHTS } from "@/domain/rights";
 
-export const statement = {
-  organization: ["update", "delete"],
-  member: ["create", "update", "delete"],
-  invitation: ["create", "cancel"],
-  assessment: ["read", "write", "approve"],
-  measure: ["read", "write"],
-  document: ["read", "write", "approve"],
-} as const;
+export const statement = RESOURCE_ACTIONS;
 
 export const ac = createAccessControl(statement);
 

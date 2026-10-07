@@ -21,4 +21,12 @@ describe("rights", () => {
     expect(can("qm_admin", "member", "update")).toBe(true);
     expect(can("reviewer", "member", "update")).toBe(false);
   });
+  it("viewer cannot write measures or documents", () => {
+    expect(can("viewer", "measure", "write")).toBe(false);
+    expect(can("viewer", "document", "write")).toBe(false);
+  });
+  it("reviewer cannot manage the organization", () => {
+    expect(can("reviewer", "organization", "update")).toBe(false);
+    expect(can("reviewer", "organization", "delete")).toBe(false);
+  });
 });

@@ -1,4 +1,4 @@
-import { can, type Resource, type Role } from "./rights";
+import { can, type ActionOf, type Resource, type Role } from "./rights";
 
 export type OrgContext = { organizationId: string; userId: string; role: Role };
 
@@ -16,7 +16,7 @@ export class ForbiddenError extends Error {
   }
 }
 
-export function assertCan(ctx: OrgContext, resource: Resource, action: string): void {
+export function assertCan<R extends Resource>(ctx: OrgContext, resource: R, action: ActionOf<R>): void {
   if (!can(ctx.role, resource, action)) {
     throw new ForbiddenError(`${ctx.role} darf ${resource}.${action} nicht`);
   }
