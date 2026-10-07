@@ -3,51 +3,94 @@ import { Suspense } from "react";
 import { listAssessments } from "@/domain/assessments";
 import { requireOrgContextOrRedirect } from "@/domain/request-context";
 import { ASSESSMENT_STATUSES } from "@/db/schema";
-import { countByStatus, parseStatusFilter, type StatusFilter } from "@/domain/criteria-filter";
-import { scopeLabel, STATUS_LABEL, STATUS_TONE } from "@/components/criteria/status-copy";
+import {
+  countByStatus,
+  criteriaFilterHref,
+  parseEvidenceFilter,
+  parseStatusFilter,
+  type EvidenceFilter,
+  type StatusFilter,
+} from "@/domain/criteria-filter";
+import { getEvidenceInfo } from "@/domain/documents";
+import type { EvidenceState } from "@/domain/evidence";
+import { EVIDENCE_LABEL, EVIDENCE_TONE, scopeLabel, STATUS_LABEL, STATUS_TONE } from "@/components/criteria/status-copy";
 
-type SearchParams = Promise<{ status?: string | string[] }>;
+type SearchParams = Promise<{ status?: string | string[]; evidence?: string | string[] }>;
 
-function filterHref(filter: StatusFilter): string {
-  return filter === "all" ? "/criteria" : `/criteria?status=${filter}`;
+const EVIDENCE_VALUES: readonly EvidenceState[] = ["none", "stale", "current"];
+
+type FilterOption<V extends string> = { value: V; label: string; count: number; href: string };
+
+function FilterGroup<V extends string>({
+  label,
+  options,
+  active,
+}: {
+  label: string;
+  options: FilterOption<V>[];
+  active: V;
+}) {
+  return (
+    <nav aria-label={label} className="flex flex-col gap-1">
+      <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">{label}</p>
+      <ul className="flex flex-wrap gap-2">
+        {options.map((f) => {
+          const isActive = f.value === active;
+          return (
+            <li key={f.value}>
+              <Link
+                href={f.href}
+                aria-current={isActive ? "true" : undefined}
+                className={`inline-block rounded-[var(--radius)] border px-3 py-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                  isActive ? "border-primary bg-surface-subtle font-semibold underline" : "border-border hover:bg-surface-subtle"
+                }`}
+              >
+                {f.label} ({f.count})
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
+  );
 }
 
 async function CriteriaTable({ searchParams }: { searchParams: SearchParams }) {
-  const { status } = await searchParams;
-  const filter = parseStatusFilter(status);
+  const params = await searchParams;
+  const filter = parseStatusFilter(params.status);
+  const evidenceFilter = parseEvidenceFilter(params.evidence);
   const ctx = await requireOrgContextOrRedirect();
-  const all = await listAssessments(ctx);
-  const counts = countByStatus(all);
-  const rows = filter === "all" ? all : all.filter((r) => r.status === filter);
-  const filters: { value: StatusFilter; label: string; count: number }[] = [
-    { value: "all", label: "Alle", count: all.length },
-    ...ASSESSMENT_STATUSES.map((s) => ({ value: s, label: STATUS_LABEL[s], count: counts[s] })),
-  ];
+  const [all, info] = await Promise.all([listAssessments(ctx), getEvidenceInfo(ctx, new Date())]);
+  // Nicht anwendbare Kriterien haben keinen Nachweiszustand (Strich), sie fallen aus Nachweis-Filtern heraus.
+  const evidenceOf = (r: (typeof all)[number]): EvidenceState | null =>
+    r.status === "not_applicable" ? null : (info.get(r.number)?.state ?? "none");
+  const matchesEvidence = (r: (typeof all)[number]) => evidenceFilter === "all" || evidenceOf(r) === evidenceFilter;
+  const matchesStatus = (r: (typeof all)[number]) => filter === "all" || r.status === filter;
+  const statusBase = all.filter(matchesEvidence);
+  const evidenceBase = all.filter(matchesStatus);
+  const rows = all.filter((r) => matchesStatus(r) && matchesEvidence(r));
+  const statusCounts = countByStatus(statusBase);
+  const statusOptions: FilterOption<StatusFilter>[] = [
+    { value: "all" as StatusFilter, label: "Alle", count: statusBase.length },
+    ...ASSESSMENT_STATUSES.map((s): { value: StatusFilter; label: string; count: number } => ({ value: s, label: STATUS_LABEL[s], count: statusCounts[s] })),
+  ].map((o) => ({ ...o, href: criteriaFilterHref(o.value, evidenceFilter) }));
+  const evidenceOptions: FilterOption<EvidenceFilter>[] = [
+    { value: "all" as EvidenceFilter, label: "Alle", count: evidenceBase.length },
+    ...EVIDENCE_VALUES.map((v): { value: EvidenceFilter; label: string; count: number } => ({
+      value: v,
+      label: EVIDENCE_LABEL[v],
+      count: evidenceBase.filter((r) => evidenceOf(r) === v).length,
+    })),
+  ].map((o) => ({ ...o, href: criteriaFilterHref(filter, o.value) }));
   return (
     <>
-      <nav aria-label="Filter nach Stand">
-        <ul className="flex flex-wrap gap-2">
-          {filters.map((f) => {
-            const active = f.value === filter;
-            return (
-              <li key={f.value}>
-                <Link
-                  href={filterHref(f.value)}
-                  aria-current={active ? "true" : undefined}
-                  className={`inline-block rounded-[var(--radius)] border px-3 py-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
-                    active ? "border-primary bg-surface-subtle font-semibold underline" : "border-border hover:bg-surface-subtle"
-                  }`}
-                >
-                  {f.label} ({f.count})
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      </nav>
+      <div className="flex flex-col gap-3">
+        <FilterGroup label="Stand" options={statusOptions} active={filter} />
+        <FilterGroup label="Nachweis" options={evidenceOptions} active={evidenceFilter} />
+      </div>
       <div className="overflow-x-auto rounded-[var(--radius)] border border-border bg-surface">
         <table className="w-full border-collapse text-left">
-          <caption className="sr-only">Kriterien mit Bewertungsstand</caption>
+          <caption className="sr-only">Kriterien mit Bewertungsstand und Nachweis</caption>
           <thead className="bg-surface-subtle text-text-muted">
             <tr>
               <th scope="col" className="whitespace-nowrap px-3 py-2">Nr.</th>
@@ -55,12 +98,13 @@ async function CriteriaTable({ searchParams }: { searchParams: SearchParams }) {
               <th scope="col" className="px-3 py-2">Kapitel</th>
               <th scope="col" className="whitespace-nowrap px-3 py-2">Pflicht</th>
               <th scope="col" className="px-3 py-2">Stand</th>
+              <th scope="col" className="whitespace-nowrap px-3 py-2">Nachweis</th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 ? (
               <tr className="border-t border-border">
-                <td colSpan={5} className="px-3 py-4 text-text-muted">Keine Kriterien mit diesem Stand.</td>
+                <td colSpan={6} className="px-3 py-4 text-text-muted">Keine Kriterien mit dieser Auswahl. Wählen Sie einen anderen Filter oder setzen Sie ihn auf «Alle».</td>
               </tr>
             ) : (
               rows.map((r) => (
@@ -81,6 +125,16 @@ async function CriteriaTable({ searchParams }: { searchParams: SearchParams }) {
                     {r.status === "not_applicable" && r.notApplicableReason && (
                       <p className="mt-1 text-text-muted">Begründung: {r.notApplicableReason}</p>
                     )}
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2">
+                    {(() => {
+                      const state = evidenceOf(r);
+                      return state === null ? (
+                        <span className="text-text-muted">-</span>
+                      ) : (
+                        <span className={`font-medium ${EVIDENCE_TONE[state]}`}>{EVIDENCE_LABEL[state]}</span>
+                      );
+                    })()}
                   </td>
                 </tr>
               ))

@@ -5,11 +5,14 @@ import type { AssessmentRow } from "./assessments";
 import { setAssessmentStatus } from "./assessments";
 import { importCatalog } from "./catalog";
 import { buildActionItems, chapterProgress, getDashboard } from "./dashboard";
+import { createDocument } from "./documents";
 import type { DeadlineView } from "./deadlines";
 import { ctxFor, makeOrg, resetDb } from "@/test/helpers";
 import { eq } from "drizzle-orm";
 
 const NOW = new Date("2026-10-07T10:00:00Z");
+const pdf = (text: string) => ({ name: "k.pdf", bytes: Buffer.from(`%PDF-1.4\n${text}`) });
+const NO_EVIDENCE = { stale: [], missingMet: 0 };
 
 let k = 0;
 function row(over: Partial<AssessmentRow>): AssessmentRow {
@@ -46,6 +49,7 @@ describe("buildActionItems", () => {
         row({ number: "g", status: "critical", mandatoryAccreditation: false, shouldAccreditation: true }),
       ],
       [],
+      NO_EVIDENCE,
       "accreditation",
       NOW,
     );
@@ -66,6 +70,7 @@ describe("buildActionItems", () => {
         row({ number: "z", status: "critical", dueDate: "2026-10-10" }),
       ],
       [],
+      NO_EVIDENCE,
       "accreditation",
       NOW,
     );
@@ -82,6 +87,7 @@ describe("buildActionItems", () => {
         dl({ id: "3", label: "Heute", days: 0, urgency: "soon", dueDate: "2026-10-07" }),
         dl({ id: "4", label: "Fern", days: 90, urgency: "upcoming", dueDate: "2027-01-05" }),
       ],
+      NO_EVIDENCE,
       "accreditation",
       NOW,
     );
@@ -90,6 +96,80 @@ describe("buildActionItems", () => {
       ["Heute", "high", "Frist heute"],
       ["Bald", "high", "Frist in 13 Tagen"],
     ]);
+  });
+});
+
+describe("buildActionItems with evidence", () => {
+  it("adds one high item per stale criterion with the expiry date and a criterion link", () => {
+    const items = buildActionItems(
+      [row({ number: "7.3.10", status: "met" })],
+      [],
+      {
+        stale: [
+          { number: "7.3.10", title: "Hygiene", validUntil: "2026-09-30" },
+          { number: "6.1", title: "Antrag/Ablauf", validUntil: "2026-01-15" },
+        ],
+        missingMet: 0,
+      },
+      "accreditation",
+      NOW,
+    );
+    expect(items).toHaveLength(2);
+    expect(items.map((i) => i.criterionNumber)).toEqual(["6.1", "7.3.10"]);
+    expect(items[1]).toMatchObject({
+      priority: "high",
+      statusLabel: "Nachweis veraltet",
+      topic: "7.3.10 Hygiene",
+      dueDate: "2026-09-30",
+      dueInDays: -7,
+      href: "/criteria/7.3.10",
+      source: "evidence",
+    });
+    expect(items[0].href).toBe("/criteria/6.1");
+  });
+
+  it("bundles met mandatory criteria without evidence into exactly one medium item, singular for one", () => {
+    const plural = buildActionItems([], [], { stale: [], missingMet: 3 }, "accreditation", NOW);
+    expect(plural).toEqual([
+      {
+        key: "evidence:missing",
+        priority: "medium",
+        criterionNumber: null,
+        topic: "3 erfüllte Pflichtkriterien ohne Nachweis",
+        dueDate: null,
+        dueInDays: null,
+        statusLabel: "Nachweis fehlt",
+        href: "/criteria?status=met&evidence=none",
+        source: "evidence",
+      },
+    ]);
+    const single = buildActionItems([], [], { stale: [], missingMet: 1 }, "accreditation", NOW);
+    expect(single[0].topic).toBe("1 erfülltes Pflichtkriterium ohne Nachweis");
+    expect(buildActionItems([], [], NO_EVIDENCE, "accreditation", NOW)).toEqual([]);
+  });
+
+  it("keeps critical before high before medium across criteria, deadlines and evidence", () => {
+    const items = buildActionItems(
+      [row({ number: "c", status: "critical" }), row({ number: "m", status: "not_assessed" })],
+      [dl({ id: "1", label: "Heute", days: 0, urgency: "soon", dueDate: "2026-10-07" })],
+      { stale: [{ number: "s", title: "Alt", validUntil: "2026-05-01" }], missingMet: 2 },
+      "accreditation",
+      NOW,
+    );
+    expect(items.map((i) => [i.source, i.priority])).toEqual([
+      ["criterion", "critical"],
+      ["evidence", "high"],
+      ["deadline", "high"],
+      ["criterion", "medium"],
+      ["evidence", "medium"],
+    ]);
+    expect(items.find((i) => i.source === "deadline")?.href).toBeNull();
+    expect(items.find((i) => i.criterionNumber === "c")?.href).toBe("/criteria/c");
+  });
+
+  it("encodes criterion numbers in links", () => {
+    const [item] = buildActionItems([row({ number: "a/b c", status: "critical" })], [], NO_EVIDENCE, "accreditation", NOW);
+    expect(item.href).toBe("/criteria/a%2Fb%20c");
   });
 });
 
@@ -210,5 +290,41 @@ describe("getDashboard", () => {
     await setAssessmentStatus(ctx, crits[1].id, "critical");
     const dash = await getDashboard(ctx, NOW);
     expect(dash.actions.slice(0, 2).map((i) => i.criterionNumber)).toEqual(["6.1", "7.3.8"]);
+  });
+
+  it("counts evidence over applicable mandatory criteria, adds stale and bundled items, and leaves readiness untouched", async () => {
+    const crits = await seedCatalog();
+    const a = await makeOrg("dash-ev-a");
+    const b = await makeOrg("dash-ev-b");
+    const ctxA = ctxFor(a.org.id, a.user.id, "owner");
+    const ctxB = ctxFor(b.org.id, b.user.id, "owner");
+    await setAssessmentStatus(ctxA, crits[0].id, "met"); // 5.2.1, ohne Nachweis
+    await setAssessmentStatus(ctxA, crits[1].id, "met"); // 6.1, aktueller Nachweis
+    await setAssessmentStatus(ctxA, crits[2].id, "met"); // 7.3.10, veralteter Nachweis
+    await setAssessmentStatus(ctxA, crits[3].id, "not_applicable", { reason: "Im Betrieb nicht vorhanden" }); // 7.3.8
+
+    const before = await getDashboard(ctxA, NOW);
+    expect(before.evidence).toEqual({ current: 0, stale: 0, missing: 3 });
+
+    await createDocument(ctxA, { title: "Hygienekonzept", file: pdf("a"), validUntil: "2026-03-01", criterionNumbers: ["7.3.10"] });
+    await createDocument(ctxA, { title: "Hygienekonzept alt", file: pdf("b"), validUntil: "2026-06-30", criterionNumbers: ["7.3.10"] });
+    await createDocument(ctxA, { title: "Antrag", file: pdf("c"), validUntil: null, criterionNumbers: ["6.1"] });
+    await createDocument(ctxA, { title: "Nicht anwendbar", file: pdf("d"), validUntil: null, criterionNumbers: ["7.3.8"] });
+
+    const after = await getDashboard(ctxA, NOW);
+    expect(after.evidence).toEqual({ current: 1, stale: 1, missing: 1 });
+    expect(after.readiness).toEqual(before.readiness);
+    const evidenceItems = after.actions.filter((i) => i.source === "evidence");
+    expect(evidenceItems).toHaveLength(2);
+    expect(evidenceItems[0]).toMatchObject({
+      criterionNumber: "7.3.10", priority: "high", dueDate: "2026-06-30", href: "/criteria/7.3.10", statusLabel: "Nachweis veraltet",
+    });
+    expect(evidenceItems[1]).toMatchObject({
+      priority: "medium", topic: "1 erfülltes Pflichtkriterium ohne Nachweis", href: "/criteria?status=met&evidence=none",
+    });
+
+    const dashB = await getDashboard(ctxB, NOW);
+    expect(dashB.evidence).toEqual({ current: 0, stale: 0, missing: 4 });
+    expect(dashB.actions.some((i) => i.source === "evidence")).toBe(false);
   });
 });

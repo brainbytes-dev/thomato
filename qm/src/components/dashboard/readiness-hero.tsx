@@ -86,6 +86,27 @@ export function ReadinessHero({ data }: { data: DashboardData }) {
           <dd className="text-xl font-semibold">{data.soonCount}</dd>
         </div>
       </dl>
+      <div className="border-t border-border pt-4">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-text-muted">
+          Nachweise (anwendbare Pflichtkriterien)
+        </h3>
+        <dl className="mt-2 grid grid-cols-3 gap-x-8 gap-y-3 sm:max-w-md">
+          <div>
+            <dt className="text-text-muted">Aktuell</dt>
+            <dd className="text-xl font-semibold">{data.evidence.current}</dd>
+          </div>
+          <div>
+            <dt className="text-text-muted">Veraltet</dt>
+            <dd className={`text-xl font-semibold ${data.evidence.stale > 0 ? "text-warning" : ""}`}>
+              {data.evidence.stale}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-text-muted">Fehlend</dt>
+            <dd className="text-xl font-semibold">{data.evidence.missing}</dd>
+          </div>
+        </dl>
+      </div>
     </section>
   );
 }

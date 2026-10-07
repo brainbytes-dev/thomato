@@ -35,7 +35,18 @@ export function ActionCenter({ items, total }: { items: ActionItem[]; total: num
                   <td className={`whitespace-nowrap px-3 py-2 font-medium ${PRIORITY_TONE[i.priority]}`}>
                     {PRIORITY_LABEL[i.priority]}
                   </td>
-                  <td className="px-3 py-2">{i.topic}</td>
+                  <td className="px-3 py-2">
+                    {i.href ? (
+                      <Link
+                        href={i.href}
+                        className="text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                      >
+                        {i.topic}
+                      </Link>
+                    ) : (
+                      i.topic
+                    )}
+                  </td>
                   <td className="whitespace-nowrap px-3 py-2">{i.dueDate ? formatDate(i.dueDate) : "ohne Frist"}</td>
                   <td className="whitespace-nowrap px-3 py-2">{i.statusLabel}</td>
                 </tr>
