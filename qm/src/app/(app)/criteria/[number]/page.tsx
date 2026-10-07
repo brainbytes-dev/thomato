@@ -9,6 +9,7 @@ import { formatDate, formatDateTime } from "@/domain/dates";
 import { requireOrgContextOrRedirect } from "@/domain/request-context";
 import { can } from "@/domain/rights";
 import { AssessmentForm } from "./assessment-form";
+import { EvidenceSection } from "./evidence-section";
 
 async function Detail({ params }: { params: Promise<{ number: string }> }) {
   const { number: raw } = await params;
@@ -21,6 +22,7 @@ async function Detail({ params }: { params: Promise<{ number: string }> }) {
   const ctx = await requireOrgContextOrRedirect();
   const detail = await getAssessmentByNumber(ctx, number);
   if (!detail) notFound();
+  const now = new Date();
   const canWrite = can(ctx.role, "assessment", "write");
   const history =
     can(ctx.role, "audit", "read") ? await listCriterionHistory(ctx, number, detail.assessmentId) : null;
@@ -78,6 +80,10 @@ async function Detail({ params }: { params: Promise<{ number: string }> }) {
           <p className="text-text-muted">Mit Ihrer Rolle ist die Bewertung schreibgeschützt.</p>
         )}
       </section>
+
+      <Suspense fallback={<p className="text-text-muted">Nachweise werden geladen...</p>}>
+        <EvidenceSection ctx={ctx} number={detail.number} status={detail.status} now={now} />
+      </Suspense>
 
       {history && (
         <section aria-labelledby="history-heading" className="flex flex-col gap-3">
