@@ -117,7 +117,7 @@ export function buildActionItems(
       dueDate: null,
       dueInDays: null,
       statusLabel: "Nachweis fehlt",
-      href: "/criteria?status=met&evidence=none",
+      href: "/criteria?status=met&evidence=none&scope=mandatory",
       source: "evidence",
     });
   }
@@ -220,6 +220,6 @@ export async function getDashboard(
     evidence: overview.counts,
     expiry: expiryOf(deadlines, now),
     overdueCount: deadlines.filter((d) => d.days < 0).length,
-    soonCount: actions.filter((a) => a.dueInDays !== null && a.dueInDays <= SOON_DAYS).length,
+    soonCount: actions.filter((a) => a.source !== "evidence" && a.dueInDays !== null && a.dueInDays <= SOON_DAYS).length,
   };
 }

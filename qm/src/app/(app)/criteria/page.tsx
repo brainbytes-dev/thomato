@@ -6,7 +6,10 @@ import { ASSESSMENT_STATUSES } from "@/db/schema";
 import {
   countByStatus,
   criteriaFilterHref,
+  evidenceOf,
+  filterCriteria,
   parseEvidenceFilter,
+  parseScopeFilter,
   parseStatusFilter,
   type EvidenceFilter,
   type StatusFilter,
@@ -15,7 +18,7 @@ import { getEvidenceInfo } from "@/domain/documents";
 import type { EvidenceState } from "@/domain/evidence";
 import { EVIDENCE_LABEL, EVIDENCE_TONE, scopeLabel, STATUS_LABEL, STATUS_TONE } from "@/components/criteria/status-copy";
 
-type SearchParams = Promise<{ status?: string | string[]; evidence?: string | string[] }>;
+type SearchParams = Promise<{ status?: string | string[]; evidence?: string | string[]; scope?: string | string[] }>;
 
 const EVIDENCE_VALUES: readonly EvidenceState[] = ["none", "stale", "current"];
 
@@ -61,32 +64,39 @@ async function CriteriaTable({ searchParams }: { searchParams: SearchParams }) {
   const evidenceFilter = parseEvidenceFilter(params.evidence);
   const ctx = await requireOrgContextOrRedirect();
   const [all, info] = await Promise.all([listAssessments(ctx), getEvidenceInfo(ctx, new Date())]);
-  // Nicht anwendbare Kriterien haben keinen Nachweiszustand (Strich), sie fallen aus Nachweis-Filtern heraus.
-  const evidenceOf = (r: (typeof all)[number]): EvidenceState | null =>
-    r.status === "not_applicable" ? null : (info.get(r.number)?.state ?? "none");
-  const matchesEvidence = (r: (typeof all)[number]) => evidenceFilter === "all" || evidenceOf(r) === evidenceFilter;
-  const matchesStatus = (r: (typeof all)[number]) => filter === "all" || r.status === filter;
-  const statusBase = all.filter(matchesEvidence);
-  const evidenceBase = all.filter(matchesStatus);
-  const rows = all.filter((r) => matchesStatus(r) && matchesEvidence(r));
+  const scope = parseScopeFilter(params.scope);
+  const statusBase = filterCriteria(all, { status: "all", evidence: evidenceFilter, scope }, info);
+  const evidenceBase = filterCriteria(all, { status: filter, evidence: "all", scope }, info);
+  const rows = filterCriteria(all, { status: filter, evidence: evidenceFilter, scope }, info);
   const statusCounts = countByStatus(statusBase);
   const statusOptions: FilterOption<StatusFilter>[] = [
     { value: "all" as StatusFilter, label: "Alle", count: statusBase.length },
     ...ASSESSMENT_STATUSES.map((s): { value: StatusFilter; label: string; count: number } => ({ value: s, label: STATUS_LABEL[s], count: statusCounts[s] })),
-  ].map((o) => ({ ...o, href: criteriaFilterHref(o.value, evidenceFilter) }));
+  ].map((o) => ({ ...o, href: criteriaFilterHref(o.value, evidenceFilter, scope) }));
   const evidenceOptions: FilterOption<EvidenceFilter>[] = [
     { value: "all" as EvidenceFilter, label: "Alle", count: evidenceBase.length },
     ...EVIDENCE_VALUES.map((v): { value: EvidenceFilter; label: string; count: number } => ({
       value: v,
       label: EVIDENCE_LABEL[v],
-      count: evidenceBase.filter((r) => evidenceOf(r) === v).length,
+      count: evidenceBase.filter((r) => evidenceOf(r, info) === v).length,
     })),
-  ].map((o) => ({ ...o, href: criteriaFilterHref(filter, o.value) }));
+  ].map((o) => ({ ...o, href: criteriaFilterHref(filter, o.value, scope) }));
   return (
     <>
       <div className="flex flex-col gap-3">
         <FilterGroup label="Stand" options={statusOptions} active={filter} />
         <FilterGroup label="Nachweis" options={evidenceOptions} active={evidenceFilter} />
+        {scope === "mandatory" && (
+          <p className="text-text-muted">
+            Nur Pflichtkriterien im Verfahren.{" "}
+            <Link
+              href={criteriaFilterHref(filter, evidenceFilter)}
+              className="text-primary underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              Alle Kriterien anzeigen
+            </Link>
+          </p>
+        )}
       </div>
       <div className="overflow-x-auto rounded-[var(--radius)] border border-border bg-surface">
         <table className="w-full border-collapse text-left">
@@ -128,7 +138,7 @@ async function CriteriaTable({ searchParams }: { searchParams: SearchParams }) {
                   </td>
                   <td className="whitespace-nowrap px-3 py-2">
                     {(() => {
-                      const state = evidenceOf(r);
+                      const state = evidenceOf(r, info);
                       return state === null ? (
                         <span className="text-text-muted">-</span>
                       ) : (

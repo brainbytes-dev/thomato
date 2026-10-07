@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { countByStatus, parseEvidenceFilter, parseStatusFilter } from "./criteria-filter";
+import { countByStatus, criteriaFilterHref, parseEvidenceFilter, parseScopeFilter, parseStatusFilter } from "./criteria-filter";
 
 describe("parseStatusFilter", () => {
   it("accepts the known statuses and all, and falls back to all for anything else", () => {
@@ -30,5 +30,25 @@ describe("parseEvidenceFilter", () => {
     expect(parseEvidenceFilter(undefined)).toBe("all");
     expect(parseEvidenceFilter("x")).toBe("all");
     expect(parseEvidenceFilter(["stale", "none"])).toBe("stale");
+  });
+});
+
+describe("parseScopeFilter", () => {
+  it("returns mandatory only for that exact value", () => {
+    expect(parseScopeFilter("mandatory")).toBe("mandatory");
+    expect(parseScopeFilter(["mandatory", "all"])).toBe("mandatory");
+    expect(parseScopeFilter(["x", "mandatory"])).toBe("all");
+    expect(parseScopeFilter("Mandatory")).toBe("all");
+    expect(parseScopeFilter("x")).toBe("all");
+    expect(parseScopeFilter(undefined)).toBe("all");
+  });
+});
+
+describe("criteriaFilterHref", () => {
+  it("keeps all three parameters and omits the ones set to all", () => {
+    expect(criteriaFilterHref("met", "none", "mandatory")).toBe("/criteria?status=met&evidence=none&scope=mandatory");
+    expect(criteriaFilterHref("all", "stale", "mandatory")).toBe("/criteria?evidence=stale&scope=mandatory");
+    expect(criteriaFilterHref("met", "none")).toBe("/criteria?status=met&evidence=none");
+    expect(criteriaFilterHref("all", "all")).toBe("/criteria");
   });
 });

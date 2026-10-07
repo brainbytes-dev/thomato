@@ -2,10 +2,11 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { db } from "@/db";
 import { ACTIVE_STANDARD_VERSION, criterion, deadline } from "@/db/schema";
 import type { AssessmentRow } from "./assessments";
-import { setAssessmentStatus } from "./assessments";
+import { listAssessments, setAssessmentStatus } from "./assessments";
+import { filterCriteria } from "./criteria-filter";
 import { importCatalog } from "./catalog";
 import { buildActionItems, chapterProgress, getDashboard } from "./dashboard";
-import { createDocument } from "./documents";
+import { createDocument, getEvidenceInfo } from "./documents";
 import type { DeadlineView } from "./deadlines";
 import { ctxFor, makeOrg, resetDb } from "@/test/helpers";
 import { eq } from "drizzle-orm";
@@ -139,7 +140,7 @@ describe("buildActionItems with evidence", () => {
         dueDate: null,
         dueInDays: null,
         statusLabel: "Nachweis fehlt",
-        href: "/criteria?status=met&evidence=none",
+        href: "/criteria?status=met&evidence=none&scope=mandatory",
         source: "evidence",
       },
     ]);
@@ -320,11 +321,44 @@ describe("getDashboard", () => {
       criterionNumber: "7.3.10", priority: "high", dueDate: "2026-06-30", href: "/criteria/7.3.10", statusLabel: "Nachweis veraltet",
     });
     expect(evidenceItems[1]).toMatchObject({
-      priority: "medium", topic: "1 erfülltes Pflichtkriterium ohne Nachweis", href: "/criteria?status=met&evidence=none",
+      priority: "medium", topic: "1 erfülltes Pflichtkriterium ohne Nachweis", href: "/criteria?status=met&evidence=none&scope=mandatory",
     });
 
     const dashB = await getDashboard(ctxB, NOW);
     expect(dashB.evidence).toEqual({ current: 0, stale: 0, missing: 4 });
     expect(dashB.actions.some((i) => i.source === "evidence")).toBe(false);
+  });
+
+  it("bundled missing-evidence number equals the rows of its scoped link, even with a non-mandatory met criterion", async () => {
+    const crits = await seedCatalog();
+    await db.update(criterion).set({ mandatoryAccreditation: false, shouldAccreditation: true }).where(eq(criterion.id, crits[3].id));
+    const a = await makeOrg("dash-scope");
+    const ctx = ctxFor(a.org.id, a.user.id, "owner");
+    for (const c of crits) await setAssessmentStatus(ctx, c.id, "met");
+    const dash = await getDashboard(ctx, NOW);
+    const item = dash.actions.find((i) => i.key === "evidence:missing");
+    expect(item?.topic).toBe("3 erfüllte Pflichtkriterien ohne Nachweis");
+    const rows = filterCriteria(
+      await listAssessments(ctx),
+      { status: "met", evidence: "none", scope: "mandatory" },
+      await getEvidenceInfo(ctx, NOW),
+    );
+    expect(rows).toHaveLength(3);
+    expect(rows.map((r) => r.number)).not.toContain("7.3.8");
+    expect(filterCriteria(await listAssessments(ctx), { status: "met", evidence: "none", scope: "all" }, new Map())).toHaveLength(4);
+  });
+
+  it("does not count evidence items as due, but still counts due criteria and deadlines", async () => {
+    const crits = await seedCatalog();
+    const a = await makeOrg("dash-soon");
+    const ctx = ctxFor(a.org.id, a.user.id, "owner");
+    for (const c of crits) await setAssessmentStatus(ctx, c.id, "met");
+    await createDocument(ctx, { title: "Alt", file: pdf("x"), validUntil: "2026-01-01", criterionNumbers: ["5.2.1"] });
+    const only = await getDashboard(ctx, NOW);
+    expect(only.actions.some((i) => i.source === "evidence" && i.dueInDays !== null && i.dueInDays < 0)).toBe(true);
+    expect(only.actions.every((i) => i.source === "evidence")).toBe(true);
+    expect(only.soonCount).toBe(0);
+    await db.insert(deadline).values({ organizationId: a.org.id, kind: "application", label: "Antrag", dueDate: "2026-10-20" });
+    expect((await getDashboard(ctx, NOW)).soonCount).toBe(1);
   });
 });
