@@ -1,19 +1,11 @@
 import { Suspense } from "react";
-import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { organization } from "@/db/schema";
-import { ForbiddenError, UnauthorizedError } from "@/domain/org-context";
-import { requireOrgContext } from "@/domain/request-context";
+import { requireOrgContextOrRedirect } from "@/domain/request-context";
 
 async function Shell({ children }: { children: React.ReactNode }) {
-  let ctx;
-  try {
-    ctx = await requireOrgContext();
-  } catch (e) {
-    if (e instanceof UnauthorizedError || e instanceof ForbiddenError) redirect("/login");
-    throw e;
-  }
+  const ctx = await requireOrgContextOrRedirect();
   const [org] = await db.select().from(organization).where(eq(organization.id, ctx.organizationId));
   return (
     <div className="min-h-screen">
