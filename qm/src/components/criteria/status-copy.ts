@@ -7,7 +7,7 @@ export const STATUS_LABEL: Record<AssessmentStatus, string> = {
   met: "Erfüllt",
   open: "Offen",
   critical: "Kritisch",
-  not_applicable: "Entfällt",
+  not_applicable: "Nicht anwendbar",
 };
 
 export const STATUS_TONE: Record<AssessmentStatus, string> = {

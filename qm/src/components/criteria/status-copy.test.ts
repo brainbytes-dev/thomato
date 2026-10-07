@@ -17,6 +17,23 @@ describe("status-copy is client-safe", () => {
   );
 });
 
+describe("assessment form files are client-safe", () => {
+  it.each(["src/app/(app)/criteria/[number]/assessment-form.tsx", "src/app/(app)/criteria/[number]/action-input.ts"])(
+    "%s has no value import of server modules",
+    (file) => {
+      const source = readFileSync(join(process.cwd(), file), "utf8");
+      const valueImports = source
+        .split("\n")
+        .filter((line) => /^import\s/.test(line) && !/^import\s+type\s/.test(line));
+      for (const line of valueImports) {
+        expect(line).not.toMatch(/["']@\/db["']/);
+        expect(line).not.toMatch(/["'](\.\/|@\/domain\/)(dashboard|assessments)["']/);
+        if (file.endsWith(".tsx")) expect(line).not.toMatch(/["']@\/db\/schema["']/);
+      }
+    },
+  );
+});
+
 describe("STATUS_LABEL", () => {
   it("covers all five statuses", () => {
     expect(STATUS_LABEL).toEqual({
@@ -24,7 +41,7 @@ describe("STATUS_LABEL", () => {
       met: "Erfüllt",
       open: "Offen",
       critical: "Kritisch",
-      not_applicable: "Entfällt",
+      not_applicable: "Nicht anwendbar",
     });
   });
 });

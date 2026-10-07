@@ -5,7 +5,7 @@ const STATUS_WORD: Record<string, string> = {
   met: "Erfüllt",
   open: "Offen",
   critical: "Kritisch",
-  not_applicable: "Entfällt",
+  not_applicable: "Nicht anwendbar",
 };
 
 type StatusPayload = { status: string; reason: string | null };
@@ -33,6 +33,9 @@ export function describeAuditEvent(e: { eventType: string; before: unknown; afte
     const b = asStatus(e.before);
     const a = asStatus(e.after);
     if (!b || !a) return e.eventType;
+    if (b.status === "not_applicable" && a.status === "not_applicable" && b.reason !== a.reason) {
+      return `Begründung geändert von «${b.reason ?? ""}» zu «${a.reason ?? ""}»`;
+    }
     const base = `Stand von «${word(b.status)}» zu «${word(a.status)}»`;
     if (a.status === "not_applicable" && a.reason) return `${base}, Begründung: ${a.reason}`;
     if (b.status === "not_applicable" && b.reason) return `${base}, frühere Begründung: ${b.reason}`;
