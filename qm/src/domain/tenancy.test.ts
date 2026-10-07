@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { db } from "@/db";
-import { criterion, criterionAssessment } from "@/db/schema";
+import { auditEvent, criterion, criterionAssessment } from "@/db/schema";
 import { importCatalog } from "./catalog";
 import { listAssessments, setAssessmentStatus } from "./assessments";
 import { listAuditEvents, withAudit } from "./audit";
@@ -37,6 +37,12 @@ describe("tenant isolation", () => {
     expect(all).toHaveLength(2);
     const seenByA = await listAssessments(ctxA);
     expect(seenByA.find((r) => r.criterionId === c1.id)?.status).toBe("critical");
+
+    const eventsB = await listAuditEvents(ctxB);
+    expect(eventsB).toHaveLength(1);
+    expect(eventsB[0].beforeJson).toEqual({ status: "not_assessed" });
+    expect(eventsB[0].afterJson).toEqual({ status: "met" });
+    expect(await listAuditEvents(ctxA)).toHaveLength(1);
   });
 
   it("audit events are scoped to the organization", async () => {
@@ -75,6 +81,15 @@ describe("atomic audit", () => {
     ).rejects.toThrow("fails after write");
     expect(await db.select().from(criterionAssessment)).toHaveLength(0);
     expect(await listAuditEvents(ctxA)).toHaveLength(0);
+  });
+
+  it("rolls back the domain change when the audit insert fails", async () => {
+    const { c1, ctxA } = await setup();
+    await expect(
+      setAssessmentStatus({ ...ctxA, userId: "nonexistent-user" }, c1.id, "met"),
+    ).rejects.toThrow();
+    expect(await db.select().from(criterionAssessment)).toHaveLength(0);
+    expect(await db.select().from(auditEvent)).toHaveLength(0);
   });
 
   it("records before and after for a status change", async () => {
