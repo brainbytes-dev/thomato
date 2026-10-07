@@ -18,7 +18,7 @@ export function ActionCenter({ items, total }: { items: ActionItem[]; total: num
       {items.length === 0 ? (
         <p className="text-text-muted">Aktuell gibt es nichts, das Aufmerksamkeit braucht.</p>
       ) : (
-        <div className="overflow-x-auto rounded-[var(--radius)] border border-border bg-surface">
+        <div tabIndex={0} role="region" aria-labelledby="actions-heading" className="overflow-x-auto rounded-[var(--radius)] border border-border bg-surface">
           <table className="w-full border-collapse text-left">
             <caption className="sr-only">Offene Punkte nach Priorität</caption>
             <thead className="bg-surface-subtle text-text-muted">
@@ -47,7 +47,7 @@ export function ActionCenter({ items, total }: { items: ActionItem[]; total: num
       {total > items.length && (
         <p className="text-text-muted">
           {items.length} von {total} Punkten.{" "}
-          <Link href="/criteria" className="text-primary underline">Alle Kriterien ansehen</Link>
+          <Link href="/criteria" className="text-primary underline">Weitere Punkte: Kriterien und Fristen</Link>
         </p>
       )}
     </section>

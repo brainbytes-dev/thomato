@@ -1,7 +1,9 @@
-import { listAssessments } from "@/domain/assessments";
+import { listAssessments, type AssessmentRow } from "@/domain/assessments";
 import { Suspense } from "react";
 import { requireOrgContextOrRedirect } from "@/domain/request-context";
 import type { AssessmentStatus } from "@/db/schema";
+import { DEFAULT_PROCEDURE } from "@/domain/dashboard";
+import { scopeOf } from "@/domain/readiness";
 
 const LABEL: Record<AssessmentStatus, string> = {
   not_assessed: "Nicht bewertet",
@@ -18,6 +20,12 @@ const TONE: Record<AssessmentStatus, string> = {
   critical: "text-critical",
   not_applicable: "text-text-muted",
 };
+
+function scopeLabel(r: AssessmentRow): string {
+  const scope = scopeOf(r, DEFAULT_PROCEDURE);
+  if (scope.mandatory) return "Muss";
+  return scope.should ? "Soll" : "- (nicht im Verfahren)";
+}
 
 async function CriteriaTable() {
   const ctx = await requireOrgContextOrRedirect();
@@ -41,7 +49,7 @@ async function CriteriaTable() {
                 <td className="whitespace-nowrap px-3 py-2 font-mono">{r.number}</td>
                 <td className="px-3 py-2">{r.title}</td>
                 <td className="px-3 py-2">{r.chapter}</td>
-                <td className="whitespace-nowrap px-3 py-2">{r.mandatory ? "Muss" : "Soll"}</td>
+                <td className="whitespace-nowrap px-3 py-2">{scopeLabel(r)}</td>
                 <td className={`whitespace-nowrap px-3 py-2 font-medium ${TONE[r.status]}`}>{LABEL[r.status]}</td>
               </tr>
             ))}

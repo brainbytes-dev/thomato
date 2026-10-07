@@ -4,7 +4,8 @@ import { formatDate } from "@/domain/dates";
 function relative(d: DeadlineView): string {
   if (d.days < 0) return `seit ${-d.days} ${-d.days === 1 ? "Tag" : "Tagen"} überfällig`;
   if (d.days === 0) return "heute";
-  return `in ${d.days} ${d.days === 1 ? "Tag" : "Tagen"}`;
+  if (d.days === 1) return "in 1 Tag";
+  return `in ${d.days} Tagen`;
 }
 
 const TONE = { overdue: "text-critical", soon: "text-warning", upcoming: "text-text-muted" } as const;

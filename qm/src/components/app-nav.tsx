@@ -13,7 +13,7 @@ export function AppNav() {
   return (
     <nav aria-label="Hauptnavigation" className="flex flex-col gap-1">
       {ITEMS.map((item) => {
-        const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+        const active = item.href === "/" ? pathname === "/" : (pathname === item.href || pathname.startsWith(`${item.href}/`));
         return (
           <Link
             key={item.href}

@@ -6,7 +6,7 @@ export function ChapterProgressTable({ chapters }: { chapters: ChapterProgress[]
       <h2 id="progress-heading" className="text-xs font-semibold uppercase tracking-wide text-text-muted">
         Fortschritt nach Kapitel
       </h2>
-      <div className="overflow-x-auto rounded-[var(--radius)] border border-border bg-surface">
+      <div tabIndex={0} role="region" aria-labelledby="progress-heading" className="overflow-x-auto rounded-[var(--radius)] border border-border bg-surface">
         <table className="w-full border-collapse text-left">
           <caption className="sr-only">Erfüllte Kriterien je Kapitel</caption>
           <thead className="bg-surface-subtle text-text-muted">

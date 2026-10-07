@@ -8,7 +8,8 @@ import { requireOrgContextOrRedirect } from "@/domain/request-context";
 
 async function Dashboard() {
   const ctx = await requireOrgContextOrRedirect();
-  const data = await getDashboard(ctx);
+  const now = new Date();
+  const data = await getDashboard(ctx, now);
   return (
     <>
       <ReadinessHero data={data} />
