@@ -26,15 +26,26 @@ describe("Registrierung ist zur Laufzeit abgeschaltet", () => {
     const res = await auth.handler(
       jsonPost("/api/auth/sign-up/email", { email: "x@example.test", password: PASSWORD, name: "X" }),
     );
-    expect(res.status).toBeGreaterThanOrEqual(400);
-    expect(res.status).toBeLessThan(500);
+    expect(res.status).toBe(400);
+    expect(await res.json()).toMatchObject({ code: "EMAIL_PASSWORD_SIGN_UP_DISABLED" });
     expect(await db.select().from(user).where(eq(user.email, "x@example.test"))).toEqual([]);
+  });
+
+  it("Kontrolle: derselbe Request-Helper mit Origin wird für Sign-in akzeptiert (Ablehnung ist kein Origin-/CSRF-Effekt)", async () => {
+    await seedAuth.api.signUpEmail({ body: { email: "ctl@example.test", password: PASSWORD, name: "Ctl" } });
+    const res = await auth.handler(
+      jsonPost("/api/auth/sign-in/email", { email: "ctl@example.test", password: PASSWORD }),
+    );
+    expect(res.status).toBe(200);
   });
 
   it("lehnt auch den serverseitigen Aufruf auth.api.signUpEmail ab", async () => {
     await expect(
       auth.api.signUpEmail({ body: { email: "y@example.test", password: PASSWORD, name: "Y" } }),
-    ).rejects.toThrow();
+    ).rejects.toMatchObject({
+      statusCode: 400,
+      body: { code: "EMAIL_PASSWORD_SIGN_UP_DISABLED" },
+    });
     expect(await db.select().from(user)).toEqual([]);
   });
 
@@ -63,8 +74,8 @@ describe("Registrierung ist zur Laufzeit abgeschaltet", () => {
     const res = await auth.handler(
       jsonPost("/api/auth/organization/create", { name: "Wilde Org", slug: "wilde-org" }, cookie),
     );
-    expect(res.status).toBeGreaterThanOrEqual(400);
-    expect(res.status).toBeLessThan(500);
+    expect(res.status).toBe(403);
+    expect(await res.json()).toMatchObject({ code: "YOU_ARE_NOT_ALLOWED_TO_CREATE_A_NEW_ORGANIZATION" });
     expect(await db.select().from(organization)).toEqual([]);
   });
 });
@@ -81,23 +92,44 @@ describe("seed-auth Import-Guard", () => {
     });
   }
 
-  function allowed(rel: string): boolean {
-    return (
+  const SCANNED = /\.(ts|tsx|mts|cts|js|jsx)$/;
+  const TEST_FILE = /\.test\.(ts|tsx|mts|cts|js|jsx)$/;
+
+  function isRuntime(rel: string): boolean {
+    return !(
       rel === "src/auth/seed-auth.ts" ||
+      rel === "src/auth/auth.ts" ||
       rel.startsWith("src/seed/") ||
       rel.startsWith("src/test/") ||
       rel.startsWith("scripts/") ||
-      /\.test\.tsx?$/.test(rel)
+      TEST_FILE.test(rel)
     );
   }
 
-  it("wird nur von Seed, Tests und Skripten importiert", () => {
-    const importRe = /(?:from\s+|import\s*\(\s*|import\s+|require\s*\(\s*)["'][^"']*seed-auth["']/;
-    const files = [...walk(srcRoot), ...walk(path.join(projectRoot, "scripts"))].filter((f) => /\.(ts|tsx|js|mjs)$/.test(f));
-    const offenders = files
-      .map((f) => path.relative(projectRoot, f))
-      .filter((rel) => !allowed(rel))
-      .filter((rel) => importRe.test(readFileSync(path.join(projectRoot, rel), "utf8")));
-    expect(offenders).toEqual([]);
+  const runtimeFiles = [...walk(srcRoot), ...walk(path.join(projectRoot, "scripts"))]
+    .filter((f) => SCANNED.test(f))
+    .map((f) => path.relative(projectRoot, f))
+    .filter(isRuntime);
+
+  function offenders(re: RegExp): string[] {
+    return runtimeFiles.filter((rel) => re.test(readFileSync(path.join(projectRoot, rel), "utf8")));
+  }
+
+  it("scannt tatsächlich Laufzeitdateien", () => {
+    expect(runtimeFiles).toContain("src/auth/permissions.ts");
+  });
+
+  it("importiert seed-auth nirgends in Laufzeitcode (statisch, dynamisch, require)", () => {
+    expect(offenders(/seed-auth(\.[cm]?[jt]sx?)?["']/)).toEqual([]);
+  });
+
+  it("importiert weder src/seed noch src/test in Laufzeitcode", () => {
+    const re =
+      /(?:from\s*|import\s*\(\s*|import\s+|require\s*\(\s*)["'](?:@\/(?:seed|test)\/|(?:\.{1,2}\/)+(?:seed|test)\/|[^"']*\/src\/(?:seed|test)\/)/;
+    expect(offenders(re)).toEqual([]);
+  });
+
+  it("ruft makeAuth( nur in auth.ts und seed-auth.ts auf", () => {
+    expect(offenders(/\bmakeAuth\s*\(/)).toEqual([]);
   });
 });
