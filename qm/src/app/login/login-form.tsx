@@ -14,16 +14,25 @@ export function LoginForm() {
     setPending(true);
     setError(null);
     const form = new FormData(e.currentTarget);
-    const { error } = await authClient.signIn.email({
-      email: String(form.get("email") ?? ""),
-      password: String(form.get("password") ?? ""),
-    });
-    setPending(false);
-    if (error) {
-      setError("Anmeldung fehlgeschlagen. E-Mail oder Passwort stimmt nicht.");
-      return;
+    const failure = "Anmeldung fehlgeschlagen. E-Mail oder Passwort stimmt nicht.";
+    let succeeded = false;
+    try {
+      const { error: signInError } = await authClient.signIn.email({
+        email: String(form.get("email") ?? ""),
+        password: String(form.get("password") ?? ""),
+      });
+      if (signInError) {
+        setError(failure);
+      } else {
+        succeeded = true;
+        router.push("/criteria");
+      }
+    } catch {
+      setError(failure);
+    } finally {
+      // Bei Erfolg bleibt der Button pending, bis die Navigation die Seite ersetzt.
+      if (!succeeded) setPending(false);
     }
-    router.push("/criteria");
   }
 
   return (
