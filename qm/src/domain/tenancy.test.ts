@@ -64,6 +64,16 @@ describe("permissions", () => {
     expect(await db.select().from(criterionAssessment)).toHaveLength(0);
     expect(await listAuditEvents(ctxFor(a.org.id, a.user.id, "owner"))).toHaveLength(0);
   });
+
+  it("only owner and qm_admin may read the audit log", async () => {
+    const { a } = await setup();
+    for (const role of ["reviewer", "editor", "viewer"] as const) {
+      const u = await addMemberTo(a.org.id, role, role);
+      await expect(listAuditEvents(ctxFor(a.org.id, u.id, role))).rejects.toBeInstanceOf(ForbiddenError);
+    }
+    const admin = await addMemberTo(a.org.id, "admin", "qm_admin");
+    await expect(listAuditEvents(ctxFor(a.org.id, admin.id, "qm_admin"))).resolves.toEqual([]);
+  });
 });
 
 describe("atomic audit", () => {

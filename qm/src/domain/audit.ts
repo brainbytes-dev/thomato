@@ -1,7 +1,7 @@
 import { desc, eq } from "drizzle-orm";
 import { db, type Tx } from "@/db";
 import { auditEvent, type AuditEventRow } from "@/db/schema";
-import type { OrgContext } from "./org-context";
+import { assertCan, type OrgContext } from "./org-context";
 
 export type AuditEventInput = {
   eventType: string;
@@ -32,6 +32,7 @@ export async function withAudit<T>(
 }
 
 export async function listAuditEvents(ctx: OrgContext, limit = 100): Promise<AuditEventRow[]> {
+  assertCan(ctx, "audit", "read");
   return db
     .select()
     .from(auditEvent)

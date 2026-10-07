@@ -30,3 +30,18 @@ describe("rights", () => {
     expect(can("reviewer", "organization", "delete")).toBe(false);
   });
 });
+
+describe("audit and deadline rights", () => {
+  it("only owner and qm_admin read the audit log", () => {
+    expect(can("owner", "audit", "read")).toBe(true);
+    expect(can("qm_admin", "audit", "read")).toBe(true);
+    expect(can("reviewer", "audit", "read")).toBe(false);
+    expect(can("editor", "audit", "read")).toBe(false);
+    expect(can("viewer", "audit", "read")).toBe(false);
+  });
+  it("every role reads deadlines", () => {
+    for (const role of ["owner", "qm_admin", "reviewer", "editor", "viewer"] as const) {
+      expect(can(role, "deadline", "read")).toBe(true);
+    }
+  });
+});

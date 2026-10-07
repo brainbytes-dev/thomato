@@ -9,6 +9,8 @@ export const RESOURCE_ACTIONS = {
   assessment: ["read", "write", "approve"],
   measure: ["read", "write"],
   document: ["read", "write", "approve"],
+  audit: ["read"],
+  deadline: ["read"],
 } as const;
 
 export type Resource = keyof typeof RESOURCE_ACTIONS;
@@ -20,6 +22,7 @@ const READ_ALL = {
   assessment: ["read"],
   measure: ["read"],
   document: ["read"],
+  deadline: ["read"],
 } as const;
 
 export const ROLE_RIGHTS = {
@@ -30,6 +33,8 @@ export const ROLE_RIGHTS = {
     assessment: ["read", "write", "approve"],
     measure: ["read", "write"],
     document: ["read", "write", "approve"],
+    audit: ["read"],
+    deadline: ["read"],
   },
   qm_admin: {
     member: ["create", "update", "delete"],
@@ -37,16 +42,20 @@ export const ROLE_RIGHTS = {
     assessment: ["read", "write", "approve"],
     measure: ["read", "write"],
     document: ["read", "write", "approve"],
+    audit: ["read"],
+    deadline: ["read"],
   },
   reviewer: {
     assessment: ["read", "write", "approve"],
     measure: ["read", "write"],
     document: ["read", "write", "approve"],
+    deadline: ["read"],
   },
   editor: {
     assessment: ["read", "write"],
     measure: ["read", "write"],
     document: ["read", "write"],
+    deadline: ["read"],
   },
   viewer: READ_ALL,
 } as const satisfies Record<Role, Rights>;
