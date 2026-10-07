@@ -1,6 +1,8 @@
+import Link from "next/link";
 import type { DashboardData } from "@/domain/dashboard";
 import { SOON_DAYS } from "@/domain/dates";
 import { describeExpiry } from "@/domain/expiry-copy";
+import { naMandatoryNotice } from "@/domain/readiness-copy";
 import { readinessSummary, type ReadinessStatus } from "@/domain/readiness";
 
 const LABEL: Record<ReadinessStatus, string> = {
@@ -22,6 +24,7 @@ const EXPIRY_TONE = { critical: "text-critical", normal: "", muted: "text-text-m
 export function ReadinessHero({ data }: { data: DashboardData }) {
   const r = data.readiness;
   const expiry = describeExpiry(data.expiry);
+  const naNotice = naMandatoryNotice(r.mandatory.notApplicable);
   return (
     <section aria-labelledby="readiness-heading" className="flex flex-col gap-4">
       <h2 id="readiness-heading" className="text-xs font-semibold uppercase tracking-wide text-text-muted">
@@ -30,6 +33,14 @@ export function ReadinessHero({ data }: { data: DashboardData }) {
       <div>
         <p className={`text-3xl font-semibold ${TONE[r.status]}`}>{LABEL[r.status]}</p>
         <p className="mt-1">{readinessSummary(r)}</p>
+        {naNotice && (
+          <p className="mt-1">
+            {naNotice}{" "}
+            <Link href="/criteria?status=not_applicable" className="text-primary underline">
+              Begründungen ansehen
+            </Link>
+          </p>
+        )}
         {expiry.line && <p className="mt-1 font-medium text-critical">{expiry.line}</p>}
         {!r.basisValidated && (
           <p className="mt-1 text-text-muted">
