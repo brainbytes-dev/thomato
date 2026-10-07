@@ -94,7 +94,13 @@ export function computeReadiness(
 export function readinessSummary(r: ReadinessResult): string {
   if (r.status === "not_assessed") {
     if (r.applicable === 0) return "Keine anwendbaren Kriterien im Geltungsbereich.";
-    if (r.mandatory.total === 0) return "Keine anwendbaren Pflichtkriterien im Geltungsbereich.";
+    if (r.mandatory.total === 0) {
+      const base = "Keine anwendbaren Pflichtkriterien im Geltungsbereich";
+      if (r.shouldCritical === 0) return `${base}.`;
+      return r.shouldCritical === 1
+        ? `${base}, zudem 1 Soll-Kriterium kritisch.`
+        : `${base}, zudem ${r.shouldCritical} Soll-Kriterien kritisch.`;
+    }
     return "Noch kein Kriterium bewertet.";
   }
   if (r.status === "critical") {

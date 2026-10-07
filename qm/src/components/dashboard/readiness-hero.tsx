@@ -37,7 +37,7 @@ export function ReadinessHero({ data }: { data: DashboardData }) {
           <p className="mt-1">
             {naNotice}{" "}
             <Link href="/criteria?status=not_applicable" className="text-primary underline">
-              Begründungen ansehen
+              Alle nicht anwendbaren Kriterien ansehen
             </Link>
           </p>
         )}

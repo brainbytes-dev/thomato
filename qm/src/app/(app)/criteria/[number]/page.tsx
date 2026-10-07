@@ -12,7 +12,12 @@ import { AssessmentForm } from "./assessment-form";
 
 async function Detail({ params }: { params: Promise<{ number: string }> }) {
   const { number: raw } = await params;
-  const number = decodeURIComponent(raw);
+  let number: string;
+  try {
+    number = decodeURIComponent(raw);
+  } catch {
+    notFound();
+  }
   const ctx = await requireOrgContextOrRedirect();
   const detail = await getAssessmentByNumber(ctx, number);
   if (!detail) notFound();
@@ -40,7 +45,7 @@ async function Detail({ params }: { params: Promise<{ number: string }> }) {
             <dt className="text-text-muted">Standardversion</dt>
             <dd>
               {detail.standardVersionLabel}
-              {!detail.standardValidated && <span className="text-text-muted"> (Entwurf, nicht validiert)</span>}
+              {!detail.standardValidated && <span className="text-text-muted"> (nicht validiert)</span>}
             </dd>
           </div>
           <div>
@@ -54,7 +59,7 @@ async function Detail({ params }: { params: Promise<{ number: string }> }) {
           </div>
           {detail.status === "not_applicable" && (
             <div className="sm:col-span-2">
-              <dt className="text-text-muted">Begründung «Entfällt»</dt>
+              <dt className="text-text-muted">Begründung «Nicht anwendbar»</dt>
               <dd>{detail.notApplicableReason}</dd>
             </div>
           )}
