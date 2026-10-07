@@ -163,7 +163,7 @@ def main() -> int:
         def history() -> None:
             hist = page.locator("section[aria-labelledby=history-heading]")
             expect(hist).to_contain_text("Neue Version 2 von «Hygienekonzept (Demo)»")
-            expect(hist.locator("li, tr").first).to_contain_text("Neue Version 2")
+            expect(hist.locator("tbody tr").first).to_contain_text("Neue Version 2")
             expect(hist).to_contain_text("Demo owner")
             hist.scroll_into_view_if_needed()
             shot(page, "05-verlauf")
@@ -187,7 +187,7 @@ def main() -> int:
             page.wait_for_selector("text=Hygienekonzept (Demo)")
             hist = page.locator("section[aria-labelledby=history-heading]")
             expect(hist).to_contain_text("Stand von «Kritisch» zu «Erfüllt»")
-            expect(hist.locator("li, tr").first).to_contain_text("zu «Erfüllt»")
+            expect(hist.locator("tbody tr").first).to_contain_text("zu «Erfüllt»")
             shot(page, "07-kriterium-erfuellt")
 
         def dashboard_final() -> None:
