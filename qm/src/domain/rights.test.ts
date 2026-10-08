@@ -45,3 +45,27 @@ describe("audit and deadline rights", () => {
     }
   });
 });
+
+describe("measure rights (PDCA)", () => {
+  const MATRIX = {
+    owner: { read: true, write: true, approve: true },
+    qm_admin: { read: true, write: true, approve: true },
+    reviewer: { read: true, write: true, approve: true },
+    editor: { read: true, write: true, approve: false },
+    viewer: { read: true, write: false, approve: false },
+  } as const;
+
+  it.each(Object.entries(MATRIX))("%s has the documented measure actions", (role, expected) => {
+    for (const action of ["read", "write", "approve"] as const) {
+      expect(can(role as keyof typeof MATRIX, "measure", action), `${role} ${action}`).toBe(expected[action]);
+    }
+  });
+
+  it("derives the Better Auth statement from RESOURCE_ACTIONS (single source)", async () => {
+    const { statement, roles } = await import("@/auth/permissions");
+    expect(statement.measure).toEqual(["read", "write", "approve"]);
+    expect(roles.reviewer.statements.measure).toEqual(["read", "write", "approve"]);
+    expect(roles.editor.statements.measure).toEqual(["read", "write"]);
+    expect(roles.viewer.statements.measure).toEqual(["read"]);
+  });
+});
