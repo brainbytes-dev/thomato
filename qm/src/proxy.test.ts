@@ -50,3 +50,21 @@ describe("proxy criterion check (R51)", () => {
     expect(config.matcher).toContain("/measures/:path*");
   });
 });
+
+describe("proxy measure detail", () => {
+  const id = "3f2b8c1e-5d4a-4e6b-9a7c-1b2c3d4e5f60";
+  it("answers malformed ids with a 404 rewrite, even anonymously", async () => {
+    for (const path of ["/measures/abc", "/measures/1", "/measures/%E0%A4%A", `/measures/${id}x`]) {
+      const res = await proxy(req(path));
+      expect(res.status, path).toBe(404);
+      expect(res.headers.get("x-middleware-rewrite")).toContain("/_not-found");
+    }
+  });
+
+  it("redirects a valid id without a session and lets it through with one", async () => {
+    const res = await proxy(req(`/measures/${id}`));
+    expect(res.status).toBe(307);
+    expect(res.headers.get("location")).toBe("http://localhost:3000/login");
+    expect((await proxy(req(`/measures/${id}`, "better-auth.session_token=x.y"))).headers.get("x-middleware-next")).toBe("1");
+  });
+});

@@ -14,6 +14,8 @@ export function breadcrumbsFor(pathname: string, organizationName: string): Crum
   if (!section) return [org];
   const rest = pathname.slice(section.prefix.length).split("/").filter(Boolean);
   if (rest.length === 0) return [org, { label: section.label }];
+  // Massnahmen-IDs sind UUIDs und taugen nicht als Beschriftung.
+  if (section.prefix === "/measures") return [org, { label: section.label, href: section.prefix }, { label: "Detail" }];
   let detail = rest[0];
   try {
     detail = decodeURIComponent(detail);

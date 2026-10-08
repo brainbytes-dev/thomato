@@ -22,6 +22,14 @@ describe("breadcrumbsFor", () => {
     expect(breadcrumbsFor("/criteria/%E0%A4%A", "Org").at(-1)).toEqual({ label: "%E0%A4%A" });
   });
 
+  it("labels a measure detail page without showing the id", () => {
+    expect(breadcrumbsFor("/measures/3f2b8c1e-5d4a-4e6b-9a7c-1b2c3d4e5f60", "Org")).toEqual([
+      { label: "Org" },
+      { label: "Massnahmen", href: "/measures" },
+      { label: "Detail" },
+    ]);
+  });
+
   it("falls back to the organisation for unknown paths", () => {
     expect(breadcrumbsFor("/nope", "Org")).toEqual([{ label: "Org" }]);
   });

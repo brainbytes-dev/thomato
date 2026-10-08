@@ -21,13 +21,21 @@ function kindOf(eventType: string): Kind {
   return { label: "Ereignis", dot: "bg-text-muted" };
 }
 
-export function HistoryTimeline({ entries }: { entries: HistoryItem[] }) {
+export function HistoryTimeline({
+  entries,
+  title = "Verlauf",
+  label = "Änderungsverlauf dieses Kriteriums, neueste zuerst",
+}: {
+  entries: HistoryItem[];
+  title?: string;
+  label?: string;
+}) {
   return (
-    <Panel headingId="history-heading" title="Verlauf">
+    <Panel headingId="history-heading" title={title}>
       {entries.length === 0 ? (
         <p className="text-text-muted">Noch keine Änderungen.</p>
       ) : (
-        <ol aria-label="Änderungsverlauf dieses Kriteriums, neueste zuerst" className="flex flex-col">
+        <ol aria-label={label} className="flex flex-col">
           {entries.map((h) => {
             const kind = kindOf(h.eventType);
             return (
