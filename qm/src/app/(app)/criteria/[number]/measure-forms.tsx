@@ -96,7 +96,7 @@ export function CreateMeasureForm({
   }
   const owner = members.some((m) => m.userId === defaultOwnerId) ? defaultOwnerId : "";
   return (
-    <form onSubmit={onSubmit} className="flex max-w-xl flex-col gap-4">
+    <form onSubmit={onSubmit} className="flex flex-col gap-4">
       <input type="hidden" name="number" value={number} />
       <Fragment key={resetKey}>
         <Field label="Titel (3 bis 120 Zeichen)">
@@ -209,7 +209,7 @@ export function EditMeasureForm({
     : [{ userId: ownerUserId, name: `${ownerName ?? "unbekannt"} (nicht mehr Mitglied)` }, ...members];
   const owner = ownerUserId;
   return (
-    <form onSubmit={f.onSubmit} className="flex max-w-xl flex-col gap-4">
+    <form onSubmit={f.onSubmit} className="flex flex-col gap-4">
       <input type="hidden" name="number" value={number} />
       <input type="hidden" name="measureId" value={measureId} />
       <Field label="Titel (3 bis 120 Zeichen)">

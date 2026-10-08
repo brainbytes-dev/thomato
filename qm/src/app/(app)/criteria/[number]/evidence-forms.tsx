@@ -10,6 +10,7 @@ import {
   useTransition,
   type ReactNode,
 } from "react";
+import { CloudUpload } from "lucide-react";
 import { checkClientFile } from "@/components/criteria/file-check";
 import { guardAction } from "@/components/criteria/guard-action";
 import {
@@ -87,24 +88,31 @@ const FILE_HINT = "PDF, PNG, JPG, DOCX oder XLSX";
 export function UploadDocumentForm({ number, maxBytes }: { number: string; maxBytes: number }) {
   const f = useEvidenceForm(uploadDocumentAction, maxBytes);
   return (
-    <form onSubmit={f.onSubmit} className="flex max-w-xl flex-col gap-4">
+    <form onSubmit={f.onSubmit} className="flex flex-col gap-4">
       <input type="hidden" name="number" value={number} />
       <Fragment key={f.resetKey}>
-        <Field label="Titel (3 bis 120 Zeichen)">
-          <input type="text" name="title" required minLength={3} maxLength={120} className={FIELD} />
-        </Field>
-        <Field label={`Datei (${FILE_HINT}, bis ${maxBytes / (1024 * 1024)} MB)`}>
+        <label className="flex flex-col items-center gap-2 rounded-lg border-2 border-dashed border-field-border bg-surface-subtle p-4 text-center sm:p-6">
+          <CloudUpload aria-hidden="true" className="size-8 text-primary" />
+          <span className="type-body-emphasis">Datei auswählen oder hierher ziehen</span>
+          <span className="type-meta text-text-muted">
+            {FILE_HINT}, bis {maxBytes / (1024 * 1024)} MB
+          </span>
           <input
             type="file"
             name="file"
             required
             onChange={f.clearLocalError}
-            className={`${FIELD} py-2`}
+            className="type-meta mt-2 w-full max-w-full cursor-pointer text-text-muted file:mr-3 file:h-9 file:cursor-pointer file:rounded file:border file:border-border file:bg-surface file:px-3 file:text-text hover:file:bg-surface-subtle"
           />
-        </Field>
-        <Field label="Gültig bis (leer lassen, wenn der Nachweis nicht abläuft)">
-          <input type="date" name="validUntil" className={FIELD} />
-        </Field>
+        </label>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label="Titel (3 bis 120 Zeichen)">
+            <input type="text" name="title" required minLength={3} maxLength={120} className={FIELD} />
+          </Field>
+          <Field label="Gültig bis (leer lassen, wenn der Nachweis nicht abläuft)">
+            <input type="date" name="validUntil" className={FIELD} />
+          </Field>
+        </div>
       </Fragment>
       <Messages status={f.status} alert={f.alert} />
       <button type="submit" disabled={f.pending} className={PRIMARY}>
@@ -117,7 +125,7 @@ export function UploadDocumentForm({ number, maxBytes }: { number: string; maxBy
 export function AddVersionForm({ number, documentId, maxBytes }: { number: string; documentId: string; maxBytes: number }) {
   const f = useEvidenceForm(addVersionAction, maxBytes);
   return (
-    <form onSubmit={f.onSubmit} className="flex max-w-xl flex-col gap-4">
+    <form onSubmit={f.onSubmit} className="flex flex-col gap-4">
       <input type="hidden" name="number" value={number} />
       <input type="hidden" name="documentId" value={documentId} />
       <Fragment key={f.resetKey}>
@@ -151,7 +159,7 @@ export function LinkDocumentForm({
 }) {
   const f = useEvidenceForm(linkEvidenceAction, null);
   return (
-    <form onSubmit={f.onSubmit} className="flex max-w-xl flex-col gap-4">
+    <form onSubmit={f.onSubmit} className="flex flex-col gap-4">
       <input type="hidden" name="number" value={number} />
       <Fragment key={f.resetKey}>
         <Field label="Dokument">

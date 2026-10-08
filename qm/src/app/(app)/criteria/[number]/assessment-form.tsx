@@ -2,6 +2,7 @@
 
 import { Fragment, startTransition, useActionState } from "react";
 import type { AssessmentStatus } from "@/db/schema";
+import { AREA, FIELD, PRIMARY_BTN } from "@/components/ui/styles";
 import { updateAssessmentAction, type FormState } from "./actions";
 
 export function AssessmentForm(props: {
@@ -19,22 +20,24 @@ export function AssessmentForm(props: {
         const data = new FormData(e.currentTarget);
         startTransition(() => formAction(data));
       }}
-      className="flex max-w-xl flex-col gap-4"
+      className="flex flex-col gap-4"
     >
       <input type="hidden" name="number" value={props.number} />
       <Fragment key={`${props.status}|${props.reason ?? ""}|${props.dueDate ?? ""}`}>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <label className="flex flex-col gap-1">
         <span className="text-text-muted">Stand</span>
-        <select
-          name="status"
-          defaultValue={props.status}
-          className="h-10 rounded border border-field-border bg-surface px-3"
-        >
+        <select name="status" defaultValue={props.status} className={FIELD}>
           {props.statusOptions.map((o) => (
             <option key={o.value} value={o.value}>{o.label}</option>
           ))}
         </select>
       </label>
+      <label className="flex flex-col gap-1">
+        <span className="text-text-muted">Frist</span>
+        <input type="date" name="dueDate" defaultValue={props.dueDate ?? ""} className={FIELD} />
+      </label>
+      </div>
       <label className="flex flex-col gap-1">
         <span className="text-text-muted">Begründung (Pflicht bei «nicht anwendbar», 10 bis 500 Zeichen)</span>
         <textarea
@@ -42,16 +45,7 @@ export function AssessmentForm(props: {
           rows={3}
           maxLength={500}
           defaultValue={props.reason ?? ""}
-          className="rounded border border-field-border bg-surface px-3 py-2"
-        />
-      </label>
-      <label className="flex flex-col gap-1">
-        <span className="text-text-muted">Frist</span>
-        <input
-          type="date"
-          name="dueDate"
-          defaultValue={props.dueDate ?? ""}
-          className="h-10 rounded border border-field-border bg-surface px-3"
+          className={AREA}
         />
       </label>
       </Fragment>
@@ -60,7 +54,7 @@ export function AssessmentForm(props: {
       <button
         type="submit"
         disabled={pending}
-        className="type-label h-10 self-start rounded bg-primary px-4 text-on-primary disabled:opacity-60"
+        className={PRIMARY_BTN}
       >
         {pending ? "Speichern..." : "Speichern"}
       </button>
