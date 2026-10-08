@@ -1,4 +1,4 @@
-import { createElement } from "react";
+import { createElement, type ComponentProps, type FunctionComponent } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
@@ -13,12 +13,11 @@ import { AppShell } from "./app-shell";
 function render(path: string): string {
   pathname = path;
   return renderToStaticMarkup(
-    createElement(AppShell, {
-      organizationName: "Rettung Muster",
-      roleLabel: "Lesezugriff",
-      userName: "Anna Beispiel",
-      children: createElement("p", null, "Inhalt"),
-    }),
+    createElement(
+      AppShell as FunctionComponent<Omit<ComponentProps<typeof AppShell>, "children">>,
+      { organizationName: "Rettung Muster", roleLabel: "Lesezugriff", userName: "Anna Beispiel" },
+      createElement("p", null, "Inhalt"),
+    ),
   );
 }
 
