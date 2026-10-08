@@ -17,3 +17,5 @@
 - [ ] Henrik: Preview durchklicken; Entscheidung, ob Plan 8 vor dem Pitch in feat/qm-foundation übernommen wird (dann db:deploy gegen Demo-DB + Seed neu)
 - Backlog: Editor darf erledigte Massnahmen (Titel/Frist) ändern; Schritt entfernen ohne Rückfrage; audit_event TRUNCATE-Schutz; Verlauf paginieren
 Backlog: document_version TRUNCATE trigger (own ticket)
+- [ ] Pitch-Checkliste (Lizenzfrage an IVR u. a.): qm/docs/demo/PITCH-CHECKLIST.md
+- [ ] Plan 9 (Wissen und Quellen): Entwurf docs/superpowers/specs/2026-10-08-qm-wissen-quellen-design.md, Entscheide D1-D5 offen
