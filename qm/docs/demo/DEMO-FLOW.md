@@ -12,7 +12,7 @@ Alles im Ablauf unten dient diesen drei Sätzen. Wenn die Zeit knapp wird, genü
 
 ## Vorbereitung (vor dem Termin, 5 Minuten)
 
-1. Aufruf nur über `https://qm-rettungsdienst-demo-git-feat-qm-abeddf-brain-byt-es-projects.vercel.app` (der Alias legt die erlaubte Herkunft fest). Das Deployment ist durch Vercel Authentication geschützt; wer präsentiert, ist bei Vercel angemeldet.
+1. Aufruf nur über `https://qm-rettungsdienst-demo.vercel.app` (der Alias legt die erlaubte Herkunft fest). Das Deployment ist durch Vercel Authentication geschützt; wer präsentiert, ist bei Vercel angemeldet.
 2. Zugänge: `owner@demo.qm.test`, `qm-admin@demo.qm.test`, `reviewer@demo.qm.test`, `editor@demo.qm.test`, `viewer@demo.qm.test`. Das Passwort steht nicht im Repo und wird separat übergeben.
 3. Frischer Stand: Die Demo verändert Daten (neue Version, geänderter Stand). Vor jedem Termin neu seeden (siehe README, Abschnitt «Stand des Demo-Deployments»).
 4. Datei zum Hochladen: `qm/docs/demo/hygienekonzept-demo-v2.pdf` (synthetisch, 611 Bytes).
