@@ -9,6 +9,7 @@ import {
   refineMeasureAction, removeStepAction, renameStepAction, reopenMeasureAction, setCriterionAction, startNewCycleAction,
   toggleStepAction, type PdcaFormState,
 } from "@/app/(app)/measures/[id]/pdca-actions";
+import { guardAction } from "@/components/criteria/guard-action";
 import { AREA, FIELD, PRIMARY_BTN, SECONDARY_BTN } from "@/components/ui/styles";
 import type { ReviewResult } from "@/db/schema";
 import { RESULT_HINT, RESULT_LABEL } from "./pdca-copy";
@@ -43,13 +44,17 @@ function focusStepper() {
  */
 function usePdcaForm(action: Action, opts: { moveFocus?: boolean } = {}) {
   const announce = useContext(NoticeContext);
+  // Verbindungsabbruch oder zu grosser Body: ruhige Meldung am Formular, Eingaben bleiben; Weiterleitungen (NEXT_) gehen durch.
+  const [guarded] = useState(() =>
+    guardAction(action, "Die Änderung konnte nicht gespeichert werden. Bitte versuchen Sie es noch einmal."),
+  );
   const [pending, start] = useTransition();
   const [error, setError] = useState("");
   const [resetKey, setResetKey] = useState(0);
   function submit(data: FormData, onFail?: () => void) {
     setError("");
     start(async () => {
-      const result = await action(null, data);
+      const result = await guarded(null, data);
       if (result?.ok) {
         announce(result.message);
         setResetKey((k) => k + 1);

@@ -5,7 +5,8 @@ import { Panel } from "@/components/criteria/panel";
 import { MEASURE_STATUS_BADGE, MEASURE_STATUS_LABEL } from "@/components/criteria/status-copy";
 import { Badge } from "@/components/ui/badge";
 import { SECTION_CARD } from "@/components/ui/styles";
-import { formatDate, formatDateTime, formatDaysDative } from "@/domain/dates";
+import { formatDate, formatDateTime, formatDaysDative, zurichDate } from "@/domain/dates";
+import { MEASURE_HISTORY_LIMIT } from "@/domain/measure-history";
 import type { MeasureAction, MeasureDetail } from "@/domain/measure-pdca";
 import {
   AddStepForm, CloseForm, CompleteDoForm, CompletePlanForm, CriterionForm, EditableChecklist, NewCycleForm,
@@ -58,7 +59,7 @@ function Header({ detail }: { detail: MeasureDetail }) {
           <div className="flex items-center gap-2">
             <CalendarClock aria-hidden="true" className="size-4 shrink-0" />
             <dt>Erstellt</dt>
-            <dd className="type-label text-text">{formatDate(m.createdAt.toISOString().slice(0, 10))}</dd>
+            <dd className="type-label text-text">{formatDate(zurichDate(m.createdAt))}</dd>
           </div>
           <div className="flex flex-wrap items-center gap-x-2">
             <CalendarClock aria-hidden="true" className="size-4 shrink-0" />
@@ -348,7 +349,12 @@ export function MeasureDetailView({ detail, history }: Props) {
         <div className="flex min-w-0 flex-col gap-6 lg:col-span-4">
           <Actions detail={detail} />
           <Facts detail={detail} />
-          {history && <HistoryTimeline entries={history} title="Verlauf der Massnahme" label="Änderungsverlauf dieser Massnahme, neueste zuerst" />}
+          {history && (
+            <>
+              <HistoryTimeline entries={history.slice(0, MEASURE_HISTORY_LIMIT)} title="Verlauf der Massnahme" label="Änderungsverlauf dieser Massnahme, neueste zuerst" />
+              {history.length > MEASURE_HISTORY_LIMIT && <p className="type-meta text-text-muted">Ältere Einträge werden nicht angezeigt.</p>}
+            </>
+          )}
         </div>
       </div>
     </PdcaNoticeScope>

@@ -110,7 +110,11 @@ describe("checklist", () => {
     const out = html(detailFor("owner", "check"));
     expect(out).toContain("2 von 2 erledigt");
     expect(out).not.toContain("Schritt hinzufügen");
-    expect(out).toContain("disabled");
+    const boxes = out.match(/<input[^>]*type="checkbox"[^>]*>/g) ?? [];
+    expect(boxes).toHaveLength(2);
+    for (const box of boxes) expect(box).toMatch(/\bdisabled\b/);
+    expect(out).not.toContain("Entfernen:");
+    expect(out).not.toContain("Nach oben:");
   });
 
   it("is editable in Do with move, rename and remove controls", () => {
@@ -229,6 +233,23 @@ describe("history and always-present regions", () => {
     expect(out).toContain("unbekannt");
   });
 
+  it("shows the creation date in Zurich time around midnight UTC", () => {
+    const base = detailFor("viewer", "do");
+    // 23:30 UTC am 8.10. ist 01:30 am 9.10. in Zürich (Sommerzeit).
+    const out = html({ ...base, measure: { ...base.measure, createdAt: new Date("2026-10-08T23:30:00Z") } });
+    expect(out).toContain("09.10.2026");
+    expect(out).not.toContain("08.10.2026</dd>");
+  });
+
+  it("shows at most 100 history entries and a hint when older ones exist", () => {
+    const mk = (n: number): HistoryItem => ({ ...entry, id: `e${n}` });
+    const many = Array.from({ length: 101 }, (_, i) => mk(i));
+    const full = html(detailFor("owner", "do"), many);
+    expect((full.match(/<li[^>]*before:/g) ?? []).length).toBe(100);
+    expect(full).toContain("Ältere Einträge werden nicht angezeigt.");
+    expect(html(detailFor("owner", "do"), many.slice(0, 100))).not.toContain("Ältere Einträge");
+  });
+
   it("states overdue wording in words", () => {
     const base = detailFor("viewer", "do");
     const out = html({ ...base, measure: { ...base.measure, overdue: true, days: -3 } });
@@ -245,13 +266,27 @@ describe("page and client files", () => {
     expect(source).toContain('can(ctx.role, "audit", "read")');
   });
 
-  it("the client forms stay free of server modules", () => {
+  it("the client forms stay free of server modules, also with multi-line imports", () => {
     const source = readFileSync(join(process.cwd(), "src/components/measures/pdca-forms.tsx"), "utf8");
     expect(source).toContain('"use client"');
-    const valueImports = source.split("\n").filter((l) => /^import\s/.test(l) && !/^import\s+type\s/.test(l));
-    for (const line of valueImports) {
-      expect(line).not.toMatch(/["']@\/db(\/[\w-]+)?["']/);
-      expect(line).not.toMatch(/["']@\/domain\/[\w-]+["']/);
-    }
+    expect(serverImports(source)).toEqual([]);
+  });
+
+  it("the scan catches multi-line value imports and allows type imports", () => {
+    const multi = 'import {\n  getMeasureDetail,\n} from "@/domain/measure-pdca";\nimport type { X } from "@/domain/measures";\nimport { y } from "@/db/schema";';
+    expect(serverImports(multi)).toEqual(['import {\n  getMeasureDetail,\n} from "@/domain/measure-pdca"', 'import { y } from "@/db/schema"']);
+  });
+
+  it("the form hook guards the action and keeps redirects flowing", () => {
+    const source = readFileSync(join(process.cwd(), "src/components/measures/pdca-forms.tsx"), "utf8");
+    expect(source).toContain("guardAction(action,");
+    expect(source).toContain("await guarded(null, data)");
+    expect(source).not.toContain("await action(null, data)");
   });
 });
+
+/** Alle Wert-Importe (auch mehrzeilig) aus @/db oder @/domain; `import type` ist erlaubt. */
+function serverImports(source: string): string[] {
+  const imports = source.match(/import\s+(?!type\b)[^;]*?from\s+["'][^"']+["']/g) ?? [];
+  return imports.filter((i) => /from\s+["']@\/(db|domain)\b/.test(i));
+}

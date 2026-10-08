@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { db } from "@/db";
 import { ACTIVE_STANDARD_VERSION } from "@/db/schema";
 import { importCatalog } from "./catalog";
-import { listMeasureHistory } from "./measure-history";
+import { listMeasureHistory, MEASURE_HISTORY_LIMIT } from "./measure-history";
 import { addStep, completePlan } from "./measure-pdca";
 import { createMeasure } from "./measures";
 import { ForbiddenError } from "./org-context";
@@ -35,6 +35,15 @@ describe("listMeasureHistory", () => {
     expect((await listMeasureHistory(ctxA, m2.id)).map((e) => e.eventType)).toEqual(["measure.created"]);
     expect(await listMeasureHistory(ctxB, m1.id)).toEqual([]);
     expect(await listMeasureHistory(ctxA, "not-a-uuid")).toEqual([]);
+  });
+
+  it("loads one entry more than it shows so the UI can tell older ones exist", async () => {
+    const a = await makeOrg("hist-d");
+    const ctx = ctxFor(a.org.id, a.user.id, "owner");
+    const m = await createMeasure(ctx, { criterionNumber: "7.3.10", title: "Viele Ereignisse", description: null, ownerUserId: a.user.id, dueDate: "2026-11-15" });
+    await completePlan(ctx, m.id);
+    for (let i = 0; i < MEASURE_HISTORY_LIMIT + 3; i++) await addStep(ctx, m.id, `Schritt ${i + 100}`);
+    expect(await listMeasureHistory(ctx, m.id)).toHaveLength(MEASURE_HISTORY_LIMIT + 1);
   });
 
   it("requires the audit right", async () => {
