@@ -1,6 +1,7 @@
-import { MEASURE_STATUSES, type MeasureStatus } from "@/db/schema";
+import { MEASURE_PHASES, MEASURE_STATUSES, type MeasurePhase, type MeasureStatus } from "@/db/schema";
 
 export type MeasureStatusFilter = MeasureStatus | "overdue" | "active" | "all";
+export type MeasurePhaseFilter = MeasurePhase | "all";
 export type OwnerFilter = string;
 
 export const QUERY_MAX = 80;
@@ -14,10 +15,11 @@ type FilterRow = {
   ownerUserId: string;
   ownerName: string | null;
   status: MeasureStatus;
+  phase: MeasurePhase;
   overdue: boolean;
 };
 
-export type MeasureFilters = { status: MeasureStatusFilter; owner: OwnerFilter; query: string };
+export type MeasureFilters = { status: MeasureStatusFilter; phase: MeasurePhaseFilter; owner: OwnerFilter; query: string };
 
 const first = (value: RawParam): string | undefined => (Array.isArray(value) ? value[0] : value);
 
@@ -25,6 +27,11 @@ export function parseMeasureStatusFilter(value: RawParam): MeasureStatusFilter {
   const v = first(value) ?? "";
   if (v === "overdue" || v === "active") return v;
   return (MEASURE_STATUSES as readonly string[]).includes(v) ? (v as MeasureStatus) : "all";
+}
+
+export function parsePhaseFilter(value: RawParam): MeasurePhaseFilter {
+  const v = first(value) ?? "";
+  return (MEASURE_PHASES as readonly string[]).includes(v) ? (v as MeasurePhase) : "all";
 }
 
 /** Nur Mitglieder der eigenen Organisation sind gültig; alles andere heisst «all». */
@@ -57,10 +64,15 @@ export function matchesStatus(row: Pick<FilterRow, "status" | "overdue">, status
   return row.status === status;
 }
 
+export function matchesPhase(row: Pick<FilterRow, "phase">, phase: MeasurePhaseFilter): boolean {
+  return phase === "all" || row.phase === phase;
+}
+
 export function filterMeasures<T extends FilterRow>(rows: readonly T[], filters: MeasureFilters): T[] {
   return rows.filter(
     (r) =>
       matchesStatus(r, filters.status) &&
+      matchesPhase(r, filters.phase) &&
       (filters.owner === "all" || r.ownerUserId === filters.owner) &&
       matchesQuery(r, filters.query),
   );
@@ -77,10 +89,23 @@ export function countMeasuresByStatus(rows: readonly Pick<FilterRow, "status" | 
   return counts;
 }
 
+export type PhaseCounts = Record<MeasurePhase, number> & { actDone: number; all: number };
+
+/** Abgeschlossene Massnahmen liegen per DB-Regel in Act und zählen dort mit; `actDone` weist sie zusätzlich aus. */
+export function countMeasuresByPhase(rows: readonly Pick<FilterRow, "phase" | "status">[]): PhaseCounts {
+  const counts: PhaseCounts = { plan: 0, do: 0, check: 0, act: 0, actDone: 0, all: rows.length };
+  for (const r of rows) {
+    counts[r.phase] += 1;
+    if (r.status === "done") counts.actDone += 1;
+  }
+  return counts;
+}
+
 /** Link zum Register; Parameter mit dem Wert «all» oder ohne Inhalt entfallen. */
 export function measuresFilterHref(filters: Partial<MeasureFilters>): string {
   const params = new URLSearchParams();
   if (filters.status && filters.status !== "all") params.set("status", filters.status);
+  if (filters.phase && filters.phase !== "all") params.set("phase", filters.phase);
   if (filters.owner && filters.owner !== "all") params.set("owner", filters.owner);
   if (filters.query) params.set("q", filters.query);
   const query = params.toString();
