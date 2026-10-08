@@ -507,6 +507,20 @@ describe("check and act", () => {
     expect((await row(id)).status).toBe("done");
   });
 
+  it("refuses to close an Act measure that has no review at all (defensive) and writes nothing", async () => {
+    const s = await setup();
+    const { id } = await measureAt(s, "act");
+    // Zustand, den der Service nie erzeugt: Act ohne Bewertung (Bewertung ist append-only, also über eine zweite Massnahme simulieren).
+    const bare = await create(s, "Ohne Bewertung");
+    await db.update(measure).set({ phase: "act", status: "in_progress" }).where(eq(measure.id, bare));
+    const before = await events(s);
+    await expect(closeMeasure(s.ctxA, bare, { reason: "Eine ausreichend lange Begründung" }, NOW)).rejects.toThrow(/keine Wirksamkeitsbewertung/);
+    await expect(closeMeasure(s.ctxA, bare, {}, NOW)).rejects.toBeInstanceOf(ValidationError);
+    expect(await events(s)).toBe(before);
+    expect((await row(bare)).status).toBe("in_progress");
+    await closeMeasure(s.ctxA, id, {}, NOW);
+  });
+
   it("rejects the Act decisions on a closed measure with a clear message", async () => {
     const s = await setup();
     const { id } = await measureAt(s, "done");

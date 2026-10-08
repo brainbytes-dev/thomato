@@ -315,7 +315,7 @@ export async function recordEffectiveness(
   ctx: OrgContext,
   id: string,
   input: { result: ReviewResult; note: string },
-  /** Nur für Seed und Tests mit festem Zeitpunkt; im Betrieb setzt die Datenbank die Zeit selbst (monoton unter der Zeilensperre). */
+  /** Nur für Seed und Tests mit festem Zeitpunkt; darf NIE aus einer Server Action oder Nutzereingabe durchgereicht werden; im Betrieb setzt die Datenbank die Zeit selbst (monoton unter der Zeilensperre). */
   checkedAt?: Date,
 ): Promise<Done & { reviewId: string }> {
   assertCan(ctx, "measure", "approve");
@@ -361,8 +361,11 @@ export async function closeMeasure(
     requireNotClosed(row);
     requirePhase(row, ["act"], "Abschliessen");
     const last = await latestReview(tx, ctx, row.id);
-    const needsReason = last !== null && last.result !== "effective";
-    if (needsReason && reason === null) {
+    if (last === null) {
+      // Defensiv: Act ist nur über eine Bewertung erreichbar; ohne Bewertung wird nie abgeschlossen.
+      throw new ValidationError("Für diese Massnahme liegt keine Wirksamkeitsbewertung vor. Abgeschlossen wird erst nach der Bewertung.");
+    }
+    if (last.result !== "effective" && reason === null) {
       throw new ValidationError(
         `Die letzte Bewertung lautet «${last.result === "partly" ? "teilweise wirksam" : "nicht wirksam"}». Für den Abschluss ist eine Begründung nötig (mindestens ${REASON_MIN} Zeichen).`,
       );
@@ -378,7 +381,7 @@ export async function closeMeasure(
         entityType: "measure",
         entityId: row.id,
         before: stateOf(row),
-        after: { ...stateOf(next), result: last?.result ?? null, reason },
+        after: { ...stateOf(next), result: last.result, reason },
       },
     };
   });
@@ -485,32 +488,40 @@ export type ReviewView = {
 export async function getMeasureDetail(ctx: OrgContext, id: string, now: Date): Promise<MeasureDetail> {
   assertCan(ctx, "measure", "read");
   if (!UUID.test(id)) throw new ValidationError(MEASURE_NOT_FOUND);
-  const [m] = await db
-    .select({ ...viewColumns, criterionTitle: criterion.title, effectivenessCriterion: measure.effectivenessCriterion })
-    .from(measure)
-    .innerJoin(criterion, and(eq(criterion.standardVersionId, measure.standardVersionId), eq(criterion.number, measure.criterionNumber)))
-    .leftJoin(user, eq(user.id, measure.ownerUserId))
-    .where(and(eq(measure.id, id), eq(measure.organizationId, ctx.organizationId)));
-  if (!m) throw new ValidationError(MEASURE_NOT_FOUND);
+  // Eine konsistente Momentaufnahme: Massnahme, Schritte und Bewertungen aus derselben Transaktion (nur lesend).
+  const { m, stepRows, reviews } = await db.transaction(
+    async (tx) => {
+      const [m] = await tx
+        .select({ ...viewColumns, criterionTitle: criterion.title, effectivenessCriterion: measure.effectivenessCriterion })
+        .from(measure)
+        .innerJoin(criterion, and(eq(criterion.standardVersionId, measure.standardVersionId), eq(criterion.number, measure.criterionNumber)))
+        .leftJoin(user, eq(user.id, measure.ownerUserId))
+        .where(and(eq(measure.id, id), eq(measure.organizationId, ctx.organizationId)));
+      if (!m) throw new ValidationError(MEASURE_NOT_FOUND);
 
-  const doer = aliasedTable(user, "doer");
-  const stepRows = await db
-    .select({ id: measureStep.id, position: measureStep.position, title: measureStep.title, doneAt: measureStep.doneAt, doneByName: doer.name })
-    .from(measureStep)
-    .leftJoin(doer, eq(doer.id, measureStep.doneBy))
-    .where(and(eq(measureStep.measureId, m.id), eq(measureStep.organizationId, ctx.organizationId)))
-    .orderBy(asc(measureStep.position), asc(measureStep.id));
+      const doer = aliasedTable(user, "doer");
+      const stepRows = await tx
+        .select({ id: measureStep.id, position: measureStep.position, title: measureStep.title, doneAt: measureStep.doneAt, doneByName: doer.name })
+        .from(measureStep)
+        .leftJoin(doer, eq(doer.id, measureStep.doneBy))
+        .where(and(eq(measureStep.measureId, m.id), eq(measureStep.organizationId, ctx.organizationId)))
+        .orderBy(asc(measureStep.position), asc(measureStep.id));
 
-  const checker = aliasedTable(user, "checker");
-  const reviews: ReviewView[] = await db
-    .select({
-      id: measureReview.id, cycle: measureReview.cycle, result: measureReview.result, note: measureReview.note,
-      checkedAt: measureReview.checkedAt, checkedByName: checker.name,
-    })
-    .from(measureReview)
-    .leftJoin(checker, eq(checker.id, measureReview.checkedBy))
-    .where(and(eq(measureReview.measureId, m.id), eq(measureReview.organizationId, ctx.organizationId)))
-    .orderBy(asc(measureReview.checkedAt), asc(measureReview.id));
+      const checker = aliasedTable(user, "checker");
+      const reviews: ReviewView[] = await tx
+        .select({
+          id: measureReview.id, cycle: measureReview.cycle, result: measureReview.result, note: measureReview.note,
+          checkedAt: measureReview.checkedAt, checkedByName: checker.name,
+        })
+        .from(measureReview)
+        .leftJoin(checker, eq(checker.id, measureReview.checkedBy))
+        .where(and(eq(measureReview.measureId, m.id), eq(measureReview.organizationId, ctx.organizationId)))
+        .orderBy(asc(measureReview.checkedAt), asc(measureReview.id));
+
+      return { m, stepRows, reviews };
+    },
+    { isolationLevel: "repeatable read", accessMode: "read only" },
+  );
 
   const byCycle = new Map<number, ReviewView[]>();
   for (const r of reviews) byCycle.set(r.cycle, [...(byCycle.get(r.cycle) ?? []), r]);

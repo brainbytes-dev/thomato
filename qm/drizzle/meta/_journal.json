@@ -71,6 +71,13 @@
       "when": 1791458771755,
       "tag": "0009_breezy_scourge",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791459795268,
+      "tag": "0010_measure_review_no_truncate",
+      "breakpoints": true
     }
   ]
 }

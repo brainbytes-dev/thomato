@@ -328,6 +328,45 @@ describe("concurrency", () => {
   });
 });
 
+describe("concurrency, deterministic counts", () => {
+  beforeEach(resetDb);
+
+  it("writes exactly one event when several identical status changes race, and the chain has no gap", async () => {
+    const { ctxA, a } = await setup();
+    for (let round = 0; round < 8; round++) {
+      const { id } = await createMeasure(ctxA, { ...valid(a.user.id), title: `Gleich ${round}` });
+      await setMeasureStatus(ctxA, id, "in_progress");
+      await Promise.all([setMeasureStatus(ctxA, id, "open"), setMeasureStatus(ctxA, id, "open"), setMeasureStatus(ctxA, id, "open")]);
+      const events = await db.select().from(auditEvent).where(and(eq(auditEvent.entityId, id), eq(auditEvent.eventType, "measure.status_changed"))).orderBy(asc(auditEvent.createdAt));
+      // open -> in_progress (seriell), dann genau EIN Wechsel zurück; die zwei übrigen Aufrufe sind No-ops.
+      expect(events).toHaveLength(2);
+      expect(events[1].beforeJson).toEqual(events[0].afterJson);
+      expect(events[1].afterJson).toMatchObject({ status: "open", phase: "plan" });
+    }
+  });
+
+  it("counts one event per real change for opposing changes: 1 or 2 events, never more, gapless, matching the end state", async () => {
+    const { ctxA, a } = await setup();
+    const seen = new Set<number>();
+    for (let round = 0; round < 12; round++) {
+      const { id } = await createMeasure(ctxA, { ...valid(a.user.id), title: `Gegenläufig ${round}` });
+      // Ausgangslage open. Reihenfolge A (in_progress, open) ergibt 2 Wechsel, Reihenfolge B (open, in_progress) nur 1.
+      await Promise.all([setMeasureStatus(ctxA, id, "in_progress"), setMeasureStatus(ctxA, id, "open")]);
+      const events = await db.select().from(auditEvent).where(and(eq(auditEvent.entityId, id), eq(auditEvent.eventType, "measure.status_changed"))).orderBy(asc(auditEvent.createdAt));
+      seen.add(events.length);
+      const [row] = await db.select().from(measure).where(eq(measure.id, id));
+      if (events.length === 1) expect(row.status).toBe("in_progress");
+      if (events.length === 2) {
+        expect(row.status).toBe("open");
+        expect(events[1].beforeJson).toEqual(events[0].afterJson);
+      }
+      expect(events[0].beforeJson).toMatchObject({ status: "open", phase: "plan" });
+      expect([1, 2]).toContain(events.length);
+    }
+    expect([...seen].every((n) => n === 1 || n === 2)).toBe(true);
+  });
+});
+
 describe("criterion history", () => {
   beforeEach(resetDb);
 

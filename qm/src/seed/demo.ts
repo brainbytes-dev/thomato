@@ -87,9 +87,13 @@ export async function seedDemo(input: { catalog: unknown; now?: Date }) {
   if (!Array.isArray(input.catalog)) throw new Error("Katalog muss ein Array sein");
   const rows: unknown[] = input.catalog;
 
-  await db.execute(
-    sql`TRUNCATE measure_review, measure_step, measure, evidence_link, document_version, document, deadline, audit_event, criterion_assessment, invitation, member, session, account, verification, organization, "user" RESTART IDENTITY CASCADE`,
-  );
+  // measure_review sperrt TRUNCATE per Trigger; nur dieser Reset hebt die Sperre transaktionslokal auf.
+  await db.transaction(async (tx) => {
+    await tx.execute(sql`SELECT set_config('qm.allow_truncate', 'on', true)`);
+    await tx.execute(
+      sql`TRUNCATE measure_review, measure_step, measure, evidence_link, document_version, document, deadline, audit_event, criterion_assessment, invitation, member, session, account, verification, organization, "user" RESTART IDENTITY CASCADE`,
+    );
+  });
   await importCatalog(db, {
     standardVersionId: ACTIVE_STANDARD_VERSION,
     label: "IVR Rettungsdienst (Entwurf, aus Python-Demo extrahiert)",

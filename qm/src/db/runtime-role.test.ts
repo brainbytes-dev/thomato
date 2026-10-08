@@ -34,9 +34,9 @@ type Fixture = { orgId: string; userId: string; docId: string; versionId: string
 
 async function prepare(): Promise<Fixture> {
   await owner.query(
-    `TRUNCATE measure_review, measure_step, measure, evidence_link, document_version, document, deadline, audit_event, criterion_assessment,
+    `BEGIN; SET LOCAL qm.allow_truncate = 'on'; TRUNCATE measure_review, measure_step, measure, evidence_link, document_version, document, deadline, audit_event, criterion_assessment,
      criterion, standard_version, invitation, member, session, account, verification, organization, "user"
-     RESTART IDENTITY CASCADE`,
+     RESTART IDENTITY CASCADE; COMMIT`,
   );
   const userId = authId();
   const orgId = authId();
@@ -146,6 +146,9 @@ describe("qm_app runtime role", () => {
     // Besitzer: Rechte vorhanden, aber der Trigger lehnt ab.
     expect(await errorOf(owner.query(`UPDATE measure_review SET note = 'anders' WHERE id = $1`, [reviewId]))).toMatch(/append-only/);
     expect(await errorOf(owner.query(`DELETE FROM measure_review WHERE id = $1`, [reviewId]))).toMatch(/append-only/);
+    // TRUNCATE ist auch für den Besitzer gesperrt (Statement-Trigger), ausser ein Reset hebt es ausdrücklich auf.
+    expect(await errorOf(owner.query(`TRUNCATE measure_review`))).toMatch(/append-only/);
+    expect(await errorOf(owner.query(`TRUNCATE measure CASCADE`))).toMatch(/append-only/);
     expect(await errorOf(app.query(`ALTER TABLE measure_review DISABLE TRIGGER ALL`))).toMatch(/must be owner of table measure_review/);
     const after = await owner.query<{ note: string }>(`SELECT note FROM measure_review WHERE id = $1`, [reviewId]);
     expect(after.rows[0].note).toBe("Teilweise wirksam");

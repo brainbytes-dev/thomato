@@ -156,6 +156,13 @@ describe("migration 0009 on a database with old rows", () => {
     expect(await errorOf(probe.query(`DELETE FROM measure_review WHERE id = $1`, [r.rows[0].id]))).toMatch(/append-only/);
   });
 
+  it("blocks TRUNCATE of measure_review for the owner, also via CASCADE (migration 0010)", async () => {
+    expect(await errorOf(probe.query(`TRUNCATE measure_review`))).toMatch(/append-only/);
+    expect(await errorOf(probe.query(`TRUNCATE measure CASCADE`))).toMatch(/append-only/);
+    const n = await probe.query<{ n: string }>(`SELECT count(*)::text AS n FROM measure_review`);
+    expect(Number(n.rows[0].n)).toBeGreaterThanOrEqual(1);
+  });
+
   it("rejects steps and reviews that point at another organization's measure (composite FK)", async () => {
     await probe.query(`INSERT INTO organization (id, name, slug, created_at) VALUES ('o2', 'Org2', 'org-2', now())`);
     const m = await probe.query<{ id: string }>(`SELECT id FROM measure WHERE title = 'läuft'`);
