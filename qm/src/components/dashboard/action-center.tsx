@@ -70,7 +70,7 @@ export function ActionCenter({ items, total }: { items: ActionItem[]; total: num
           tabIndex={0}
           role="region"
           aria-labelledby="actions-heading"
-          className="mt-6 overflow-x-auto rounded-lg border border-border"
+          className="relative mt-6 overflow-x-auto rounded-lg border border-border"
         >
           <table className="w-full min-w-[960px] border-collapse text-left">
             <caption className="sr-only">
@@ -110,7 +110,7 @@ export function ActionCenter({ items, total }: { items: ActionItem[]; total: num
                         {i.dueDate ? formatDate(i.dueDate) : "ohne Frist"}
                       </td>
                       <td className="px-4 py-4">
-                        <Badge tone={overdue ? "critical" : "neutral"}>{i.statusLabel}</Badge>
+                        <Badge tone={overdue || i.priority === "critical" ? "critical" : "neutral"}>{i.statusLabel}</Badge>
                       </td>
                       <td className="whitespace-nowrap px-4 py-4 text-right">
                         {i.href ? (

@@ -59,7 +59,7 @@ export function AppShell({ organizationName, roleLabel, userName, children }: Sh
               <span aria-hidden="true" className="flex size-5 shrink-0 items-center justify-center rounded-sm bg-primary text-on-primary">
                 <Plus className="size-3.5" strokeWidth={3} />
               </span>
-              <span className="type-label flex-1 truncate font-semibold uppercase tracking-wider">{BRAND.name}</span>
+              <span className="type-label flex-1 font-semibold uppercase leading-tight tracking-wider">{BRAND.name}</span>
               <button
                 type="button"
                 aria-label="Menü schliessen"

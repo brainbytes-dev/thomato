@@ -31,7 +31,7 @@ export async function MeasuresSection({ ctx, number, now }: { ctx: OrgContext; n
         {measures.length === 0 ? (
           <p className="text-text-muted">Für dieses Kriterium gibt es noch keine Massnahme.</p>
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-border">
+          <div className="relative overflow-x-auto rounded-lg border border-border">
             <table className="w-full border-collapse text-left">
               <caption className="sr-only">Massnahmen zu diesem Kriterium</caption>
               <thead className="bg-surface-subtle">

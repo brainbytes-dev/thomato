@@ -19,7 +19,7 @@ export function DeadlineList({ deadlines }: { deadlines: DeadlineView[] }) {
       {deadlines.length === 0 ? (
         <p className="mt-4 text-text-muted">Keine Fristen erfasst.</p>
       ) : (
-        <div className="mt-4 overflow-x-auto rounded-lg border border-border">
+        <div className="relative mt-4 overflow-x-auto rounded-lg border border-border">
           <table className="w-full border-collapse text-left">
             <caption className="sr-only">Fristen in zeitlicher Reihenfolge</caption>
             <thead className="bg-surface-subtle">

@@ -86,7 +86,7 @@ export async function EvidenceSection({
       {docs.length === 0 ? (
         <p className="text-text-muted">Für dieses Kriterium ist noch kein Dokument verknüpft.</p>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-border">
+        <div className="relative overflow-x-auto rounded-lg border border-border">
           <table className="w-full border-collapse text-left">
             <caption className="sr-only">Mit diesem Kriterium verknüpfte Dokumente</caption>
             <thead className="bg-surface-subtle">
@@ -114,7 +114,7 @@ export async function EvidenceSection({
                     <div className="flex flex-col gap-3">
                     <details>
                       <summary className={SUMMARY}>Versionen anzeigen</summary>
-                      <div className="mt-2 overflow-x-auto rounded-lg border border-border">
+                      <div className="relative mt-2 overflow-x-auto rounded-lg border border-border">
                         <table className="w-full border-collapse text-left">
                           <caption className="sr-only">Alle Versionen von {d.title}, neueste zuerst</caption>
                           <thead className="bg-surface-subtle">
