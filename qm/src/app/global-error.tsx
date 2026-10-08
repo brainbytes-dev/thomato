@@ -3,11 +3,16 @@
 import Link from "next/link";
 import "./globals.css";
 import { ERROR_COPY } from "@/components/error-state";
+import { THEME_INIT_SCRIPT } from "@/lib/theme";
+import { FONT_CLASSES } from "./fonts";
 
 // Ersetzt das Root-Layout, daher eigenes html/body.
 export default function GlobalError({ retry }: { error: Error & { digest?: string }; retry: () => void }) {
   return (
-    <html lang="de" className="h-full antialiased">
+    <html lang="de" className={`${FONT_CLASSES} h-full antialiased`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body className="min-h-full">
         <title>Fehler</title>
         <main className="mx-auto flex min-h-screen max-w-xl flex-col justify-center gap-6 px-4 py-12">

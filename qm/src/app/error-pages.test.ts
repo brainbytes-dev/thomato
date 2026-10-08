@@ -1,6 +1,12 @@
 import { createElement, type ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+// next/font läuft nur im Next-Compiler; die Fehlerseiten-Tests prüfen Inhalt, nicht Schriftladen.
+vi.mock("next/font/google", () => {
+  const font = () => ({ variable: "font-var", className: "font-class" });
+  return { Inter: font, JetBrains_Mono: font };
+});
+
 import { ErrorBoundaryView } from "@/components/error-boundary-view";
 import ErrorPage from "./error";
 import AppErrorPage from "./(app)/error";

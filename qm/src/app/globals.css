@@ -1,6 +1,12 @@
 @import "tailwindcss";
 
+/*
+ * Designquelle: DESIGN.md (Swiss Clinical Minimalism). Alle Farben leben hier als Tokens.
+ * Jedes Token steht in der Light-Palette (:root) und in beiden Dark-Blöcken, die identisch bleiben müssen:
+ * (a) System-Dark ohne explizite Wahl, (b) explizit gewähltes Dark. Ein Test prüft das.
+ */
 :root {
+  color-scheme: light;
   --background: #eef2f9;
   --surface: #ffffff;
   --surface-subtle: #f3f6fb;
@@ -14,13 +20,17 @@
   --primary-subtle: #e7effb;
   --on-primary: #ffffff;
   --critical: #b3261e;
+  --critical-tint: #fbe9e7;
   --warning: #8a5a00;
+  --warning-tint: #fbf0d6;
   --success: #1a6b3c;
+  --success-tint: #e1f3e8;
   --radius: 6px;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
     --background: #050f1e;
     --surface: #0a1830;
     --surface-subtle: #102341;
@@ -30,12 +40,40 @@
     --border: #1c3258;
     --field-border: #4d6a96;
     --primary: #3c8cff;
+    --primary-deep: #8fbaff;
     --primary-subtle: #102341;
     --on-primary: #050f1e;
     --critical: #ff9b91;
+    --critical-tint: #3a1a1e;
     --warning: #e0b45c;
+    --warning-tint: #33270f;
     --success: #76d3a1;
+    --success-tint: #12301f;
+    --radius: 6px;
   }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #050f1e;
+  --surface: #0a1830;
+  --surface-subtle: #102341;
+  --sidebar: #040c18;
+  --text: #eef5ff;
+  --text-muted: #9db6d8;
+  --border: #1c3258;
+  --field-border: #4d6a96;
+  --primary: #3c8cff;
+  --primary-deep: #8fbaff;
+  --primary-subtle: #102341;
+  --on-primary: #050f1e;
+  --critical: #ff9b91;
+  --critical-tint: #3a1a1e;
+  --warning: #e0b45c;
+  --warning-tint: #33270f;
+  --success: #76d3a1;
+  --success-tint: #12301f;
+  --radius: 6px;
 }
 
 @theme inline {
@@ -52,19 +90,109 @@
   --color-primary-subtle: var(--primary-subtle);
   --color-on-primary: var(--on-primary);
   --color-critical: var(--critical);
+  --color-critical-tint: var(--critical-tint);
   --color-warning: var(--warning);
+  --color-warning-tint: var(--warning-tint);
   --color-success: var(--success);
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --color-success-tint: var(--success-tint);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+/* Typografie-Rollen aus DESIGN.md. Utilities statt verstreuter Einzelwerte. */
+@utility type-display {
+  font-size: 28px;
+  line-height: 34px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  font-variant-numeric: tabular-nums;
+  @media (min-width: 48rem) {
+    font-size: 34px;
+    line-height: 42px;
+    letter-spacing: -0.02em;
+  }
+}
+
+@utility type-headline-section {
+  font-size: 23px;
+  line-height: 30px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+@utility type-headline-sub {
+  font-size: 18px;
+  line-height: 24px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
+
+@utility type-body {
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 400;
+}
+
+@utility type-body-emphasis {
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 600;
+}
+
+@utility type-label {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+}
+
+@utility type-meta {
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 400;
+}
+
+@utility type-meta-mono {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+@utility type-badge {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* Kleine Überschrift über Sektionen: 11 px, Versalien. */
+@utility type-eyebrow {
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 body {
   background: var(--background);
   color: var(--text);
   font-family: var(--font-sans);
-  font-size: 14px;
+  font-size: 15px;
+  line-height: 22px;
 }
 
 :focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
 }
