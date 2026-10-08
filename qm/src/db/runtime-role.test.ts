@@ -154,6 +154,55 @@ describe("qm_app runtime role", () => {
     expect(after.rows[0].note).toBe("Teilweise wirksam");
   });
 
+  it("blocks TRUNCATE of audit_event for the owner, also via CASCADE, unless a transaction sets the escape (migration 0011)", async () => {
+    const count = async () =>
+      Number((await owner.query<{ n: string }>(`SELECT count(*)::text AS n FROM audit_event`)).rows[0].n);
+    const before = await count();
+    expect(before).toBeGreaterThanOrEqual(1);
+    for (const statement of [
+      `TRUNCATE audit_event`,
+      `TRUNCATE audit_event CASCADE`,
+    ]) {
+      expect(await errorOf(owner.query(statement)), statement).toMatch(/audit_event is append-only/);
+    }
+    for (const statement of [`TRUNCATE organization CASCADE`, `TRUNCATE "user" CASCADE`]) {
+      expect(await errorOf(owner.query(statement)), statement).toMatch(/append-only/);
+    }
+    expect(await errorOf(app.query(`TRUNCATE audit_event`))).toMatch(/permission denied for table audit_event/);
+    expect(await errorOf(app.query(`TRUNCATE organization CASCADE`))).toMatch(/permission denied/);
+    expect(await errorOf(app.query(`ALTER TABLE audit_event DISABLE TRIGGER ALL`))).toMatch(/must be owner of table audit_event/);
+    expect(await count()).toBe(before);
+
+    const client = await owner.connect();
+    try {
+      // Beweis, dass der audit_event-Trigger selbst die CASCADE-Kette stoppt: measure_review-Sperre in dieser
+      // Transaktion entfernen (DDL ist transaktional), dann muss die Meldung von audit_event kommen.
+      for (const root of [`organization`, `"user"`]) {
+        await client.query(`BEGIN`);
+        await client.query(`DROP TRIGGER measure_review_no_truncate ON measure_review`);
+        expect(await errorOf(client.query(`TRUNCATE ${root} CASCADE`)), root).toMatch(/audit_event is append-only/);
+        await client.query(`ROLLBACK`);
+      }
+      // Ein anderer Wert als 'on' hebt die Sperre nicht auf.
+      await client.query(`BEGIN`);
+      await client.query(`SET LOCAL qm.allow_truncate = 'off'`);
+      expect(await errorOf(client.query(`TRUNCATE audit_event`))).toMatch(/append-only/);
+      await client.query(`ROLLBACK`);
+      // Mit dem Setting läuft es durch (zurückgerollt, damit die Fixture bleibt).
+      await client.query(`BEGIN`);
+      await client.query(`SET LOCAL qm.allow_truncate = 'on'`);
+      await client.query(`TRUNCATE audit_event`);
+      const inside = await client.query<{ n: string }>(`SELECT count(*)::text AS n FROM audit_event`);
+      expect(inside.rows[0].n).toBe("0");
+      await client.query(`ROLLBACK`);
+    } finally {
+      client.release();
+    }
+    expect(await count()).toBe(before);
+    // SET LOCAL endet mit der Transaktion: danach ist die Sperre wieder aktiv.
+    expect(await errorOf(owner.query(`TRUNCATE audit_event`))).toMatch(/append-only/);
+  });
+
   it("lets qm_app insert, update and delete measure_step rows", async () => {
     const ins = await app.query<{ id: string }>(
       `INSERT INTO measure_step (organization_id, measure_id, position, title) VALUES ($1, $2, 1, 'Schritt eins') RETURNING id`,

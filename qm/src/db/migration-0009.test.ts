@@ -163,6 +163,19 @@ describe("migration 0009 on a database with old rows", () => {
     expect(Number(n.rows[0].n)).toBeGreaterThanOrEqual(1);
   });
 
+  it("blocks TRUNCATE of audit_event for the owner, also via CASCADE, on a database built from 0000..0011 (migration 0011)", async () => {
+    const triggers = await probe.query<{ tgname: string; tgtype: number }>(
+      `SELECT tgname, tgtype FROM pg_trigger WHERE tgrelid = 'audit_event'::regclass AND NOT tgisinternal ORDER BY tgname`,
+    );
+    expect(triggers.rows.map((t) => t.tgname)).toEqual(["audit_event_no_change", "audit_event_no_truncate"]);
+    // tgtype: 1 = ROW (0 = STATEMENT), 2 = BEFORE, 32 = TRUNCATE
+    const trunc = triggers.rows.find((t) => t.tgname === "audit_event_no_truncate");
+    expect(trunc && (trunc.tgtype & 1) === 0 && (trunc.tgtype & 2) === 2 && (trunc.tgtype & 32) === 32).toBe(true);
+    expect(await errorOf(probe.query(`TRUNCATE audit_event`))).toMatch(/audit_event is append-only/);
+    expect(await errorOf(probe.query(`TRUNCATE organization CASCADE`))).toMatch(/append-only/);
+    expect(await errorOf(probe.query(`TRUNCATE "user" CASCADE`))).toMatch(/append-only/);
+  });
+
   it("rejects steps and reviews that point at another organization's measure (composite FK)", async () => {
     await probe.query(`INSERT INTO organization (id, name, slug, created_at) VALUES ('o2', 'Org2', 'org-2', now())`);
     const m = await probe.query<{ id: string }>(`SELECT id FROM measure WHERE title = 'läuft'`);

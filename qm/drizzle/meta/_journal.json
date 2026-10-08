@@ -78,6 +78,13 @@
       "when": 1791459795268,
       "tag": "0010_measure_review_no_truncate",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1791469198315,
+      "tag": "0011_audit_event_no_truncate",
+      "breakpoints": true
     }
   ]
 }
