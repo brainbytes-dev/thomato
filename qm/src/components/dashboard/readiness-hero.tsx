@@ -75,7 +75,7 @@ export function ReadinessHero({ data, asOf }: { data: DashboardData; asOf: strin
   return (
     <section aria-labelledby="readiness-heading" className={`${CARD} flex flex-col gap-6 p-5 sm:p-7`}>
       <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
-        <h2 id="readiness-heading" className="type-eyebrow text-text-muted">Bereitschaft</h2>
+        <h2 id="readiness-heading" className="type-eyebrow text-text-muted">Readiness</h2>
         <p className="type-meta-mono uppercase text-text-muted">Stand {asOf}</p>
       </div>
 
