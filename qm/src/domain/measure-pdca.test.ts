@@ -5,6 +5,8 @@ import { db } from "@/db";
 import { ACTIVE_STANDARD_VERSION, auditEvent, measure, measureReview, measureStep } from "@/db/schema";
 import { importCatalog } from "./catalog";
 import { listAuditEvents } from "./audit";
+import { listCriterionHistory } from "./assessments";
+import { describeAuditEvent } from "./audit-copy";
 import { createMeasure } from "./measures";
 import {
   addStep, closeMeasure, completeDo, completePlan, getMeasureDetail, getPdcaFigures, moveStep, recordEffectiveness,
@@ -210,6 +212,25 @@ describe("full cycle and audit trail", () => {
     expect(log[6].afterJson).toMatchObject({ ...state, phase: "act", reviewId, result: "effective", note: "Keine neuen Fälle", cycle: 1 });
     expect(log[7].afterJson).toMatchObject({ ...state, status: "done", result: "effective", reason: null, completedAt: NOW.toISOString() });
     expect(log.every((e) => (e.afterJson as { criterionNumbers?: string[] }).criterionNumbers?.[0] === "7.3.10")).toBe(true);
+  });
+
+  it("shows every PDCA event in the criterion history with a readable German text", async () => {
+    const s = await setup();
+    const { id, stepIds } = await measureAt(s, "done");
+    await reopenMeasure(s.ctxA, id);
+    await removeStep(s.ctxA, id, stepIds[1]);
+    await moveStep(s.ctxA, id, stepIds[0], "down");
+    await renameStep(s.ctxA, id, stepIds[0], "Anders benannt");
+    const history = await listCriterionHistory(s.ctxA, "7.3.10", null);
+    const types = new Set(history.map((h) => h.eventType));
+    for (const t of [
+      "measure.created", "measure.phase_changed", "measure.step_added", "measure.step_updated", "measure.step_removed",
+      "measure.effectiveness_recorded", "measure.closed", "measure.reopened",
+    ]) expect(types.has(t), t).toBe(true);
+    const all = await listAuditEvents(s.ctxA, 500);
+    for (const e of all) {
+      expect(describeAuditEvent({ eventType: e.eventType, before: e.beforeJson, after: e.afterJson }), e.eventType).not.toBe(e.eventType);
+    }
   });
 
   it("does not write an event for a criterion text that did not change, and clears it with null or blank", async () => {

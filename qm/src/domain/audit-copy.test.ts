@@ -72,3 +72,66 @@ describe("describeAuditEvent documents", () => {
       .toBe("Verknüpfung mit «Hygienekonzept» gelöst");
   });
 });
+
+describe("describeAuditEvent PDCA", () => {
+  const state = (over: Record<string, unknown>) => ({ title: "Hygienekonzept", phase: "plan", status: "open", cycle: 1, completedAt: null, criterionNumbers: ["7.3.10"], ...over });
+  const step = (over: Record<string, unknown>) => ({ title: "Hygienekonzept", stepId: "s1", stepTitle: "Schulung durchführen", position: 1, done: false, criterionNumbers: ["7.3.10"], ...over });
+  const d = (eventType: string, before: unknown, after: unknown) => describeAuditEvent({ eventType, before, after });
+
+  it("describes phase changes with the phase names", () => {
+    expect(d("measure.phase_changed", state({}), state({ phase: "do", status: "in_progress" })))
+      .toBe("Massnahme «Hygienekonzept»: Phase von «Plan» auf «Do»");
+    expect(d("measure.phase_changed", state({ phase: "do" }), state({ phase: "check", confirmedNoSteps: true })))
+      .toBe("Massnahme «Hygienekonzept»: Phase von «Do» auf «Check» (ohne Checkliste bestätigt)");
+  });
+
+  it("describes checklist events", () => {
+    expect(d("measure.step_added", null, step({}))).toBe("Schritt «Schulung durchführen» zur Checkliste hinzugefügt (Massnahme «Hygienekonzept»)");
+    expect(d("measure.step_removed", step({}), null)).toBe("Schritt «Schulung durchführen» aus der Checkliste entfernt (Massnahme «Hygienekonzept»)");
+    expect(d("measure.step_updated", step({}), step({ done: true, change: "done" }))).toBe("Schritt «Schulung durchführen» erledigt (Massnahme «Hygienekonzept»)");
+    expect(d("measure.step_updated", step({ done: true }), step({ done: false, change: "undone" }))).toBe("Schritt «Schulung durchführen» wieder geöffnet (Massnahme «Hygienekonzept»)");
+    expect(d("measure.step_updated", step({}), step({ stepTitle: "Schulung planen", change: "renamed" })))
+      .toBe("Schritt «Schulung durchführen» umbenannt in «Schulung planen» (Massnahme «Hygienekonzept»)");
+    expect(d("measure.step_updated", step({}), step({ position: 2, change: "moved" })))
+      .toBe("Schritt «Schulung durchführen» von Position 1 auf 2 verschoben (Massnahme «Hygienekonzept»)");
+  });
+
+  it("describes the effectiveness review with cycle, result and note", () => {
+    expect(d("measure.effectiveness_recorded", state({ phase: "check" }), state({ phase: "act", result: "partly", note: "Nur teilweise belegt", reviewId: "r1" })))
+      .toBe("Wirksamkeit von «Hygienekonzept» bewertet (Zyklus 1): «teilweise wirksam», Notiz: Nur teilweise belegt");
+    expect(d("measure.effectiveness_recorded", state({}), state({ cycle: 2, result: "effective", note: "Alles gut" })))
+      .toBe("Wirksamkeit von «Hygienekonzept» bewertet (Zyklus 2): «wirksam», Notiz: Alles gut");
+    expect(d("measure.effectiveness_recorded", state({}), state({ result: "not_effective", note: "Fall wiederholt" })))
+      .toContain("«nicht wirksam»");
+  });
+
+  it("describes the Act decisions", () => {
+    expect(d("measure.refined", state({ phase: "act" }), state({ phase: "do", previousResult: "partly" })))
+      .toBe("Massnahme «Hygienekonzept» nachgeschärft (zurück in Phase «Do», Zyklus 1, letzte Bewertung «teilweise wirksam»)");
+    expect(d("measure.cycle_started", state({ phase: "act" }), state({ phase: "plan", cycle: 2, previousResult: "not_effective" })))
+      .toBe("Neuer Zyklus 2 für Massnahme «Hygienekonzept» gestartet (Phase «Plan», letzte Bewertung «nicht wirksam»)");
+    expect(d("measure.closed", state({ phase: "act" }), state({ status: "done", result: "effective", reason: null, completedAt: "2026-10-08T10:00:00.000Z" })))
+      .toBe("Massnahme «Hygienekonzept» abgeschlossen (letzte Bewertung «wirksam»)");
+    expect(d("measure.closed", state({ phase: "act" }), state({ status: "done", result: "partly", reason: "Restrisiko ist akzeptiert", completedAt: "2026-10-08T10:00:00.000Z" })))
+      .toBe("Massnahme «Hygienekonzept» abgeschlossen (letzte Bewertung «teilweise wirksam»), Begründung: Restrisiko ist akzeptiert");
+    expect(d("measure.reopened", state({ status: "done", phase: "act" }), state({ phase: "do", status: "in_progress" })))
+      .toBe("Massnahme «Hygienekonzept» wiedereröffnet (Phase «Do»)");
+  });
+
+  it("describes the effectiveness criterion on measure.updated and keeps old updates readable", () => {
+    const p = (c: string | null) => ({ title: "Hygienekonzept", effectivenessCriterion: c, criterionNumbers: ["7.3.10"] });
+    expect(d("measure.updated", p(null), p("Keine Wiederholung"))).toBe("Wirksamkeitskriterium von «Hygienekonzept» festgelegt: Keine Wiederholung");
+    expect(d("measure.updated", p("Alt gültig"), p("Neu gültig"))).toBe("Wirksamkeitskriterium von «Hygienekonzept» geändert: von «Alt gültig» auf «Neu gültig»");
+    expect(d("measure.updated", p("Alt gültig"), p(null))).toBe("Wirksamkeitskriterium von «Hygienekonzept» entfernt (war «Alt gültig»)");
+    expect(d("measure.updated", { title: "A", ownerName: "X", dueDate: "2026-11-15" }, { title: "A", ownerName: "Y", dueDate: "2026-11-15" }))
+      .toBe("Massnahme «A» geändert (verantwortlich: von X zu Y)");
+  });
+
+  it("keeps old status events readable and falls back to the event type for broken payloads", () => {
+    expect(d("measure.status_changed", { title: "T", status: "open" }, { title: "T", status: "in_progress" })).toBe("Massnahme «T»: Status von «Offen» auf «In Bearbeitung»");
+    for (const type of ["measure.phase_changed", "measure.step_added", "measure.step_updated", "measure.step_removed", "measure.effectiveness_recorded", "measure.refined", "measure.cycle_started", "measure.closed", "measure.reopened"]) {
+      expect(d(type, null, null)).toBe(type);
+      expect(d(type, "kaputt", 42)).toBe(type);
+    }
+  });
+});

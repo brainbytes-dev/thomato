@@ -55,6 +55,98 @@ function asMeasure(v: unknown): MeasurePayload | null {
   };
 }
 
+const PHASE_WORD: Record<string, string> = { plan: "Plan", do: "Do", check: "Check", act: "Act" };
+const RESULT_WORD: Record<string, string> = { effective: "wirksam", partly: "teilweise wirksam", not_effective: "nicht wirksam" };
+
+type PdcaPayload = {
+  title: string;
+  phase: string | null;
+  cycle: number | null;
+  result: string | null;
+  previousResult: string | null;
+  reason: string | null;
+  note: string | null;
+  confirmedNoSteps: boolean;
+  stepTitle: string | null;
+  position: number | null;
+  change: string | null;
+  criterion: string | null | undefined;
+};
+
+function asPdca(v: unknown): PdcaPayload | null {
+  if (typeof v !== "object" || v === null) return null;
+  const o = v as Record<string, unknown>;
+  if (typeof o.title !== "string") return null;
+  const str = (x: unknown) => (typeof x === "string" ? x : null);
+  return {
+    title: o.title,
+    phase: str(o.phase),
+    cycle: typeof o.cycle === "number" ? o.cycle : null,
+    result: str(o.result),
+    previousResult: str(o.previousResult),
+    reason: str(o.reason),
+    note: str(o.note),
+    confirmedNoSteps: o.confirmedNoSteps === true,
+    stepTitle: str(o.stepTitle),
+    position: typeof o.position === "number" ? o.position : null,
+    change: str(o.change),
+    // undefined = Schlüssel fehlt (altes measure.updated), null = kein Kriterium gesetzt
+    criterion: "effectivenessCriterion" in o ? str(o.effectivenessCriterion) : undefined,
+  };
+}
+
+const phaseWord = (p: string) => PHASE_WORD[p] ?? p;
+const resultWord = (r: string) => RESULT_WORD[r] ?? r;
+const lastResult = (r: string | null) => (r === null ? "" : `, letzte Bewertung «${resultWord(r)}»`);
+
+/** Beschreibung der PDCA-Ereignisse (Phase, Checkliste, Bewertung, Act). null, wenn der Typ nicht dazugehört oder die Nutzlast unlesbar ist. */
+function describePdca(e: { eventType: string; before: unknown; after: unknown }): string | null | undefined {
+  const b = asPdca(e.before);
+  const a = asPdca(e.after);
+  switch (e.eventType) {
+    case "measure.phase_changed": {
+      if (!b || !a || b.phase === null || a.phase === null) return null;
+      const extra = a.confirmedNoSteps ? " (ohne Checkliste bestätigt)" : "";
+      return `Massnahme «${a.title}»: Phase von «${phaseWord(b.phase)}» auf «${phaseWord(a.phase)}»${extra}`;
+    }
+    case "measure.step_added":
+      return a && a.stepTitle !== null ? `Schritt «${a.stepTitle}» zur Checkliste hinzugefügt (Massnahme «${a.title}»)` : null;
+    case "measure.step_removed":
+      return b && b.stepTitle !== null ? `Schritt «${b.stepTitle}» aus der Checkliste entfernt (Massnahme «${b.title}»)` : null;
+    case "measure.step_updated": {
+      if (!b || !a || a.stepTitle === null || b.stepTitle === null) return null;
+      const tail = ` (Massnahme «${a.title}»)`;
+      if (a.change === "renamed") return `Schritt «${b.stepTitle}» umbenannt in «${a.stepTitle}»${tail}`;
+      if (a.change === "done") return `Schritt «${a.stepTitle}» erledigt${tail}`;
+      if (a.change === "undone") return `Schritt «${a.stepTitle}» wieder geöffnet${tail}`;
+      if (a.change === "moved" && a.position !== null && b.position !== null) {
+        return `Schritt «${a.stepTitle}» von Position ${b.position} auf ${a.position} verschoben${tail}`;
+      }
+      return `Schritt «${a.stepTitle}» geändert${tail}`;
+    }
+    case "measure.effectiveness_recorded": {
+      if (!a || a.result === null || a.cycle === null) return null;
+      return `Wirksamkeit von «${a.title}» bewertet (Zyklus ${a.cycle}): «${resultWord(a.result)}»${a.note ? `, Notiz: ${a.note}` : ""}`;
+    }
+    case "measure.refined": {
+      if (!a || a.cycle === null) return null;
+      return `Massnahme «${a.title}» nachgeschärft (zurück in Phase «Do», Zyklus ${a.cycle}${lastResult(a.previousResult)})`;
+    }
+    case "measure.cycle_started": {
+      if (!a || a.cycle === null) return null;
+      return `Neuer Zyklus ${a.cycle} für Massnahme «${a.title}» gestartet (Phase «Plan»${lastResult(a.previousResult)})`;
+    }
+    case "measure.closed": {
+      if (!a) return null;
+      return `Massnahme «${a.title}» abgeschlossen${a.result === null ? "" : ` (letzte Bewertung «${resultWord(a.result)}»)`}${a.reason ? `, Begründung: ${a.reason}` : ""}`;
+    }
+    case "measure.reopened":
+      return a ? `Massnahme «${a.title}» wiedereröffnet (Phase «Do»)` : null;
+    default:
+      return undefined;
+  }
+}
+
 const word = (s: string) => STATUS_WORD[s] ?? s;
 
 /** Menschenlesbare Beschreibung eines Audit-Events zu einem Kriterium. Unbekanntes fällt auf den Eventtyp zurück. */
@@ -110,7 +202,16 @@ export function describeAuditEvent(e: { eventType: string; before: unknown; afte
     const w = (s: string) => MEASURE_STATUS_WORD[s] ?? s;
     return `Massnahme «${a.title}»: Status von «${w(b.status)}» auf «${w(a.status)}»`;
   }
+  const pdca = describePdca(e);
+  if (pdca !== undefined) return pdca ?? e.eventType;
   if (e.eventType === "measure.updated") {
+    const pa = asPdca(e.after);
+    const pb = asPdca(e.before);
+    if (pa && pb && pa.criterion !== undefined && pb.criterion !== undefined) {
+      if (pa.criterion === null && pb.criterion !== null) return `Wirksamkeitskriterium von «${pa.title}» entfernt (war «${pb.criterion}»)`;
+      if (pa.criterion !== null && pb.criterion === null) return `Wirksamkeitskriterium von «${pa.title}» festgelegt: ${pa.criterion}`;
+      if (pa.criterion !== null && pb.criterion !== null) return `Wirksamkeitskriterium von «${pa.title}» geändert: von «${pb.criterion}» auf «${pa.criterion}»`;
+    }
     const b = asMeasure(e.before);
     const a = asMeasure(e.after);
     if (!b || !a) return e.eventType;
