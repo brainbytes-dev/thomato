@@ -57,3 +57,18 @@ export function scopeLabel(r: Omit<CriterionInput, "status">): string {
   if (scope.mandatory) return "Muss";
   return scope.should ? "Soll" : "nicht im Verfahren";
 }
+
+/** Ein Satz zum Stand in der Hinweiskarte. Gibt nur wieder, was der Stand bedeutet, ohne neue Regeln. */
+export const STATUS_EXPLANATION: Record<AssessmentStatus, string> = {
+  not_assessed: "Dieses Kriterium ist noch nicht bewertet.",
+  met: "Dieses Kriterium ist als erfüllt bewertet.",
+  open: "Dieses Kriterium ist als offen bewertet. Die Erfüllung steht noch aus.",
+  critical: "Dieses Kriterium ist als kritisch bewertet und braucht Aufmerksamkeit.",
+  not_applicable: "Dieses Kriterium ist als nicht anwendbar bewertet.",
+};
+
+export const MEASURE_STATUS_BADGE: Record<MeasureStatus, BadgeTone> = {
+  open: "neutral",
+  in_progress: "primary",
+  done: "success",
+};

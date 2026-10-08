@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { scopeLabel, STATUS_LABEL } from "./status-copy";
+import { MEASURE_STATUS_BADGE, MEASURE_STATUS_LABEL, scopeLabel, STATUS_EXPLANATION, STATUS_LABEL } from "./status-copy";
 
 const base = { number: "1", chapter: "x" };
 
@@ -68,5 +68,20 @@ describe("scopeLabel", () => {
     expect(scopeLabel({ ...base, ...off, mandatoryAccreditation: true })).toBe("Muss");
     expect(scopeLabel({ ...base, ...off, shouldAccreditation: true })).toBe("Soll");
     expect(scopeLabel({ ...base, ...off, mandatoryRenewal: true })).toBe("nicht im Verfahren");
+  });
+});
+
+describe("status explanations", () => {
+  it("cover every assessment status with a sentence and no dashes", () => {
+    for (const key of Object.keys(STATUS_LABEL) as (keyof typeof STATUS_LABEL)[]) {
+      expect(STATUS_EXPLANATION[key]).toMatch(/\.$/);
+      expect(STATUS_EXPLANATION[key]).not.toMatch(/—|--/);
+    }
+  });
+
+  it("maps every measure status to a badge tone", () => {
+    for (const key of Object.keys(MEASURE_STATUS_LABEL) as (keyof typeof MEASURE_STATUS_LABEL)[]) {
+      expect(MEASURE_STATUS_BADGE[key]).toBeTruthy();
+    }
   });
 });
