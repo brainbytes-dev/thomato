@@ -60,7 +60,7 @@ export async function listAssessments(ctx: OrgContext): Promise<AssessmentRow[]>
 export { isValidIsoDate };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const CRITERION_NOT_FOUND = "Kriterium nicht gefunden.";
+const CRITERION_NOT_FOUND = "Das Kriterium wurde nicht gefunden.";
 
 export const NA_REASON_MIN = 10;
 export const NA_REASON_MAX = 500;
@@ -70,7 +70,7 @@ function requireReason(reason: string | null | undefined): string {
   const length = [...trimmed].length;
   if (length < NA_REASON_MIN || length > NA_REASON_MAX) {
     throw new ValidationError(
-      `Für «Nicht anwendbar» ist eine Begründung mit ${NA_REASON_MIN} bis ${NA_REASON_MAX} Zeichen nötig.`,
+      `Für «nicht anwendbar» ist eine Begründung mit ${NA_REASON_MIN} bis ${NA_REASON_MAX} Zeichen nötig.`,
     );
   }
   return trimmed;
@@ -145,7 +145,7 @@ export async function setAssessmentDueDate(
 ): Promise<{ id: string; dueDate: string | null }> {
   assertCan(ctx, "assessment", "write");
   if (dueDate !== null && !isValidIsoDate(dueDate)) {
-    throw new ValidationError("Die Frist muss ein gültiges Datum sein.");
+    throw new ValidationError("Die Frist ist ungültig.");
   }
   return withAudit(ctx, async (tx) => {
     const before = await lockAssessment(tx, ctx, criterionId);

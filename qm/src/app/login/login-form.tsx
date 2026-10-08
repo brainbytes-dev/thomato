@@ -14,7 +14,7 @@ export function LoginForm() {
     setPending(true);
     setError(null);
     const form = new FormData(e.currentTarget);
-    const failure = "Anmeldung fehlgeschlagen. E-Mail oder Passwort stimmt nicht.";
+    const failure = "Die Anmeldung hat nicht geklappt. Bitte prüfen Sie E-Mail und Passwort.";
     let succeeded = false;
     try {
       const { error: signInError } = await authClient.signIn.email({

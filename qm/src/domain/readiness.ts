@@ -106,8 +106,8 @@ export function readinessSummary(r: ReadinessResult): string {
   if (r.status === "critical") {
     const n = r.mandatory.critical;
     return n === 1
-      ? "1 kritischer Punkt verhindert aktuell vollständige Readiness."
-      : `${n} kritische Punkte verhindern aktuell vollständige Readiness.`;
+      ? "1 kritisches Pflichtkriterium verhindert aktuell den Status «Bereit»."
+      : `${n} kritische Pflichtkriterien verhindern aktuell den Status «Bereit».`;
   }
   if (r.status === "action_needed") {
     const k = r.mandatory.open + r.mandatory.notAssessed;

@@ -111,9 +111,9 @@ describe("buildActionItems", () => {
       NOW,
     );
     expect(items.map((i) => [i.topic, i.priority, i.statusLabel])).toEqual([
-      ["Überfällig", "critical", "Frist überschritten (seit 6 Tagen)"],
-      ["Heute", "high", "Frist heute"],
-      ["Bald", "high", "Frist in 13 Tagen"],
+      ["Überfällig", "critical", "Frist überfällig (seit 6 Tagen)"],
+      ["Heute", "high", "Frist fällig heute"],
+      ["Bald", "high", "Frist fällig in 13 Tagen"],
     ]);
   });
 });

@@ -7,7 +7,7 @@ const number = z.string().min(1).max(40);
 const validUntil = z
   .string()
   .max(20)
-  .refine((v) => v === "" || isValidIsoDate(v), "Die Gültigkeit muss ein gültiges Datum sein.")
+  .refine((v) => v === "" || isValidIsoDate(v), "Das Datum bei «Gültig bis» ist ungültig.")
   .optional();
 
 export const uploadInput = z.object({

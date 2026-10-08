@@ -66,7 +66,7 @@ async function Detail({ params }: { params: Promise<{ number: string }> }) {
           </div>
           {detail.status === "not_applicable" && (
             <div className="sm:col-span-2">
-              <dt className="type-meta text-text-muted">Begründung «Nicht anwendbar»</dt>
+              <dt className="type-meta text-text-muted">Begründung für «nicht anwendbar»</dt>
               <dd className="type-body max-w-[70ch]">{detail.notApplicableReason}</dd>
             </div>
           )}

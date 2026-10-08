@@ -16,7 +16,7 @@ async function Documents() {
       <header>
         <h1 className="type-headline-section">Dokumente</h1>
         <p className="mt-1 max-w-[70ch] text-text-muted">
-          Hochgeladen wird auf der Seite des jeweiligen Kriteriums. Ein Dokument ändert nie die Bewertung.
+          Dokumente laden Sie auf der Seite des jeweiligen Kriteriums hoch. Ein Dokument ändert die Bewertung nie.
         </p>
       </header>
       {rows.length === 0 ? (
@@ -31,7 +31,7 @@ async function Documents() {
                 <th scope="col" className={TH}>Titel</th>
                 <th scope="col" className={TH}>Aktuelle Version</th>
                 <th scope="col" className={TH}>Gültig bis</th>
-                <th scope="col" className={TH}>Zustand</th>
+                <th scope="col" className={TH}>Nachweis</th>
                 <th scope="col" className={TH}>Versionen</th>
                 <th scope="col" className={TH}>Kriterien</th>
                 <th scope="col" className={TH}>Download</th>

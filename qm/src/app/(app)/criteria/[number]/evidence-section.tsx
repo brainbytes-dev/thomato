@@ -69,12 +69,12 @@ export async function EvidenceSection({
       <dl className="grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-3">
         <Indicator label="Nachweis" value={EVIDENCE_LABEL[state]} tone={EVIDENCE_TONE[state]} />
         <Indicator label="Dokumente" value={String(docs.length)} />
-        <Indicator label="Kriterium" value={STATUS_LABEL[status]} tone={STATUS_TONE[status]} />
+        <Indicator label="Stand" value={STATUS_LABEL[status]} tone={STATUS_TONE[status]} />
       </dl>
 
       {state === "current" && !settled && (
         <p className="max-w-[70ch] text-text-muted">
-          Ein aktueller Nachweis liegt vor. Bitte den Stand prüfen und bei Bedarf unter «Bewertung» auf «Erfüllt» setzen.
+          Ein aktueller Nachweis liegt vor. Prüfen Sie den Stand und setzen Sie ihn bei Bedarf unter «Bewertung» auf «Erfüllt».
         </p>
       )}
       {status === "met" && state !== "current" && (
@@ -94,7 +94,7 @@ export async function EvidenceSection({
                 <th scope="col" className={TH}>Titel</th>
                 <th scope="col" className={TH}>Aktuelle Version</th>
                 <th scope="col" className={TH}>Gültig bis</th>
-                <th scope="col" className={TH}>Zustand</th>
+                <th scope="col" className={TH}>Nachweis</th>
                 <th scope="col" className={TH}>Download</th>
               </tr>
             </thead>

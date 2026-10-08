@@ -5,7 +5,7 @@ describe("describeAuditEvent", () => {
   it("describes plain status changes", () => {
     expect(
       describeAuditEvent({ eventType: "criterion.status_changed", before: { status: "open", reason: null }, after: { status: "met", reason: null } }),
-    ).toBe("Stand von «Offen» zu «Erfüllt»");
+    ).toBe("Stand von «Offen» auf «Erfüllt»");
   });
   it("describes marking as not applicable with the reason", () => {
     expect(
@@ -14,7 +14,7 @@ describe("describeAuditEvent", () => {
         before: { status: "open", reason: null },
         after: { status: "not_applicable", reason: "Kein Helikopter im Betrieb." },
       }),
-    ).toBe("Stand von «Offen» zu «Nicht anwendbar», Begründung: Kein Helikopter im Betrieb.");
+    ).toBe("Stand von «Offen» auf «Nicht anwendbar», Begründung: Kein Helikopter im Betrieb.");
   });
   it("describes leaving not applicable and keeps the old reason", () => {
     expect(
@@ -23,11 +23,11 @@ describe("describeAuditEvent", () => {
         before: { status: "not_applicable", reason: "Kein Helikopter im Betrieb." },
         after: { status: "open", reason: null },
       }),
-    ).toBe("Stand von «Nicht anwendbar» zu «Offen», frühere Begründung: Kein Helikopter im Betrieb.");
+    ).toBe("Stand von «Nicht anwendbar» auf «Offen», frühere Begründung: Kein Helikopter im Betrieb.");
   });
   it("describes due date changes", () => {
     expect(describeAuditEvent({ eventType: "criterion.due_date_changed", before: { dueDate: null }, after: { dueDate: "2026-11-15" } })).toBe("Frist gesetzt: 15.11.2026");
-    expect(describeAuditEvent({ eventType: "criterion.due_date_changed", before: { dueDate: "2026-11-15" }, after: { dueDate: "2026-12-01" } })).toBe("Frist von 15.11.2026 zu 01.12.2026");
+    expect(describeAuditEvent({ eventType: "criterion.due_date_changed", before: { dueDate: "2026-11-15" }, after: { dueDate: "2026-12-01" } })).toBe("Frist von 15.11.2026 auf 01.12.2026");
     expect(describeAuditEvent({ eventType: "criterion.due_date_changed", before: { dueDate: "2026-11-15" }, after: { dueDate: null } })).toBe("Frist entfernt (war 15.11.2026)");
   });
   it("describes measure events", () => {
@@ -35,9 +35,9 @@ describe("describeAuditEvent", () => {
     expect(describeAuditEvent({ eventType: "measure.created", before: null, after: { ...base, ownerName: "Demo editor", dueDate: "2026-11-15", status: "open" } }))
       .toBe("Massnahme «Hygieneschulung planen» angelegt (verantwortlich: Demo editor, Frist 15.11.2026)");
     expect(describeAuditEvent({ eventType: "measure.status_changed", before: { ...base, status: "open", completedAt: null }, after: { ...base, status: "done", completedAt: "2026-10-08T10:00:00.000Z" } }))
-      .toBe("Massnahme «Hygieneschulung planen»: Status von «Offen» zu «Erledigt»");
+      .toBe("Massnahme «Hygieneschulung planen»: Status von «Offen» auf «Erledigt»");
     expect(describeAuditEvent({ eventType: "measure.updated", before: { ...base, ownerName: "A", dueDate: "2026-11-15", description: null }, after: { ...base, ownerName: "B", dueDate: "2026-12-01", description: null } }))
-      .toBe("Massnahme «Hygieneschulung planen» geändert (verantwortlich: A zu B, Frist 15.11.2026 zu 01.12.2026)");
+      .toBe("Massnahme «Hygieneschulung planen» geändert (verantwortlich: von A zu B, Frist von 15.11.2026 auf 01.12.2026)");
     expect(describeAuditEvent({ eventType: "measure.status_changed", before: 1, after: null })).toBe("measure.status_changed");
   });
   it("falls back to the event type for unknown or malformed events", () => {
@@ -69,6 +69,6 @@ describe("describeAuditEvent documents", () => {
     expect(describeAuditEvent({ eventType: "evidence.linked", before: null, after: { title: "Hygienekonzept", criterionNumbers: ["7.3.10"] } }))
       .toBe("Nachweis «Hygienekonzept» verknüpft");
     expect(describeAuditEvent({ eventType: "evidence.unlinked", before: { title: "Hygienekonzept", criterionNumbers: ["7.3.10"] }, after: null }))
-      .toBe("Nachweis «Hygienekonzept» gelöst");
+      .toBe("Verknüpfung mit «Hygienekonzept» gelöst");
   });
 });

@@ -6,7 +6,7 @@ export type ActionFilter = (typeof ACTION_FILTERS)[number];
 export const ACTION_FILTER_LABEL: Record<ActionFilter, string> = {
   all: "Alle",
   critical: "Kritisch",
-  deadline: "Frist",
+  deadline: "Fristen",
   evidence: "Nachweise",
 };
 

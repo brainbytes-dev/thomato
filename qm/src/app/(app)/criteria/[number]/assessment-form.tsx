@@ -36,7 +36,7 @@ export function AssessmentForm(props: {
         </select>
       </label>
       <label className="flex flex-col gap-1">
-        <span className="text-text-muted">Begründung (Pflicht bei «Nicht anwendbar», 10 bis 500 Zeichen)</span>
+        <span className="text-text-muted">Begründung (Pflicht bei «nicht anwendbar», 10 bis 500 Zeichen)</span>
         <textarea
           name="reason"
           rows={3}

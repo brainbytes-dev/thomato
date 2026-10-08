@@ -55,5 +55,5 @@ export const EVIDENCE_BADGE: Record<EvidenceState, BadgeTone> = {
 export function scopeLabel(r: Omit<CriterionInput, "status">): string {
   const scope = scopeOf({ ...r, status: "not_assessed" }, DEFAULT_PROCEDURE);
   if (scope.mandatory) return "Muss";
-  return scope.should ? "Soll" : "- (nicht im Verfahren)";
+  return scope.should ? "Soll" : "nicht im Verfahren";
 }

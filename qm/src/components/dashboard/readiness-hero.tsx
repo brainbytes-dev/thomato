@@ -31,7 +31,7 @@ const EXPIRY_TONE = { critical: "text-critical", normal: "", muted: "text-text-m
 
 function expiryCaption(data: DashboardData): string {
   if (data.expiry === null) return "Kein Ablauftermin erfasst";
-  return data.expiry.kind === "months" ? "Bis zum nächsten Ablauftermin" : "Ablauftermin überschritten";
+  return data.expiry.kind === "months" ? "Nächster Ablauftermin" : "Ablauftermin überschritten";
 }
 
 function Metric({ value, valueClass = "", label, children }: { value: string; valueClass?: string; label: string; children: React.ReactNode }) {
@@ -75,7 +75,7 @@ export function ReadinessHero({ data, asOf }: { data: DashboardData; asOf: strin
   return (
     <section aria-labelledby="readiness-heading" className={`${CARD} flex flex-col gap-6 p-5 sm:p-7`}>
       <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
-        <h2 id="readiness-heading" className="type-eyebrow text-text-muted">Readiness</h2>
+        <h2 id="readiness-heading" className="type-eyebrow text-text-muted">Bereitschaft</h2>
         <p className="type-meta-mono uppercase text-text-muted">Stand {asOf}</p>
       </div>
 
@@ -113,7 +113,7 @@ export function ReadinessHero({ data, asOf }: { data: DashboardData; asOf: strin
           <li><Badge tone={overdueTone} upper title="Überfällige Fristen">Überfällig <span className="tabular-nums">{data.overdueCount}</span></Badge></li>
           <li>
             <Badge tone={soonTone} upper title={`Fällig innerhalb von ${SOON_DAYS} Tagen (inkl. überfällig)`}>
-              Fällig ≤{SOON_DAYS} Tage <span className="tabular-nums">{data.soonCount}</span>
+              Fällig in {SOON_DAYS} Tagen <span className="tabular-nums">{data.soonCount}</span>
             </Badge>
           </li>
         </ul>
@@ -139,8 +139,8 @@ export function ReadinessHero({ data, asOf }: { data: DashboardData; asOf: strin
         <div>
           <h3 className="type-eyebrow text-text-muted">Massnahmen</h3>
           <dl className="mt-3 grid grid-cols-2 gap-4">
-            <MiniStat label="Offene Massnahmen" value={data.measures.open} />
-            <MiniStat label="Überfällige Massnahmen" value={data.measures.overdue} toneClass={data.measures.overdue > 0 ? "text-critical" : ""} />
+            <MiniStat label="Offen" value={data.measures.open} />
+            <MiniStat label="Überfällig" value={data.measures.overdue} toneClass={data.measures.overdue > 0 ? "text-critical" : ""} />
           </dl>
         </div>
       </div>

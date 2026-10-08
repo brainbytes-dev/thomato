@@ -43,7 +43,7 @@ export function validateUpload(input: {
   if (!type) return { ok: false, error: "Dateityp nicht erlaubt. Erlaubt sind PDF, PNG, JPG, DOCX und XLSX." };
   if (input.bytes.length === 0) return { ok: false, error: "Die Datei ist leer." };
   if (input.bytes.length > MAX_FILE_BYTES) {
-    return { ok: false, error: "Die Datei ist grösser als 4 MiB." };
+    return { ok: false, error: "Die Datei ist grösser als 4 MB." };
   }
   const matches = type.magic.some((m) => m.every((b, i) => input.bytes[i] === b));
   if (!matches) return { ok: false, error: "Der Inhalt passt nicht zur Dateiendung." };

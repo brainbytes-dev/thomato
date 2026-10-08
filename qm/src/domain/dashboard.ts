@@ -67,9 +67,9 @@ function criterionPriority(c: AssessmentRow, mandatory: boolean): { priority: Ac
 }
 
 function deadlineLabel(days: number): string {
-  if (days < 0) return `Frist überschritten (seit ${-days} ${-days === 1 ? "Tag" : "Tagen"})`;
-  if (days === 0) return "Frist heute";
-  return `Frist in ${days} ${days === 1 ? "Tag" : "Tagen"}`;
+  if (days < 0) return `Frist überfällig (seit ${-days} ${-days === 1 ? "Tag" : "Tagen"})`;
+  if (days === 0) return "Frist fällig heute";
+  return `Frist fällig in ${days} ${days === 1 ? "Tag" : "Tagen"}`;
 }
 
 function measureLabel(days: number): string {

@@ -33,7 +33,7 @@ function useEvidenceForm(action: Action, maxBytes: number | null) {
       action,
       maxBytes === null
         ? "Die Änderung konnte nicht gespeichert werden. Bitte versuchen Sie es noch einmal."
-        : `Die Datei konnte nicht übertragen werden (höchstens ${maxBytes / (1024 * 1024)} MiB). Bitte prüfen Sie die Verbindung und versuchen Sie es noch einmal. Besteht das Problem weiter, melden Sie es Ihrer QM-Verantwortlichen.`,
+        : `Die Datei konnte nicht übertragen werden (höchstens ${maxBytes / (1024 * 1024)} MB). Bitte prüfen Sie die Verbindung und versuchen Sie es noch einmal. Besteht das Problem weiter, melden Sie es Ihrer QM-Verantwortlichen.`,
     ),
   );
   const [state, formAction, pending] = useActionState<EvidenceFormState, FormData>(guarded, null);
@@ -49,7 +49,7 @@ function useEvidenceForm(action: Action, maxBytes: number | null) {
     const data = new FormData(e.currentTarget);
     if (maxBytes !== null) {
       const file = data.get("file");
-      const problem = file instanceof File ? checkClientFile(file.size, maxBytes) : "Bitte eine Datei auswählen.";
+      const problem = file instanceof File ? checkClientFile(file.size, maxBytes) : "Bitte wählen Sie eine Datei aus.";
       if (problem) {
         setLocalError(problem);
         return;
@@ -93,7 +93,7 @@ export function UploadDocumentForm({ number, maxBytes }: { number: string; maxBy
         <Field label="Titel (3 bis 120 Zeichen)">
           <input type="text" name="title" required minLength={3} maxLength={120} className={FIELD} />
         </Field>
-        <Field label={`Datei (${FILE_HINT}, bis ${maxBytes / (1024 * 1024)} MiB)`}>
+        <Field label={`Datei (${FILE_HINT}, bis ${maxBytes / (1024 * 1024)} MB)`}>
           <input
             type="file"
             name="file"
@@ -121,7 +121,7 @@ export function AddVersionForm({ number, documentId, maxBytes }: { number: strin
       <input type="hidden" name="number" value={number} />
       <input type="hidden" name="documentId" value={documentId} />
       <Fragment key={f.resetKey}>
-        <Field label={`Datei (${FILE_HINT}, bis ${maxBytes / (1024 * 1024)} MiB)`}>
+        <Field label={`Datei (${FILE_HINT}, bis ${maxBytes / (1024 * 1024)} MB)`}>
           <input
             type="file"
             name="file"

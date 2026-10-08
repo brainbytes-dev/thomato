@@ -10,9 +10,9 @@ import { linkInput, readFile, unlinkInput, uploadInput, versionInput } from "./e
 
 export type EvidenceFormState = { ok: boolean; message: string } | null;
 
-const INVALID = "Eingabe unvollständig oder ungültig.";
-const FORBIDDEN = "Keine Berechtigung für diese Änderung.";
-const NO_FILE = "Bitte eine nicht leere Datei bis 4 MiB auswählen.";
+const INVALID = "Die Eingabe ist unvollständig oder ungültig.";
+const FORBIDDEN = "Sie haben keine Berechtigung für diese Änderung.";
+const NO_FILE = "Bitte wählen Sie eine Datei bis 4 MB aus.";
 
 function revalidateEvidence(number: string) {
   revalidatePath("/");

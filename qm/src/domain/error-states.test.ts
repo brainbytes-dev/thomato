@@ -65,12 +65,12 @@ describe("foreign, unknown and malformed ids give the identical message", () => 
       const foreign = await f(documentId);
       expect(foreign).toBe(await f(unknown));
       expect(foreign).toBe(await f("nicht-uuid"));
-      expect(foreign).toBe("Dokument nicht gefunden.");
+      expect(foreign).toBe("Das Dokument wurde nicht gefunden.");
     }
     const foreignLink = await unl(link.id);
     expect(foreignLink).toBe(await unl(unknown));
     expect(foreignLink).toBe(await unl("nicht-uuid"));
-    expect(foreignLink).toBe("Verknüpfung nicht gefunden.");
+    expect(foreignLink).toBe("Die Verknüpfung wurde nicht gefunden.");
     expect(await listAuditEvents(ctxB)).toEqual([]);
     expect(await db.select().from(documentVersion)).toHaveLength(1);
   });
@@ -85,9 +85,9 @@ describe("foreign, unknown and malformed ids give the identical message", () => 
     const { ctxA } = await setup();
     const unknown = randomUUID();
     const status = await rejection(setAssessmentStatus(ctxA, unknown, "met"));
-    expect(status).toBe("Kriterium nicht gefunden.");
-    expect(await rejection(setAssessmentDueDate(ctxA, unknown, "2026-11-01"))).toBe("Kriterium nicht gefunden.");
-    expect(await rejection(setAssessmentStatus(ctxA, "nicht-uuid", "met"))).toBe("Kriterium nicht gefunden.");
+    expect(status).toBe("Das Kriterium wurde nicht gefunden.");
+    expect(await rejection(setAssessmentDueDate(ctxA, unknown, "2026-11-01"))).toBe("Das Kriterium wurde nicht gefunden.");
+    expect(await rejection(setAssessmentStatus(ctxA, "nicht-uuid", "met"))).toBe("Das Kriterium wurde nicht gefunden.");
     expect(await db.select().from(criterionAssessment)).toHaveLength(0);
     expect(await listAuditEvents(ctxA)).toEqual([]);
   });
@@ -113,7 +113,7 @@ describe("invalid input leaves no trace", () => {
       expect(message).toMatch(/[äöüÄÖÜ]|Datei|Dateiendung|leer|gross|grösser/);
       expect(message).not.toMatch(/Error|undefined|\[object/);
     }
-    expect(await rejection(addDocumentVersion(ctxA, documentId, { file: pdf("x"), validUntil: "31.12.2026" }))).toBe("Das Ablaufdatum ist ungültig.");
+    expect(await rejection(addDocumentVersion(ctxA, documentId, { file: pdf("x"), validUntil: "31.12.2026" }))).toBe("Das Datum bei «Gültig bis» ist ungültig.");
     expect(await db.select().from(documentVersion)).toHaveLength(1);
     expect((await listAuditEvents(ctxA)).length).toBe(before);
   });
@@ -121,7 +121,7 @@ describe("invalid input leaves no trace", () => {
   it("rejects an invalid due date before writing, with a German message", async () => {
     const { c, ctxA } = await setup();
     for (const d of ["2026-02-30", "31.12.2026", "morgen", "", "2026-13-01"]) {
-      expect(await rejection(setAssessmentDueDate(ctxA, c.id, d))).toBe("Die Frist muss ein gültiges Datum sein.");
+      expect(await rejection(setAssessmentDueDate(ctxA, c.id, d))).toBe("Die Frist ist ungültig.");
     }
     expect(await db.select().from(criterionAssessment)).toHaveLength(0);
     expect(await listAuditEvents(ctxA)).toEqual([]);

@@ -67,6 +67,6 @@ describe("scopeLabel", () => {
     const off = { mandatoryAccreditation: false, shouldAccreditation: false, mandatoryRenewal: false, shouldRenewal: false };
     expect(scopeLabel({ ...base, ...off, mandatoryAccreditation: true })).toBe("Muss");
     expect(scopeLabel({ ...base, ...off, shouldAccreditation: true })).toBe("Soll");
-    expect(scopeLabel({ ...base, ...off, mandatoryRenewal: true })).toBe("- (nicht im Verfahren)");
+    expect(scopeLabel({ ...base, ...off, mandatoryRenewal: true })).toBe("nicht im Verfahren");
   });
 });

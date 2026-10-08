@@ -55,7 +55,7 @@ function validateTitle(raw: string): string {
 }
 
 function validateValidUntil(value: string | null): string | null {
-  if (value !== null && !isValidIsoDate(value)) throw new ValidationError("Das Ablaufdatum ist ungültig.");
+  if (value !== null && !isValidIsoDate(value)) throw new ValidationError("Das Datum bei «Gültig bis» ist ungültig.");
   return value;
 }
 
@@ -72,7 +72,7 @@ async function assertCriteriaExist(numbers: readonly string[]): Promise<string[]
     .select({ number: criterion.number })
     .from(criterion)
     .where(and(eq(criterion.standardVersionId, ACTIVE_STANDARD_VERSION), inArray(criterion.number, unique)));
-  if (found.length !== unique.length) throw new ValidationError("Mindestens ein Kriterium existiert nicht.");
+  if (found.length !== unique.length) throw new ValidationError("Mindestens ein Kriterium wurde nicht gefunden.");
   return unique;
 }
 
@@ -162,7 +162,7 @@ export async function addDocumentVersion(
   assertCan(ctx, "document", "write");
   const validUntil = validateValidUntil(input.validUntil);
   const file = validateFile(input.file);
-  if (!UUID.test(documentId)) throw new ValidationError("Dokument nicht gefunden.");
+  if (!UUID.test(documentId)) throw new ValidationError("Das Dokument wurde nicht gefunden.");
   const content = Buffer.from(input.file.bytes);
   const sha256 = createHash("sha256").update(content).digest("hex");
 
@@ -173,7 +173,7 @@ export async function addDocumentVersion(
       .from(document)
       .where(and(eq(document.id, documentId), eq(document.organizationId, ctx.organizationId)))
       .for("update");
-    if (!doc) throw new ValidationError("Dokument nicht gefunden.");
+    if (!doc) throw new ValidationError("Das Dokument wurde nicht gefunden.");
     const [latest] = await tx
       .select({ n: documentVersion.versionNumber })
       .from(documentVersion)
@@ -217,7 +217,7 @@ export async function linkEvidence(
   criterionNumber: string,
 ): Promise<{ linkId: string }> {
   assertCan(ctx, "document", "write");
-  if (!UUID.test(documentId)) throw new ValidationError("Dokument nicht gefunden.");
+  if (!UUID.test(documentId)) throw new ValidationError("Das Dokument wurde nicht gefunden.");
   await assertCriteriaExist([criterionNumber]);
 
   return withAudit(ctx, async (tx) => {
@@ -226,7 +226,7 @@ export async function linkEvidence(
       .from(document)
       .where(and(eq(document.id, documentId), eq(document.organizationId, ctx.organizationId)))
       .for("update");
-    if (!doc) throw new ValidationError("Dokument nicht gefunden.");
+    if (!doc) throw new ValidationError("Das Dokument wurde nicht gefunden.");
     const [existing] = await tx
       .select({ id: evidenceLink.id })
       .from(evidenceLink)
@@ -238,7 +238,7 @@ export async function linkEvidence(
           eq(evidenceLink.criterionNumber, criterionNumber),
         ),
       );
-    if (existing) throw new ValidationError("Dokument ist bereits verknüpft.");
+    if (existing) throw new ValidationError("Das Dokument ist bereits mit diesem Kriterium verknüpft.");
     const [link] = await tx
       .insert(evidenceLink)
       .values({
@@ -264,7 +264,7 @@ export async function linkEvidence(
 
 export async function unlinkEvidence(ctx: OrgContext, linkId: string): Promise<{ criterionNumber: string }> {
   assertCan(ctx, "document", "write");
-  if (!UUID.test(linkId)) throw new ValidationError("Verknüpfung nicht gefunden.");
+  if (!UUID.test(linkId)) throw new ValidationError("Die Verknüpfung wurde nicht gefunden.");
 
   return withAudit(ctx, async (tx) => {
     const [row] = await tx
@@ -281,7 +281,7 @@ export async function unlinkEvidence(ctx: OrgContext, linkId: string): Promise<{
       )
       .where(and(eq(evidenceLink.id, linkId), eq(evidenceLink.organizationId, ctx.organizationId)))
       .for("update", { of: evidenceLink });
-    if (!row) throw new ValidationError("Verknüpfung nicht gefunden.");
+    if (!row) throw new ValidationError("Die Verknüpfung wurde nicht gefunden.");
     await tx
       .delete(evidenceLink)
       .where(and(eq(evidenceLink.id, row.id), eq(evidenceLink.organizationId, ctx.organizationId)));

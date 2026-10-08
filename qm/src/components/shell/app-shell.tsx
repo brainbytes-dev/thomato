@@ -109,7 +109,7 @@ export function AppShell({ organizationName, roleLabel, userName, children }: Sh
           >
             <Menu aria-hidden="true" className="size-4" />
           </button>
-          <nav aria-label="Brotkrumen" className="min-w-0">
+          <nav aria-label="Navigationspfad" className="min-w-0">
             <ol className="type-label flex min-w-0 items-center gap-2">
               {crumbs.map((c, i) => {
                 const last = i === crumbs.length - 1;

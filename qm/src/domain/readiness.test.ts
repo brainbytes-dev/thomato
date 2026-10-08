@@ -82,9 +82,9 @@ describe("computeReadiness", () => {
 describe("readinessSummary", () => {
   it("names the blocking points in German with correct singular and plural", () => {
     const one = computeReadiness([crit("met"), crit("critical")], "accreditation", false);
-    expect(readinessSummary(one)).toBe("1 kritischer Punkt verhindert aktuell vollständige Readiness.");
+    expect(readinessSummary(one)).toBe("1 kritisches Pflichtkriterium verhindert aktuell den Status «Bereit».");
     const two = computeReadiness([crit("critical"), crit("critical"), crit("met")], "accreditation", false);
-    expect(readinessSummary(two)).toBe("2 kritische Punkte verhindern aktuell vollständige Readiness.");
+    expect(readinessSummary(two)).toBe("2 kritische Pflichtkriterien verhindern aktuell den Status «Bereit».");
     const open = computeReadiness([crit("met"), crit("open")], "accreditation", false);
     expect(readinessSummary(open)).toBe("1 Pflichtkriterium ist noch offen oder nicht bewertet.");
     const openMany = computeReadiness([crit("open"), crit("not_assessed"), crit("met")], "accreditation", false);

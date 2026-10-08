@@ -62,10 +62,10 @@ describe("validateUpload", () => {
     expect(validateUpload({ name: "x.pdf", bytes: bytes(0x25, 0x50) })).toMatchObject({ ok: false });
   });
 
-  it("reports the size limit in MiB", () => {
+  it("reports the size limit in MB", () => {
     const big = new Uint8Array(MAX_FILE_BYTES + 1);
     big.set(PDF);
-    expect(validateUpload({ name: "x.pdf", bytes: big })).toEqual({ ok: false, error: "Die Datei ist grösser als 4 MiB." });
+    expect(validateUpload({ name: "x.pdf", bytes: big })).toEqual({ ok: false, error: "Die Datei ist grösser als 4 MB." });
   });
 
   it("stores a sanitized file name", () => {

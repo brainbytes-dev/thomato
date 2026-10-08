@@ -228,8 +228,8 @@ describe("tenant isolation", () => {
 
     const input = { title: "Fremder Titel", description: null, ownerUserId: b.user.id, dueDate: "2026-12-01" };
     for (const target of [id, "00000000-0000-4000-8000-000000000000", "not-a-uuid"]) {
-      await expect(updateMeasure(ctxB, target, input)).rejects.toThrow(new ValidationError("Massnahme nicht gefunden."));
-      await expect(setMeasureStatus(ctxB, target, "done", NOW)).rejects.toThrow(new ValidationError("Massnahme nicht gefunden."));
+      await expect(updateMeasure(ctxB, target, input)).rejects.toThrow(new ValidationError("Die Massnahme wurde nicht gefunden."));
+      await expect(setMeasureStatus(ctxB, target, "done", NOW)).rejects.toThrow(new ValidationError("Die Massnahme wurde nicht gefunden."));
     }
     const [row] = await db.select().from(measure);
     expect(row).toMatchObject({ title: "Hygieneschulung planen", status: "open", completedAt: null });

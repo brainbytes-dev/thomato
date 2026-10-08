@@ -26,7 +26,7 @@ export function DeadlineList({ deadlines }: { deadlines: DeadlineView[] }) {
               <tr>
                 <th scope="col" className={TH}>Datum</th>
                 <th scope="col" className={TH}>Frist</th>
-                <th scope="col" className={TH}>Abstand</th>
+                <th scope="col" className={TH}>Fällig</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">

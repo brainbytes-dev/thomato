@@ -31,7 +31,7 @@ const TITLE_MIN = 3;
 const TITLE_MAX = 120;
 const DESCRIPTION_MAX = 1000;
 const OWNER_ID_MAX = 64;
-const NOT_FOUND = "Massnahme nicht gefunden.";
+const NOT_FOUND = "Die Massnahme wurde nicht gefunden.";
 
 function validateFields(input: MeasureFields): MeasureFields {
   const title = input.title.trim();
@@ -56,7 +56,7 @@ async function assertCriterionExists(number: string): Promise<void> {
     .select({ number: criterion.number })
     .from(criterion)
     .where(and(eq(criterion.standardVersionId, ACTIVE_STANDARD_VERSION), eq(criterion.number, number)));
-  if (!row) throw new ValidationError("Das Kriterium existiert nicht.");
+  if (!row) throw new ValidationError("Das Kriterium wurde nicht gefunden.");
 }
 
 /** Liefert den Namen der Person, wenn sie Mitglied der eigenen Organisation ist. */

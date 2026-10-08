@@ -11,12 +11,12 @@ export type FormState = { ok: boolean; message: string } | null;
 
 export async function updateAssessmentAction(_prev: FormState, formData: FormData): Promise<FormState> {
   const parsed = assessmentInput.safeParse(Object.fromEntries(formData));
-  if (!parsed.success) return { ok: false, message: "Eingabe unvollständig oder ungültig." };
+  if (!parsed.success) return { ok: false, message: "Die Eingabe ist unvollständig oder ungültig." };
   const { number, status, reason, dueDate } = parsed.data;
   const ctx = await requireOrgContextOrRedirect();
-  if (!can(ctx.role, "assessment", "write")) return { ok: false, message: "Keine Berechtigung für diese Änderung." };
+  if (!can(ctx.role, "assessment", "write")) return { ok: false, message: "Sie haben keine Berechtigung für diese Änderung." };
   const detail = await getAssessmentByNumber(ctx, number);
-  if (!detail) return { ok: false, message: "Kriterium nicht gefunden." };
+  if (!detail) return { ok: false, message: "Das Kriterium wurde nicht gefunden." };
 
   const due = dueDate && dueDate.length > 0 ? dueDate : null;
   const statusUnchanged = isStatusUnchanged(detail, { status, reason });
@@ -27,7 +27,7 @@ export async function updateAssessmentAction(_prev: FormState, formData: FormDat
     if (due !== detail.dueDate) await setAssessmentDueDate(ctx, detail.criterionId, due);
   } catch (e) {
     if (e instanceof ValidationError) return { ok: false, message: e.message };
-    if (e instanceof ForbiddenError) return { ok: false, message: "Keine Berechtigung für diese Änderung." };
+    if (e instanceof ForbiddenError) return { ok: false, message: "Sie haben keine Berechtigung für diese Änderung." };
     throw e;
   }
 

@@ -37,7 +37,7 @@ export async function MeasuresSection({ ctx, number, now }: { ctx: OrgContext; n
               <thead className="bg-surface-subtle">
                 <tr>
                   <th scope="col" className={TH}>Massnahme</th>
-                  <th scope="col" className={TH}>Verantwortliche</th>
+                  <th scope="col" className={TH}>Verantwortliche Person</th>
                   <th scope="col" className={TH}>Frist</th>
                   <th scope="col" className={TH}>Status</th>
                   <th scope="col" className={TH}>Erledigt am</th>

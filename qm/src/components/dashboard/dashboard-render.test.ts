@@ -24,7 +24,7 @@ describe("ActionCenter render", () => {
   );
 
   it("shows the segmented filter with counts and aria-pressed", () => {
-    for (const label of ["Alle", "Kritisch", "Frist", "Nachweise"]) expect(html).toContain(label);
+    for (const label of ["Alle", "Kritisch", "Fristen", "Nachweise"]) expect(html).toContain(label);
     expect(html.match(/aria-pressed="true"/g)).toHaveLength(1);
     expect(html.match(/aria-pressed="false"/g)).toHaveLength(3);
   });
@@ -62,7 +62,7 @@ describe("ReadinessHero render", () => {
 
   it("keeps every figure and the draft notice, with the date in the header", () => {
     for (const text of ["Stand 07.10.2026", "Kritisch", "40 %", "4 / 10", "20 Monate", "Dokumentationsstand", "Kriterien erfüllt", "Bis Ablauf der Anerkennung",
-      "Nachweise (anwendbare Pflichtkriterien)", "Massnahmen", "Offene Massnahmen", "Überfällige Massnahmen",
+      "Nachweise (anwendbare Pflichtkriterien)", "Massnahmen", "Offen", "Überfällig",
       "Interne Arbeitsbewertung auf Basis eines nicht validierten Katalogs (Entwurf). Keine Entscheidung des IVR.",
       "1 Pflichtkriterium als nicht anwendbar markiert", "Alle nicht anwendbaren Kriterien ansehen"]) {
       expect(html).toContain(text);
@@ -71,7 +71,7 @@ describe("ReadinessHero render", () => {
 
   it("renders the five summary badges as words with counts", () => {
     const text = html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
-    for (const t of ["Kritisch 2", "Offen 1", "Nicht bewertet 2", "Überfällig 1", "Fällig ≤30 Tage 5"]) expect(text).toContain(t);
+    for (const t of ["Kritisch 2", "Offen 1", "Nicht bewertet 2", "Überfällig 1", "Fällig in 30 Tagen 5"]) expect(text).toContain(t);
   });
 
   it("makes no IVR readiness claim in labels", () => {

@@ -10,8 +10,8 @@ import { createMeasureInput, statusInput, updateMeasureInput } from "./measure-i
 
 export type MeasureFormState = { ok: boolean; message: string } | null;
 
-const INVALID = "Eingabe unvollständig oder ungültig.";
-const FORBIDDEN = "Keine Berechtigung für diese Änderung.";
+const INVALID = "Die Eingabe ist unvollständig oder ungültig.";
+const FORBIDDEN = "Sie haben keine Berechtigung für diese Änderung.";
 
 // Nur diese Felder tragen eigene deutsche Meldungen; alles andere ist ein manipulierter Aufruf.
 const FIELD_MESSAGES = new Set(["title", "description", "dueDate"]);

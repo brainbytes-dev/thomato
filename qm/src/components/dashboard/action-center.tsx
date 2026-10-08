@@ -52,7 +52,7 @@ export function ActionCenter({ items, total }: { items: ActionItem[]; total: num
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h2 id="actions-heading" className="type-headline-sub">Braucht Aufmerksamkeit</h2>
-          <p className="type-meta mt-1 text-text-muted">Dringliche Massnahmen und Nachweise vor Ablauf der Frist</p>
+          <p className="type-meta mt-1 text-text-muted">Kritische Kriterien, anstehende Fristen, Massnahmen und Nachweise</p>
         </div>
         <div className="flex flex-wrap items-center gap-4">
           {items.length > 0 && <SegmentedFilter value={filter} counts={counts} onChange={setFilter} />}
@@ -64,7 +64,7 @@ export function ActionCenter({ items, total }: { items: ActionItem[]; total: num
       </div>
 
       {items.length === 0 ? (
-        <p className="mt-6 text-text-muted">Aktuell gibt es nichts, das Aufmerksamkeit braucht.</p>
+        <p className="mt-6 text-text-muted">Aktuell braucht nichts Ihre Aufmerksamkeit.</p>
       ) : (
         <div
           tabIndex={0}
@@ -136,7 +136,7 @@ export function ActionCenter({ items, total }: { items: ActionItem[]; total: num
       {total > items.length && (
         <p className="type-meta mt-4 text-text-muted">
           {items.length} von {total} Punkten.{" "}
-          <Link href="/criteria" className="text-primary underline">Weitere Punkte: Kriterien und Fristen</Link>
+          <Link href="/criteria" className="text-primary underline">Weitere Punkte unter «Kriterien»</Link>
         </p>
       )}
     </section>

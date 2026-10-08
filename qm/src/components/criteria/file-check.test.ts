@@ -11,7 +11,7 @@ describe("checkClientFile", () => {
     expect(checkClientFile(MAX, MAX)).toBeNull();
   });
   it("rejects one byte above the limit", () => {
-    expect(checkClientFile(MAX + 1, MAX)).toBe("Die Datei ist grösser als 4 MiB.");
+    expect(checkClientFile(MAX + 1, MAX)).toBe("Die Datei ist grösser als 4 MB.");
   });
   it("accepts a small file", () => {
     expect(checkClientFile(1200, MAX)).toBeNull();
@@ -19,9 +19,9 @@ describe("checkClientFile", () => {
 });
 
 describe("formatBytes", () => {
-  it("formats bytes, KiB and MiB with a decimal comma", () => {
+  it("formats bytes, KB and MB with a decimal comma", () => {
     expect(formatBytes(512)).toBe("512 B");
-    expect(formatBytes(1536)).toBe("1,5 KiB");
-    expect(formatBytes(3 * 1024 * 1024)).toBe("3,0 MiB");
+    expect(formatBytes(1536)).toBe("1,5 KB");
+    expect(formatBytes(3 * 1024 * 1024)).toBe("3,0 MB");
   });
 });

@@ -66,7 +66,7 @@ export function describeAuditEvent(e: { eventType: string; before: unknown; afte
     if (b.status === "not_applicable" && a.status === "not_applicable" && b.reason !== a.reason) {
       return `Begründung geändert von «${b.reason ?? ""}» zu «${a.reason ?? ""}»`;
     }
-    const base = `Stand von «${word(b.status)}» zu «${word(a.status)}»`;
+    const base = `Stand von «${word(b.status)}» auf «${word(a.status)}»`;
     if (a.status === "not_applicable" && a.reason) return `${base}, Begründung: ${a.reason}`;
     if (b.status === "not_applicable" && b.reason) return `${base}, frühere Begründung: ${b.reason}`;
     return base;
@@ -77,7 +77,7 @@ export function describeAuditEvent(e: { eventType: string; before: unknown; afte
     if (!b || !a) return e.eventType;
     if (a.dueDate && !b.dueDate) return `Frist gesetzt: ${formatDate(a.dueDate)}`;
     if (!a.dueDate && b.dueDate) return `Frist entfernt (war ${formatDate(b.dueDate)})`;
-    if (a.dueDate && b.dueDate) return `Frist von ${formatDate(b.dueDate)} zu ${formatDate(a.dueDate)}`;
+    if (a.dueDate && b.dueDate) return `Frist von ${formatDate(b.dueDate)} auf ${formatDate(a.dueDate)}`;
   }
   if (e.eventType === "document.created") {
     const a = asDoc(e.after);
@@ -96,7 +96,7 @@ export function describeAuditEvent(e: { eventType: string; before: unknown; afte
   }
   if (e.eventType === "evidence.unlinked") {
     const b = asDoc(e.before);
-    return b ? `Nachweis «${b.title}» gelöst` : e.eventType;
+    return b ? `Verknüpfung mit «${b.title}» gelöst` : e.eventType;
   }
   if (e.eventType === "measure.created") {
     const a = asMeasure(e.after);
@@ -108,7 +108,7 @@ export function describeAuditEvent(e: { eventType: string; before: unknown; afte
     const a = asMeasure(e.after);
     if (!b || !a || b.status === null || a.status === null) return e.eventType;
     const w = (s: string) => MEASURE_STATUS_WORD[s] ?? s;
-    return `Massnahme «${a.title}»: Status von «${w(b.status)}» zu «${w(a.status)}»`;
+    return `Massnahme «${a.title}»: Status von «${w(b.status)}» auf «${w(a.status)}»`;
   }
   if (e.eventType === "measure.updated") {
     const b = asMeasure(e.before);
@@ -116,10 +116,10 @@ export function describeAuditEvent(e: { eventType: string; before: unknown; afte
     if (!b || !a) return e.eventType;
     const changes: string[] = [];
     if (b.ownerName !== a.ownerName && b.ownerName !== null && a.ownerName !== null) {
-      changes.push(`verantwortlich: ${b.ownerName} zu ${a.ownerName}`);
+      changes.push(`verantwortlich: von ${b.ownerName} zu ${a.ownerName}`);
     }
     if (b.dueDate !== a.dueDate && b.dueDate !== null && a.dueDate !== null) {
-      changes.push(`Frist ${formatDate(b.dueDate)} zu ${formatDate(a.dueDate)}`);
+      changes.push(`Frist von ${formatDate(b.dueDate)} auf ${formatDate(a.dueDate)}`);
     }
     if (b.title !== a.title) changes.unshift(`früherer Titel: «${b.title}»`);
     const head = `Massnahme «${a.title}» geändert`;
