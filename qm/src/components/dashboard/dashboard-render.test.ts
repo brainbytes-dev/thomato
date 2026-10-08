@@ -60,6 +60,11 @@ describe("ReadinessHero render", () => {
   };
   const html = renderToStaticMarkup(createElement(ReadinessHero, { data, asOf: "07.10.2026" }));
 
+  it("links the measure stats to the register", () => {
+    for (const href of ["/measures?status=open", "/measures?status=overdue", "/measures"]) expect(html).toContain(`href="${href}"`);
+    expect(html).toContain("Alle Massnahmen");
+  });
+
   it("keeps every figure and the draft notice, with the date in the header", () => {
     for (const text of ["Stand 07.10.2026", "Kritisch", "40 %", "4 / 10", "20 Monate", "Dokumentationsstand", "Kriterien erfüllt", "Bis Ablauf der Anerkennung",
       "Nachweise (anwendbare Pflichtkriterien)", "Massnahmen", "Offen", "Überfällig",
