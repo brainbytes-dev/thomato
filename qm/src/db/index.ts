@@ -1,4 +1,5 @@
 import { drizzle } from "drizzle-orm/node-postgres";
+import { attachDatabasePool } from "@vercel/functions";
 import { Pool } from "pg";
 import * as schema from "./schema";
 
@@ -14,6 +15,11 @@ const pool =
     connectionTimeoutMillis: 10_000,
     idleTimeoutMillis: 10_000,
   });
+
+// Auf Vercel (Fluid Compute) wird die Instanz zwischen Anfragen eingefroren; dann laufen die Idle-Timer des Pools nicht
+// und die Verbindungen sind beim Auftauen tot (Verbindungs-Timeouts, abgelehnte Sitzungsabfragen). attachDatabasePool
+// hält die Instanz, bis der Pool seine Leerlaufverbindungen freigegeben hat.
+if (process.env.VERCEL) attachDatabasePool(pool);
 
 if (process.env.NODE_ENV !== "production") globalForDb.pool = pool;
 

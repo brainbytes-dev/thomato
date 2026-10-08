@@ -77,6 +77,12 @@ def shot(page: Page, name: str) -> None:
     page.screenshot(path=str(OUT_DIR / f"{name}.png"), full_page=True)
 
 
+def critical_count(page: Page) -> int:
+    """Kritische Pflichtkriterien stehen als Badge «Kritisch n» in der Zusammenfassungszeile."""
+    text = page.locator('[title="Kritische Pflichtkriterien"]').first.inner_text()
+    return int(text.split()[-1])
+
+
 def stat(page: Page, label: str) -> int:
     dd = page.get_by_text(label, exact=True).first.locator("xpath=following-sibling::dd")
     return int(dd.inner_text().strip())
@@ -121,12 +127,13 @@ def main() -> int:
             page.wait_for_selector("text=Braucht Aufmerksamkeit")
 
         def dashboard_before() -> None:
-            expect(page.get_by_text("Kritisch", exact=True).first).to_be_visible()
-            state["critical_before"] = stat(page, "Kritische Pflichtkriterien")
+            # Erster Aufruf nach dem Login kann auf einem kalten Ziel länger dauern.
+            expect(page.get_by_text("Kritisch", exact=True).first).to_be_visible(timeout=TIMEOUT_MS)
+            state["critical_before"] = critical_count(page)
             state["stale_before"] = stat(page, "Veraltet")
             assert state["critical_before"] == 2, f"kritische Pflichtkriterien: {state['critical_before']}"
             assert state["stale_before"] == 2, f"veraltet: {state['stale_before']}"
-            expect(page.get_by_text("Kriterien erfüllt")).to_be_visible()
+            expect(page.get_by_text("Kriterien erfüllt").first).to_be_visible()
             shot(page, "01-dashboard-vorher")
 
         def action_center() -> None:
@@ -172,7 +179,7 @@ def main() -> int:
             page.goto(f"{BASE_URL}/")
             page.wait_for_selector("text=Braucht Aufmerksamkeit")
             expect(page.get_by_text("Kritisch", exact=True).first).to_be_visible()
-            assert stat(page, "Kritische Pflichtkriterien") == 2, "Readiness hat sich durch Upload veraendert"
+            assert critical_count(page) == 2, "Readiness hat sich durch Upload veraendert"
             assert stat(page, "Veraltet") == 1, "Veraltet sollte auf 1 sinken"
             assert not action_row_present(page), "Eintrag «Nachweis veraltet» fuer 7.3.10 ist noch da"
             shot(page, "06-dashboard-nach-upload")
@@ -186,14 +193,14 @@ def main() -> int:
             page.reload()
             page.wait_for_selector("text=Hygienekonzept (Demo)")
             hist = page.locator("section[aria-labelledby=history-heading]")
-            expect(hist).to_contain_text("Stand von «Kritisch» zu «Erfüllt»")
-            expect(hist.locator("tbody tr").first).to_contain_text("zu «Erfüllt»")
+            expect(hist).to_contain_text("Stand von «Kritisch» auf «Erfüllt»")
+            expect(hist.locator("tbody tr").first).to_contain_text("auf «Erfüllt»")
             shot(page, "07-kriterium-erfuellt")
 
         def dashboard_final() -> None:
             page.goto(f"{BASE_URL}/")
             page.wait_for_selector("text=Braucht Aufmerksamkeit")
-            assert stat(page, "Kritische Pflichtkriterien") == 1, "Kritische Pflichtkriterien sollten auf 1 sinken"
+            assert critical_count(page) == 1, "Kritische Pflichtkriterien sollten auf 1 sinken"
             shot(page, "08-dashboard-nachher")
 
         try:
