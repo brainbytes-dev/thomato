@@ -3,9 +3,9 @@
 ## Plan 7: Freeze, Rehearsal & Pitch Hardening (ab 2026-10-08)
 - [x] R51: echter 404 (Proxy-Check, auf Vercel verifiziert: 404/404/307)
 - [x] Zugangsprozess dokumentiert (qm/docs/demo/ACCESS.md)
-- [ ] Demo-Flow pro Rolle live durchspielen (Henrik), danach reseeden
-- [ ] Fallback-Screenshots neu aufnehmen (neues Layout)
-- [ ] UI-Copy glätten, Pitch-Narrativ mit Produkt abgleichen
-- [ ] Feature Freeze
+- [x] Demo-Flow live automatisiert (5 Rollen 61/61, Owner-Pfad 10/10, Reseed erledigt)
+- [x] Fallback-Screenshots final
+- [x] UI-Copy geglättet, Pitch-Narrativ aktualisiert
+- [x] Feature Freeze (Plan 7 COMPLETE)
 - Backlog nach Freeze: Stitch-Kriteriendetail (8/4-Layout), Massnahmen-Register, PDCA-Stufe B. Nicht jetzt.
 - Hygiene: leeres Neon-Resource iad1 im Vercel-Dashboard löschen; Production-Branch auf feat/qm-foundation stellen (optional)

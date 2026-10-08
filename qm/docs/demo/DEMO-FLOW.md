@@ -2,6 +2,14 @@
 
 Ziel: In einer Sitzung zeigen, dass die Arbeitsfläche Lücken sichtbar macht, Nachweise sauber versioniert und jede Änderung nachvollziehbar festhält. Die App ist eine interne Arbeitsbewertung auf Basis eines nicht validierten Katalog-Entwurfs. Sie trifft keine Entscheidung des IVR und stellt keine IVR-Zertifizierung in Aussicht. Das gilt für jeden Satz der Präsentation.
 
+## Kernbotschaft (so kurz wie möglich)
+
+1. **86 % dokumentiert. Trotzdem kritisch.**
+2. **Zwei Pflichtkriterien verhindern die Readiness.**
+3. **Hier sehen wir warum, wer handeln muss, bis wann, und welche Nachweise fehlen oder veraltet sind.**
+
+Alles im Ablauf unten dient diesen drei Sätzen. Wenn die Zeit knapp wird, genügen die Schritte 2 bis 9. Fortschritt und Readiness bleiben getrennte Aussagen: Der Prozentwert beeinflusst den Status nie.
+
 ## Vorbereitung (vor dem Termin, 5 Minuten)
 
 1. Aufruf nur über `https://qm-rettungsdienst-demo-git-feat-qm-abeddf-brain-byt-es-projects.vercel.app` (der Alias legt die erlaubte Herkunft fest). Das Deployment ist durch Vercel Authentication geschützt; wer präsentiert, ist bei Vercel angemeldet.
@@ -16,7 +24,7 @@ Ziel: In einer Sitzung zeigen, dass die Arbeitsfläche Lücken sichtbar macht, N
 | Min | Schritt | Was gezeigt wird | Satz dazu |
 | --- | --- | --- | --- |
 | 0:00 | 1. Anmelden als Owner | Login, Organisation «Rettungsdienst Musterstadt - Demo», Rolle «Inhaber» | «Eine Organisation pro Zugang, Rollen sind serverseitig durchgesetzt.» |
-| 0:30 | 2. Übersicht | Readiness «Kritisch», Dokumentationsstand 86 %, 43 von 50 Kriterien erfüllt | «Fortschritt und Bereitschaft sind getrennte Zahlen. 86 % Fortschritt heissen nicht bereit.» |
+| 0:30 | 2. Übersicht | Karte «Readiness» mit Status «Kritisch», Dokumentationsstand 86 %, 43 von 50 Kriterien erfüllt | «Fortschritt und Bereitschaft sind getrennte Zahlen. 86 % Fortschritt heissen nicht bereit.» |
 | 1:30 | 3. Warum kritisch | Zwei kritische Pflichtkriterien, drei offene, zwei als nicht anwendbar markierte Pflichtkriterien mit Link | «Nicht anwendbar geht nur mit Begründung und steht offen in der Übersicht.» |
 | 2:30 | 4. Braucht Aufmerksamkeit | Priorisierte Liste: kritische Punkte, veraltete Nachweise, überfällige Massnahme, Frist in 20 Tagen, gebündelter Hinweis auf fehlende Nachweise | «Die Liste sagt, was als Nächstes zu tun ist, nicht nur, was fehlt.» |
 | 3:30 | 5. Kriterium 7.3.10 Hygiene | Stand, Frist, Nachweis «Veraltet», verknüpftes Dokument mit Ablaufdatum 08.09.2026 | «Ein abgelaufener Nachweis ändert den Stand nicht automatisch, er wird aber sichtbar.» |
