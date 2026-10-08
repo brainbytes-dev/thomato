@@ -10,30 +10,42 @@ export const KAPITEL_1: WissenChapter = {
     {
       id: "stufen",
       heading: "Muss, Soll und Auswahl",
-      paragraphs: [
-        "Jedes Kriterium trägt eine von drei Stufen. Bei einem Muss gibt es keinen Spielraum: Der Dienst erfüllt es. Bei einem Soll genügt es, wenn der Dienst erkennbar in diese Richtung arbeitet und seine Bemühungen festhält. Bei einer Auswahl wählt der Dienst aus einem Angebot von Vorschlägen selbst aus, womit er sich befasst.",
-        "Die Kriterienliste ist in Struktur, Prozess und Ergebnis gegliedert. Die IVR-Vorgaben gewichten Prozess und Ergebnis stärker, gute Strukturen allein genügen nicht.",
+      paragraphs: ["Jedes Kriterium hat eine von drei Stufen. Strukturen allein genügen nicht, das Gewicht liegt auf Prozess und Ergebnis."],
+      items: [
+        "Muss: gilt ohne Ausnahme.",
+        "Soll: Sie zeigen, dass Sie darauf hinarbeiten, und halten Ihre Aktivitäten fest.",
+        "Auswahl: Sie suchen sich aus mehreren Vorschlägen die verlangte Anzahl selbst aus.",
       ],
       refs: [{ source: "richtlinie", chapter: "Kap. 1.1 und 1.2", page: 5 }],
     },
     {
       id: "auswahl",
       heading: "Auswahlpflicht in den Ergebniskriterien",
-      paragraphs: [
-        "Die Auswahl betrifft Kapitel 8: Beim Prozessmonitoring (8.1) wählen Sie zwei von fünf Punkten für die erste Anerkennung und drei von fünf für die Erneuerung. Bei der periodischen Überprüfung (8.2) ist mindestens ein Punkt zu bearbeiten. Bei den Messdaten zu einer Indikatordiagnose (8.4) ist es einer, bei der Erneuerung zwei.",
-        "Der Vorteil für Ihren Dienst: Sie können in jedem Zeitabschnitt andere Fragestellungen untersuchen.",
+      paragraphs: ["Mindestens zu bearbeiten sind, jeweils für die erste Anerkennung und die Erneuerung:"],
+      items: [
+        "8.1 Prozessmonitoring: 2 von 5 Punkten, bei der Erneuerung 3 von 5",
+        "8.2 Periodische Überprüfung: 1 Punkt, bei der Erneuerung ebenfalls 1",
+        "8.4 Messdaten zu einer Indikatordiagnose: 1 Punkt, bei der Erneuerung 2",
       ],
       appNote:
-        "Hinweis der App, kein Richtlinientext: Die App zählt 8.1, 8.2 und 8.4 derzeit nicht als Muss und zeigt sie als «nicht im Verfahren». Die Mindestanzahl wird erst nach Rückmeldung des IVR abgebildet.",
-      refs: [{ source: "richtlinie", chapter: "Kap. 1.3", page: 6 }],
+        "Hinweis der App, kein Richtlinientext: Die App zählt 8.1, 8.2 und 8.4 derzeit nicht als Muss und zeigt sie als «nicht im Verfahren». Die Mindestanzahl wird abgebildet, sobald die Regel geklärt ist.",
+      refs: [
+        { source: "richtlinie", chapter: "Kap. 1.3", page: 6 },
+        { source: "richtlinie", chapter: "Kap. 8", page: 19 },
+      ],
     },
     {
       id: "dossier",
       heading: "Das Dossier",
-      paragraphs: [
-        "Für den Antrag stellen Sie ein Dossier zusammen. Es enthält die Jahresberichte der letzten zwei Jahre mit Einsatzstatistik, eine kurze Vorstellung Ihres Dienstes, das Organigramm und die Bewilligung der zuständigen kantonalen Behörde. Dazu kommen Ausführungen und Belege zu den einzelnen Kriterien.",
-        "In der App heissen die ersten vier Punkte «Dossier-Unterlagen» (5.2.1 bis 5.2.4) und stehen mit der Quelle Handbuch 5.2 in der Kriterienliste.",
+      paragraphs: ["Für den Antrag legen Sie ein Dossier an. Es besteht aus fünf Teilen:"],
+      items: [
+        "Jahresberichte der letzten zwei Jahre mit Einsatzstatistik",
+        "Nachweise und Erläuterungen je Kriterium",
+        "kurze Vorstellung Ihres Dienstes",
+        "Organigramm",
+        "Bewilligung der zuständigen Behörde",
       ],
+      appNote: "In der App stehen die vier Unterlagen davor als «Dossier-Unterlagen» (5.2.1 bis 5.2.4) in der Kriterienliste, Quelle Handbuch 5.2.",
       refs: [
         { source: "richtlinie", chapter: "Kap. 1.3", page: 6 },
         { source: "handbuch", chapter: "Kap. 5.2", page: 13 },
@@ -43,15 +55,18 @@ export const KAPITEL_1: WissenChapter = {
       id: "sonderfaelle",
       heading: "Verbund und besondere Gegebenheiten",
       paragraphs: [
-        "Mehrere Rettungsdienste können die Anerkennung gemeinsam beantragen, wenn sie die Anforderungen zusammen erfüllen. Ausserdem kann die kantonale Aufsicht beim Vorstand des IVR schriftlich beantragen, dass besondere Umstände (kleine Bevölkerungszahl, schwierige Topografie) berücksichtigt werden. Das setzt ein Qualitätssicherungskonzept und eine nachvollziehbare Begründung voraus.",
+        "Ein regionaler Verbund kann die Anerkennung gemeinsam beantragen, wenn alle zusammen die Anforderungen erfüllen. Besondere Umstände, etwa dünne Besiedlung oder schwierige Topografie, macht die kantonale Aufsicht schriftlich beim IVR-Vorstand geltend. Dafür brauchen Sie ein Qualitätskonzept und eine Begründung.",
       ],
-      refs: [{ source: "richtlinie", chapter: "Kap. 1 und 1.3", page: 5 }],
+      refs: [
+        { source: "richtlinie", chapter: "Kap. 1", page: 5 },
+        { source: "richtlinie", chapter: "Kap. 1.3", page: 6 },
+      ],
     },
     {
       id: "start",
       heading: "Organisatorischer Start",
       paragraphs: [
-        "Ohne den Willen der Leitung und eine Person, die für Qualität zuständig ist, kommt kein Verfahren in Gang. Beziehen Sie das Team früh ein, denn die Vorgaben müssen im Alltag gelebt werden. Auf Anfrage berät die Geschäftsstelle des IVR; ein Vor-Audit oder externe Beratung ist möglich, kostet aber zusätzlich.",
+        "Bestimmen Sie eine Person für die Qualität und holen Sie das Team früh ab: Qualität entsteht im Alltag. Die Geschäftsstelle des IVR berät auf Anfrage. Externe Beratung und ein Vor-Audit sind möglich und kostenpflichtig.",
       ],
       refs: [{ source: "richtlinie", chapter: "Kap. 1", page: 5 }],
     },

@@ -1,4 +1,4 @@
-import { chapterLabel, WISSEN_CHAPTERS, WISSEN_QUERY_MAX, type WissenChapter, type WissenSection } from "@/content/wissen";
+import { chapterLabel, sectionText, WISSEN_CHAPTERS, WISSEN_QUERY_MAX, type WissenChapter, type WissenSection } from "@/content/wissen";
 
 type RawParam = string | string[] | undefined;
 
@@ -20,10 +20,6 @@ export type WissenHit = {
   sections: WissenSection[];
 };
 
-function sectionText(s: WissenSection): string {
-  return [s.heading, ...s.paragraphs, s.appNote ?? ""].join(" ");
-}
-
 /**
  * Einfache Teilstring-Suche (kein Regex, Sonderzeichen sind wörtlich) über Titel, Kapitelbezeichnung
  * und unsere eigenen Zusammenfassungen. Durchsucht nie Richtlinien- oder Handbuchtext.
@@ -38,4 +34,11 @@ export function searchWissen(query: string, chapters: readonly WissenChapter[] =
     if (chapterMatched || sections.length > 0) hits.push({ chapter, chapterMatched, sections });
   }
   return hits;
+}
+
+/** Der Absatz oder Stichpunkt, der den Treffer enthält; sonst der erste Absatz. */
+export function hitExcerpt(section: WissenSection, query: string): string {
+  const needle = fold(query);
+  const parts = [...section.paragraphs, ...(section.items ?? []), ...(section.appNote ? [section.appNote] : [])];
+  return (needle !== "" ? parts.find((p) => fold(p).includes(needle)) : undefined) ?? section.paragraphs[0] ?? "";
 }

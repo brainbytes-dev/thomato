@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { CARD } from "@/components/ui/badge";
 import { chapterLabel, WISSEN_CHAPTERS, type WissenChapter } from "@/content/wissen";
-import { searchWissen, type WissenHit } from "@/domain/wissen-search";
+import { hitExcerpt, searchWissen, type WissenHit } from "@/domain/wissen-search";
 import { Disclaimer, DraftMarker } from "./disclaimer";
 import { SearchForm } from "./search-form";
 import { LINK } from "./styles";
@@ -58,7 +58,7 @@ function Results({ query, hits }: { query: string; hits: WissenHit[] }) {
                 {h.sections.map((s) => (
                   <li key={s.id} className="type-meta flex flex-col gap-0.5">
                     <Link href={`/wissen/${h.chapter.slug}#${s.id}`} className={`type-label self-start ${LINK}`}>{s.heading}</Link>
-                    <span className="max-w-[70ch] text-text-muted">{snippet(s.paragraphs[0] ?? "")}</span>
+                    <span className="max-w-[70ch] text-text-muted">{snippet(hitExcerpt(s, query))}</span>
                   </li>
                 ))}
               </ul>

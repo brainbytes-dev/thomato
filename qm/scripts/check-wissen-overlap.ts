@@ -15,9 +15,10 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import path from "node:path";
-import { WISSEN_CHAPTERS } from "../src/content/wissen";
+import { sectionText, WISSEN_CHAPTERS } from "../src/content/wissen";
 
-const RUN = 6;
+// Standard 6; WISSEN_RUN=5 ist eine strengere Sicht nur zur Information.
+const RUN = Number(process.env.WISSEN_RUN ?? 6);
 const DEFAULT_DIR = path.join(homedir(), "IVR_NotebookLM_failed_attempt_20260919/01_Rettungsdienst/aktuell");
 const PDFTOTEXT = existsSync("/opt/homebrew/bin/pdftotext") ? "/opt/homebrew/bin/pdftotext" : "pdftotext";
 
@@ -84,7 +85,7 @@ function main(): number {
     for (const c of WISSEN_CHAPTERS) {
       const units = [
         { id: `${c.slug}/summary`, text: `${c.title} ${c.summary}` },
-        ...c.sections.map((s) => ({ id: `${c.slug}/${s.id}`, text: [s.heading, ...s.paragraphs, s.appNote ?? ""].join("\n") })),
+        ...c.sections.map((s) => ({ id: `${c.slug}/${s.id}`, text: sectionText(s) })),
       ];
       for (const u of units) {
         sections += 1;

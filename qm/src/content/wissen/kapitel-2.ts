@@ -1,39 +1,50 @@
+import { DEADLINES_HREF } from "./config";
 import type { WissenChapter } from "./types";
 
 export const KAPITEL_2: WissenChapter = {
   slug: "2",
   number: "2",
   title: "Anerkennungsverfahren",
-  summary: "Antrag, Prüfung, Expertenbesuch, Entscheid und Kosten in zeitlicher Reihenfolge.",
+  summary: "Mögliche Ergebnisse, Fristen, Expertenbesuch und Kosten auf einen Blick.",
   source: { source: "richtlinie", chapter: "Kap. 2", page: 7 },
   sections: [
     {
-      id: "ablauf",
-      heading: "Ablauf und Fristen",
+      id: "entscheid",
+      heading: "Mögliche Ergebnisse",
       paragraphs: [
-        "Den Antrag stellen Sie elektronisch bei der Geschäftsstelle des IVR, sobald alle Muss-Kriterien, die verlangte Zahl gewählter Kriterien und ein vollständiges Dossier vorliegen. Die Geschäftsstelle prüft das Dossier innert eines Monats auf Vollständigkeit; fehlende Unterlagen sollten Sie innert drei Monaten nachliefern.",
-        "Ist das Dossier vollständig, wird der Besuchstermin binnen höchstens drei Monaten abgemacht. Die kantonale Behörde wird gleichzeitig angefragt und kann einen Beobachter benennen. Die Unterlagen werden vertraulich behandelt.",
+        "Die Geschäftsstelle und der Vorsitz der Fachgruppe entscheiden auf Grundlage des Expertenberichts. Die Experten selbst entscheiden nicht. Zum Bericht können Sie vorher Stellung nehmen.",
+      ],
+      items: [
+        "Anerkennung erteilt",
+        "Anerkennung mit Auflagen: Sie setzen diese innerhalb eines Jahres um, die Urkunde ist so lange befristet, und die Nachweise reichen Sie von sich aus ein",
+        "Anerkennung nicht erteilt",
       ],
       refs: [
-        { source: "handbuch", chapter: "Kap. 1.5", page: 8 },
-        { source: "handbuch", chapter: "Kap. 2.3", page: 9 },
+        { source: "richtlinie", chapter: "Kap. 2.3", page: 8 },
+        { source: "handbuch", chapter: "Kap. 2.5 und 2.6", page: 11 },
       ],
     },
     {
-      id: "instanz",
-      heading: "Wer anerkennt",
-      paragraphs: [
-        "Der IVR handelt als Anerkennungsinstanz im Rahmen der Qualitätssicherung nach der Krankenversicherungsverordnung. Fachlich zuständig ist die vom Vorstand eingesetzte Fachgruppe für Rettungs- und Patiententransportdienste.",
-        "Ein anerkannter Dienst gilt auch für Sekundäreinsätze und Patiententransporte, wenn Sie diese Tätigkeit im Verfahren klar angegeben haben.",
+      id: "ablauf",
+      heading: "Wichtige Fristen",
+      paragraphs: ["Beantragt wird elektronisch bei der Geschäftsstelle, sobald Muss-Kriterien, Auswahlkriterien und Dossier vollständig sind."],
+      items: [
+        "Vollständigkeitsprüfung des Dossiers: innert 1 Monat",
+        "Fehlende Unterlagen nachreichen: innert 3 Monaten",
+        "Besuchstermin vereinbaren: innert längstens 3 Monaten, nachdem das Dossier als vollständig gilt",
+        "Kanton: wird gleichzeitig angefragt und kann einen Beobachter benennen",
       ],
-      refs: [{ source: "richtlinie", chapter: "Kap. 2.1", page: 7 }],
+      refs: [
+        { source: "richtlinie", chapter: "Kap. 2", page: 7 },
+        { source: "handbuch", chapter: "Kap. 1.5 und 2.3", page: 8 },
+      ],
     },
     {
       id: "besuch",
       heading: "Der Besuch",
       paragraphs: [
-        "Zwei unabhängige Fachleute des IVR, eine Notärztin oder ein Notarzt und eine Rettungssanitäterin oder ein Rettungssanitäter HF, besuchen Ihren Dienst. Sie dürfen weder bei Ihnen gearbeitet haben noch befangen sein. Dabei sind auch die Geschäftsstelle und, als Gast, die kantonale Behörde möglich.",
-        "Geprüft wird, wie die Kriterien im Betrieb umgesetzt sind, im Gespräch mit ärztlicher Leitung, Leitung Rettungsdienst und Qualitätsverantwortlichen. Der Besuch dauert in der Regel einen Tag.",
+        "Zwei unabhängige Fachleute, vom IVR eingesetzt, kommen zu Ihnen: je eine Person aus präklinischer Notfallmedizin (Notarzt) und eine aus dem Rettungssanitätsdienst (HF). Sie dürfen nicht bei Ihnen gearbeitet haben und keinen Interessenkonflikt haben.",
+        "Immer dabei ist eine Vertretung der Geschäftsstelle; die kantonale Behörde kann als Gast teilnehmen. Besprochen wird die Umsetzung der Kriterien mit ärztlicher Leitung, Leitung Rettungsdienst und Qualitätsverantwortlichen. Rechnen Sie mit einem Tag.",
       ],
       refs: [
         { source: "richtlinie", chapter: "Kap. 2.2", page: 7 },
@@ -41,25 +52,25 @@ export const KAPITEL_2: WissenChapter = {
       ],
     },
     {
-      id: "entscheid",
-      heading: "Bericht und Entscheid",
+      id: "instanz",
+      heading: "Zuständigkeit und Umfang",
       paragraphs: [
-        "Die Experten entscheiden nicht selbst. Sie schreiben einen Bericht mit einer Empfehlung, den Sie vor dem Entscheid kommentieren dürfen. Entschieden wird durch die Geschäftsstelle gemeinsam mit dem Vorsitz der Fachgruppe.",
-        "Möglich sind drei Ausgänge: Anerkennung, Anerkennung mit Auflagen oder Ablehnung. Bei Auflagen erfüllen Sie diese innerhalb eines Jahres und reichen die Nachweise ohne Aufforderung ein; die Urkunde gilt dann höchstens ein Jahr.",
+        "Der IVR wird als Anerkennungsinstanz für die Qualitätssicherung nach Art. 77 KVV tätig; fachlich zuständig ist die Fachgruppe Rettungs- und Patiententransportdienst.",
+        "Die Anerkennung umfasst auch Sekundäreinsätze und Patiententransporte, sofern Sie diese im Verfahren und beim Besuch eindeutig angegeben haben.",
       ],
-      refs: [{ source: "richtlinie", chapter: "Kap. 2.3", page: 8 }],
+      refs: [{ source: "richtlinie", chapter: "Kap. 2 und 2.1", page: 7 }],
     },
     {
       id: "kosten",
       heading: "Kosten",
       paragraphs: [
-        "Für das Verfahren fällt eine Gebühr an, die Prüfung von Auflagen kann zusätzlich kosten. Die aktuellen Tarife veröffentlicht der IVR auf seiner Website.",
+        "Das Verfahren ist gebührenpflichtig, die Prüfung von Auflagen kann zusätzlich kosten. Die Tarife veröffentlicht der IVR online.",
       ],
       refs: [{ source: "richtlinie", chapter: "Kap. 2.4", page: 8 }],
     },
   ],
   backLinks: [
-    { label: "Zu den Fristen in der Übersicht", href: "/#deadlines-heading" },
+    { label: "Zu den Fristen in der Übersicht", href: DEADLINES_HREF },
     { label: "Zur Kriterienliste", href: "/criteria" },
   ],
 };

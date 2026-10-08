@@ -43,6 +43,13 @@ export function ChapterView({ chapter, draft }: { chapter: WissenChapter; draft:
             {s.paragraphs.map((p) => (
               <p key={p} className="max-w-[70ch]">{p}</p>
             ))}
+            {s.items && s.items.length > 0 && (
+              <ul className="flex max-w-[70ch] list-disc flex-col gap-1 pl-5 marker:text-text-muted">
+                {s.items.map((i) => (
+                  <li key={i}>{i}</li>
+                ))}
+              </ul>
+            )}
             {s.appNote && (
               <p className="type-meta flex max-w-[70ch] items-start gap-2 rounded-lg border border-border bg-surface-subtle p-3 text-text">
                 <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-primary" />

@@ -1,3 +1,4 @@
+import { DEADLINES_HREF } from "./config";
 import type { WissenChapter } from "./types";
 
 export const KAPITEL_5: WissenChapter = {
@@ -10,32 +11,48 @@ export const KAPITEL_5: WissenChapter = {
     {
       id: "fristen",
       heading: "Die zwei Fristen",
-      paragraphs: [
-        "Der Erneuerungsantrag geht spätestens sechs Monate vor Ablauf der vier Jahre an die Geschäftsstelle. Das vollständige Dossier und ein vereinbarter Besuchstermin müssen spätestens vier Monate vor Ablauf vorliegen.",
-        "Ist der Prozess nach Ablauf noch nicht gestartet, entzieht der IVR die Anerkennung und informiert die Behörde. Einen neuen Antrag können Sie dann frühestens nach einem Jahr stellen.",
+      paragraphs: ["Gerechnet wird rückwärts vom Ablauf der vier Jahre:"],
+      items: [
+        "6 Monate vorher: Erneuerungsantrag bei der Geschäftsstelle",
+        "4 Monate vorher: vollständiges Dossier eingereicht und Besuchstermin vereinbart",
       ],
+      refs: [{ source: "richtlinie", chapter: "Kap. 5", page: 10 }],
+    },
+    {
+      id: "ablauf-ohne-start",
+      heading: "Wenn die Frist verstreicht",
+      paragraphs: [
+        "Haben Sie nach Ablauf noch nicht begonnen, erlischt die Anerkennung durch Entzug und die Behörden erfahren davon. Ein neues Verfahren können Sie dann erst nach einem Jahr beantragen.",
+      ],
+      refs: [{ source: "richtlinie", chapter: "Kap. 5", page: 10 }],
     },
     {
       id: "berichte",
-      heading: "Jährliche Berichte",
+      heading: "Zusätzliche Unterlagen",
       paragraphs: [
-        "Zwischen den Anerkennungen senden Sie jedes Jahr einen elektronischen Bericht zur Qualitätsentwicklung (Kriterium 7.1). Diese Berichte sind die Grundlage, mit der der IVR beurteilt, wie sich Ihr Dienst über die Jahre entwickelt hat.",
-        "Zur Erneuerung kommt zu den Unterlagen aus Kapitel 1 eine kurze Beschreibung der Entwicklung hinzu: früher, jetzt.",
+        "Zwischen den Anerkennungen senden Sie jährlich einen elektronischen Bericht zur Qualitätsentwicklung. Für die Erneuerung kommen zu den Dossierunterlagen aus Kapitel 1 zwei Dokumente dazu:",
       ],
-      refs: [{ source: "richtlinie", chapter: "Kap. 5 und 7.1", page: 10 }],
+      items: [
+        "die jährlichen Qualitätsberichte (Kriterium 7.1)",
+        "eine knappe Gegenüberstellung: früher und heute",
+      ],
+      refs: [
+        { source: "richtlinie", chapter: "Kap. 5", page: 10 },
+        { source: "richtlinie", chapter: "Kap. 7.1", page: 14 },
+      ],
     },
     {
       id: "kreislauf",
       heading: "Qualitätskreislauf mit erneuter Messung",
       paragraphs: [
-        "Bei der Erneuerung zählt die Entwicklung. Der IVR schaut alle Punkte an, legt aber besonderes Gewicht auf Prozess und Ergebnis. Sichtbar sein muss der ganze Kreislauf: Eine zweite Messung zeigt, ob eine Korrekturmassnahme gewirkt hat.",
-        "Darzustellen sind Prozesse und ihre Entwicklung, Erkenntnisse und Ziele der vier Jahre, offene Schwachstellen und die künftige Ausrichtung. Die Regeln für Vorbereitung, Verfahren und Rekurs gelten wie bei der ersten Anerkennung.",
+        "Zeigen Sie, was sich in vier Jahren verbessert hat, was noch offen ist und wohin Sie wollen. Eine zweite Messung muss belegen, dass eine Korrekturmassnahme gewirkt hat.",
+        "Geprüft werden alle Punkte, am stärksten Prozess und Ergebnis. Vorbereitung, Verfahren und Rekurs laufen wie bei der ersten Anerkennung.",
       ],
       refs: [{ source: "richtlinie", chapter: "Kap. 5", page: 10 }],
     },
   ],
   backLinks: [
-    { label: "Zu den Fristen in der Übersicht", href: "/#deadlines-heading" },
+    { label: "Zu den Fristen in der Übersicht", href: DEADLINES_HREF },
     { label: "Zu den Massnahmen", href: "/measures" },
     { label: "Zur Kriterienliste", href: "/criteria" },
   ],

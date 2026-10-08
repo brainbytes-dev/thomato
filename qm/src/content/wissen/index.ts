@@ -5,7 +5,7 @@ import { KAPITEL_4 } from "./kapitel-4";
 import { KAPITEL_5 } from "./kapitel-5";
 import { KAPITEL_9 } from "./kapitel-9";
 import { KRITERIEN } from "./kriterien";
-import type { WissenChapter } from "./types";
+import type { WissenChapter, WissenSection } from "./types";
 
 export * from "./config";
 export type { WissenChapter, WissenLink, WissenRef, WissenSection } from "./types";
@@ -20,6 +20,11 @@ export const WISSEN_CHAPTERS: readonly WissenChapter[] = [
   KRITERIEN,
   KAPITEL_9,
 ];
+
+/** Gesamter eigener Text eines Abschnitts (Wortzählung, Suche, Overlap-Prüfung). */
+export function sectionText(s: WissenSection): string {
+  return [s.heading, ...s.paragraphs, ...(s.items ?? []), s.appNote ?? ""].join("\n");
+}
 
 export function wissenChapterBySlug(slug: string): WissenChapter | undefined {
   return WISSEN_CHAPTERS.find((c) => c.slug === slug);

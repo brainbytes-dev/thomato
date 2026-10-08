@@ -1,3 +1,4 @@
+import { DEADLINES_HREF } from "./config";
 import type { WissenChapter } from "./types";
 
 export const KAPITEL_3: WissenChapter = {
@@ -10,11 +11,15 @@ export const KAPITEL_3: WissenChapter = {
     {
       id: "rekurs",
       heading: "Entscheid anfechten",
-      paragraphs: [
-        "Gegen einen Entscheid über die Anerkennung oder deren Erneuerung können Sie Rekurs einlegen. Die Frist beträgt 30 Tage ab Zustellung. Die Eingabe richten Sie schriftlich und begründet an den Vorstand des IVR.",
-        "Das Verfahren regelt ein eigenes Reglement des IVR über die Rechtspflege in Anerkennungsverfahren. Halten Sie das Zustelldatum fest, denn ab da läuft die Frist.",
+      paragraphs: ["Ein Rekurs ist gegen Anerkennungs- und Erneuerungsentscheide möglich."],
+      items: [
+        "Frist: 30 Tage ab Zustellung des Entscheids",
+        "Form: schriftlich und begründet",
+        "Adressat: Vorstand des IVR",
+        "Verfahren: nach dem Reglement des IVR über die Rechtspflege in Anerkennungsverfahren",
       ],
+      appNote: "Hinweis der App, kein Richtlinientext: Halten Sie das Zustelldatum fest, denn ab da läuft die Frist.",
     },
   ],
-  backLinks: [{ label: "Zur Übersicht mit den Fristen", href: "/#deadlines-heading" }],
+  backLinks: [{ label: "Zur Übersicht mit den Fristen", href: DEADLINES_HREF }],
 };

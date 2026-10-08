@@ -2,7 +2,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { WISSEN_CHAPTERS, WISSEN_DISCLAIMER, WISSEN_DRAFT_LABEL } from "@/content/wissen";
-import { parseWissenQuery, searchWissen } from "@/domain/wissen-search";
+import { hitExcerpt, parseWissenQuery, searchWissen } from "@/domain/wissen-search";
 import { sourcePageUrl } from "@/domain/sources";
 import { ChapterView } from "./chapter-view";
 import { WissenOverview } from "./overview";
@@ -81,6 +81,19 @@ describe("overview", () => {
     const r = renderToStaticMarkup(createElement(WissenOverview, { query: '<b>"(.*)[', draft: true }));
     expect(r).not.toContain("<b>");
     expect(r).toContain("Keine Treffer");
+  });
+});
+
+describe("search excerpt", () => {
+  it("shows the text that contains the hit, not always the first paragraph", () => {
+    const sec = WISSEN_CHAPTERS.find((c) => c.slug === "2")!.sections.find((s) => s.id === "besuch")!;
+    const ex = hitExcerpt(sec, "Interessenkonflikt");
+    expect(ex).toContain("Interessenkonflikt");
+    expect(hitExcerpt(sec, "Gast")).toContain("Gast");
+    expect(hitExcerpt(sec, "zzzz")).toBe(sec.paragraphs[0]);
+  });
+  it("finds hits in list items", () => {
+    expect(searchWissen("Gegenüberstellung").map((h) => h.chapter.slug)).toContain("5");
   });
 });
 

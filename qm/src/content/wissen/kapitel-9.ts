@@ -11,7 +11,7 @@ export const KAPITEL_9: WissenChapter = {
       id: "einsaetze",
       heading: "Einsatzkategorien",
       paragraphs: [
-        "Einsätze werden nach Dringlichkeit und Risiko eingestuft: P1 bis P3 für Erstversorgung am Ereignisort, S1 bis S4 für ärztlich angeordnete Verlegungen zwischen Spitälern. Die genauen Definitionen finden Sie im PDF.",
+        "P1 bis P3 betreffen die Erstversorgung am Einsatzort, S1 bis S4 medizinisch indizierte Verlegungen zwischen stationären Leistungserbringern. Innerhalb jeder Gruppe unterscheiden Dringlichkeit und Risiko. Die genauen Definitionen finden Sie im PDF.",
       ],
       refs: [{ source: "richtlinie", chapter: "Kap. 9.1", page: 21 }],
     },
@@ -43,7 +43,7 @@ export const KAPITEL_9: WissenChapter = {
       id: "basisdaten",
       heading: "Basisdatensatz",
       paragraphs: [
-        "Der Basisdatensatz legt die Zeitpunkte fest, die für jeden Einsatz erfasst werden, vom Eingang des Notrufs bis zur erneuten Einsatzbereitschaft. Er bildet die Grundlage für die Zeitauswertung.",
+        "Der Basisdatensatz legt die Zeitpunkte fest, die für jeden Einsatz erfasst werden, von der Ereigniszeit über Notruf, Alarm und Eintreffen bis zur erneuten Einsatzbereitschaft. Er bildet die Grundlage für die Zeitauswertung.",
       ],
       refs: [{ source: "richtlinie", chapter: "Kap. 9.5", page: 22 }],
     },

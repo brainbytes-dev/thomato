@@ -10,6 +10,8 @@ export type WissenSection = {
   heading: string;
   /** Eigene Zusammenfassung, Absätze in Sie-Form. */
   paragraphs: readonly string[];
+  /** Kurze Stichpunkte (Fristen, Ergebnisse), eigene Formulierung und eigene Reihenfolge. */
+  items?: readonly string[];
   /** Hinweis der App (kein Richtlinientext), optisch abgesetzt. */
   appNote?: string;
   /** Zusätzliche Stellen im Dokument, zum Beispiel Handbuch oder eine Unterseite. */

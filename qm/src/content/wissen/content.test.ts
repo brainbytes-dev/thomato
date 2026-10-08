@@ -8,6 +8,8 @@ import {
   WISSEN_DRAFT_LABEL,
   WISSEN_SECTION_WORD_LIMIT,
   isWissenSlug,
+  sectionText,
+  DEADLINES_HREF,
   type WissenRef,
 } from ".";
 
@@ -42,7 +44,7 @@ describe("wissen content config", () => {
     for (const c of WISSEN_CHAPTERS) {
       expect(new Set(c.sections.map((s) => s.id)).size, c.slug).toBe(c.sections.length);
       for (const s of c.sections) {
-        const n = words([s.heading, ...s.paragraphs, s.appNote ?? ""].join(" "));
+        const n = words(sectionText(s));
         expect(n, `${c.slug}/${s.id}`).toBeLessThanOrEqual(WISSEN_SECTION_WORD_LIMIT);
         expect(s.paragraphs.length, `${c.slug}/${s.id}`).toBeGreaterThan(0);
       }
@@ -52,7 +54,7 @@ describe("wissen content config", () => {
   it("links back into the app from every chapter, deadlines from chapters 2, 4 and 5", () => {
     for (const c of WISSEN_CHAPTERS) expect(c.backLinks.length, c.slug).toBeGreaterThan(0);
     for (const slug of ["2", "4", "5"]) {
-      expect(WISSEN_CHAPTERS.find((c) => c.slug === slug)?.backLinks.map((l) => l.href)).toContain("/#deadlines-heading");
+      expect(WISSEN_CHAPTERS.find((c) => c.slug === slug)?.backLinks.map((l) => l.href)).toContain(DEADLINES_HREF);
     }
     const k1 = WISSEN_CHAPTERS.find((c) => c.slug === "1");
     expect(k1?.backLinks.map((l) => l.href)).toContain("/criteria");
@@ -62,7 +64,13 @@ describe("wissen content config", () => {
     const text = JSON.stringify(WISSEN_CHAPTERS);
     expect(text).not.toMatch(/[—–]|--/);
     expect(text).not.toMatch(/zertifiziert|vom IVR freigegeben|offizielle App/i);
-    expect(text).not.toMatch(/\bß/);
+    expect(text).not.toMatch(/ß/);
+  });
+
+  it("keeps the deadline anchor constant and a real app note for the practical tip in chapter 3", () => {
+    expect(DEADLINES_HREF).toBe("/#deadlines-heading");
+    const k3 = WISSEN_CHAPTERS.find((c) => c.slug === "3");
+    expect(k3?.sections[0].appNote).toContain("Hinweis der App, kein Richtlinientext");
   });
 
   it("states the app note on the selection duty in chapter 1", () => {
