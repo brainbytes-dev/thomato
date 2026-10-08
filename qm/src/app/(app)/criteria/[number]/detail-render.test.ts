@@ -97,6 +97,34 @@ describe("role visibility", () => {
   });
 });
 
+describe("measure card phase and details link", () => {
+  it("shows the phase in words, links to the detail page and offers no «Erledigt» option", () => {
+    const html = measures(true, [measure({ phase: "do", status: "in_progress" })]);
+    expect(html).toContain("Phase");
+    expect(html).toContain(">Do<");
+    expect(html).toContain('href="/measures/m1"');
+    expect(html).toContain("Details");
+    expect(html).toContain('<option value="open"');
+    expect(html).toContain('<option value="in_progress"');
+    expect(html).not.toContain('value="done"');
+  });
+
+  it("hides the status form beyond Plan and Do and names finished measures", () => {
+    for (const phase of ["check", "act"] as const) {
+      expect(measures(true, [measure({ phase, status: "in_progress" })])).not.toContain("Status setzen");
+    }
+    const done = measures(true, [measure({ phase: "act", status: "done", completedAt: new Date("2026-10-05T10:00:00Z") })]);
+    expect(done).not.toContain("Status setzen");
+    expect(done).toContain("Abgeschlossen");
+  });
+
+  it("shows the cycle from the second cycle on and keeps the details link for viewers", () => {
+    expect(measures(false, [measure({ cycle: 2 })])).toContain("(Zyklus 2)");
+    expect(measures(false, [measure({ cycle: 1 })])).not.toContain("Zyklus");
+    expect(measures(false)).toContain('href="/measures/m1"');
+  });
+});
+
 describe("evidence card", () => {
   it("counts documents in the header and keeps the table columns", () => {
     const html = evidence(false, [doc(), doc({ documentId: "d2", linkId: "l2", title: "Zweites" })]);

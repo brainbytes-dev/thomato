@@ -1,9 +1,10 @@
-import { CalendarClock, Plus, UserRound } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, CalendarClock, Check, Circle, CircleDot, Plus, UserRound } from "lucide-react";
 import { Panel } from "@/components/criteria/panel";
 import { MEASURE_STATUS_BADGE, MEASURE_STATUS_LABEL } from "@/components/criteria/status-copy";
 import { Badge } from "@/components/ui/badge";
 import { LINK_SUMMARY } from "@/components/ui/styles";
-import { MEASURE_STATUSES } from "@/db/schema";
+import { PHASE_NAME, phaseStates } from "@/components/measures/pdca-copy";
 import { formatDate, formatDateTime } from "@/domain/dates";
 import { listCriterionMeasures, listOrgMembers, type MeasureView } from "@/domain/measures";
 import type { OrgContext } from "@/domain/org-context";
@@ -11,7 +12,23 @@ import { can } from "@/domain/rights";
 import { CreateMeasureForm, EditMeasureForm, MeasureNoticeScope, MeasureStatusForm, type MemberOption } from "./measure-forms";
 
 const SUMMARY = LINK_SUMMARY;
-const STATUS_OPTIONS = MEASURE_STATUSES.map((s) => ({ value: s, label: MEASURE_STATUS_LABEL[s] }));
+// «Erledigt» gibt es hier nicht mehr: Abgeschlossen wird eine Massnahme in der Phase Act auf ihrer Detailseite.
+const STATUS_OPTIONS = (["open", "in_progress"] as const).map((s) => ({ value: s, label: MEASURE_STATUS_LABEL[s] }));
+const PHASE_ICON = { done: Check, active: CircleDot, pending: Circle } as const;
+
+/** Phase als Wort und Icon: bei erledigten Massnahmen «Abgeschlossen», ab Zyklus 2 mit Zyklusangabe. */
+function PhaseLine({ m }: { m: MeasureView }) {
+  const done = m.status === "done";
+  const Icon = PHASE_ICON[done ? "done" : phaseStates(m)[m.phase]];
+  return (
+    <p className="type-meta flex flex-wrap items-center gap-x-2 text-text">
+      <Icon aria-hidden="true" className="size-3.5 shrink-0 text-text-muted" />
+      <span className="text-text-muted">Phase</span>
+      <span className="type-label">{done ? "Abgeschlossen" : PHASE_NAME[m.phase]}</span>
+      {m.cycle > 1 && <span className="text-text-muted">(Zyklus {m.cycle})</span>}
+    </p>
+  );
+}
 
 export function MeasuresView({
   number,
@@ -48,6 +65,7 @@ export function MeasuresView({
                   {m.description && (
                     <p className="type-meta whitespace-pre-line break-words text-text-muted">{m.description}</p>
                   )}
+                  <PhaseLine m={m} />
                   <dl className="type-meta flex flex-col gap-1 text-text-muted">
                     <div className="flex items-center gap-2">
                       <UserRound aria-hidden="true" className="size-3.5 shrink-0" />
@@ -68,15 +86,24 @@ export function MeasuresView({
                     )}
                   </dl>
                 </div>
+                <Link
+                  href={`/measures/${m.id}`}
+                  className="type-label inline-flex h-9 items-center gap-2 self-start text-primary hover:underline"
+                >
+                  Details<span className="sr-only"> zu «{m.title}»</span>
+                  <ArrowRight aria-hidden="true" className="size-4" />
+                </Link>
                 {canWrite && (
                   <div className="flex flex-col gap-3 border-t border-border pt-3">
-                    <MeasureStatusForm
-                      number={number}
-                      measureId={m.id}
-                      title={m.title}
-                      status={m.status}
-                      options={STATUS_OPTIONS}
-                    />
+                    {(m.phase === "plan" || m.phase === "do") && (
+                      <MeasureStatusForm
+                        number={number}
+                        measureId={m.id}
+                        title={m.title}
+                        status={m.status}
+                        options={STATUS_OPTIONS}
+                      />
+                    )}
                     <details>
                       <summary className={SUMMARY}>
                         Bearbeiten<span className="sr-only"> von «{m.title}»</span>
