@@ -1,21 +1,23 @@
 import { Suspense } from "react";
 import { MeasuresRegister } from "@/components/measures/measures-register";
-import { parseMeasureStatusFilter, parseOwnerFilter, parseQuery } from "@/domain/measure-filter";
+import { parseMeasureStatusFilter, parseOwnerFilter, parsePhaseFilter, parseQuery } from "@/domain/measure-filter";
+import { getPdcaFigures } from "@/domain/measure-pdca";
 import { listAllMeasures, listOrgMembers } from "@/domain/measures";
 import { requireOrgContextOrRedirect } from "@/domain/request-context";
 
-type SearchParams = Promise<{ status?: string | string[]; owner?: string | string[]; q?: string | string[] }>;
+type SearchParams = Promise<{ status?: string | string[]; phase?: string | string[]; owner?: string | string[]; q?: string | string[] }>;
 
 async function Register({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
   const ctx = await requireOrgContextOrRedirect();
-  const [rows, members] = await Promise.all([listAllMeasures(ctx, new Date()), listOrgMembers(ctx)]);
+  const [rows, members, figures] = await Promise.all([listAllMeasures(ctx, new Date()), listOrgMembers(ctx), getPdcaFigures(ctx)]);
   const filters = {
     status: parseMeasureStatusFilter(params.status),
+    phase: parsePhaseFilter(params.phase),
     owner: parseOwnerFilter(params.owner, members),
     query: parseQuery(params.q),
   };
-  return <MeasuresRegister rows={rows} members={members} filters={filters} />;
+  return <MeasuresRegister rows={rows} members={members} filters={filters} figures={figures} />;
 }
 
 export default function MeasuresPage({ searchParams }: { searchParams: SearchParams }) {

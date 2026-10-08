@@ -11,7 +11,7 @@ import {
 } from "./measures";
 import { closeMeasure, completeDo, completePlan, recordEffectiveness } from "./measure-pdca";
 import { ROLES } from "./rights";
-import { filterMeasures } from "./measure-filter";
+import { countMeasuresByPhase, countMeasuresByStatus, filterMeasures } from "./measure-filter";
 import { ForbiddenError, ValidationError } from "./org-context";
 import { randomUUID } from "node:crypto";
 import { addMemberTo, ctxFor, makeOrg, resetDb } from "@/test/helpers";
@@ -478,9 +478,39 @@ describe("listAllMeasures", () => {
     await setMeasureStatus(ctxA, wip.id, "in_progress");
     await finishMeasure(ctxA, done.id, NOW);
     const all = await listAllMeasures(ctxA, NOW);
-    const filtered = filterMeasures(all, { status: "active", owner: "all", query: "" });
+    const filtered = filterMeasures(all, { status: "active", phase: "all", owner: "all", query: "" });
     expect(filtered).toHaveLength((await listOpenMeasures(ctxA, NOW)).length);
     expect(filtered).toHaveLength(2);
+  });
+
+  it("keeps the register tab counts equal to the dashboard numbers with measures in every phase", async () => {
+    const { ctxA, a } = await setup();
+    const mk = (title: string, dueDate: string) => createMeasure(ctxA, { ...valid(a.user.id), title, dueDate });
+    await mk("Plan überfällig", "2026-10-01");
+    const doing = await mk("Umsetzung läuft", "2026-12-01");
+    const check = await mk("Check überfällig", "2026-09-15");
+    const act = await mk("Act offen", "2026-12-02");
+    const done = await mk("Fertig", "2026-09-01");
+    await completePlan(ctxA, doing.id);
+    for (const id of [check.id, act.id]) {
+      await completePlan(ctxA, id);
+      await completeDo(ctxA, id, { confirmNoSteps: true });
+    }
+    await recordEffectiveness(ctxA, act.id, { result: "partly", note: "Teilweise belegt" });
+    await finishMeasure(ctxA, done.id, NOW);
+
+    const all = await listAllMeasures(ctxA, NOW);
+    const status = countMeasuresByStatus(all);
+    const phase = countMeasuresByPhase(all);
+    const open = await listOpenMeasures(ctxA, NOW);
+    expect(status.open + status.in_progress).toBe(open.length);
+    expect(status.open + status.in_progress).toBe(4);
+    expect(status.overdue).toBe(open.filter((m) => m.days < 0).length);
+    expect(status.overdue).toBe(2);
+    expect(phase).toEqual({ plan: 1, do: 1, check: 1, act: 2, actDone: 1, all: 5 });
+    const f = { status: "all" as const, owner: "all", query: "" };
+    expect(filterMeasures(all, { ...f, phase: "act" }).map((m) => m.title).sort()).toEqual(["Act offen", "Fertig"]);
+    expect(filterMeasures(all, { ...f, status: "overdue", phase: "check" }).map((m) => m.title)).toEqual(["Check überfällig"]);
   });
 
   it("is empty for an organisation without measures and never leaks other organisations", async () => {

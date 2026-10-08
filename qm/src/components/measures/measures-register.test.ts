@@ -2,6 +2,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { MeasureFilters } from "@/domain/measure-filter";
+import type { PdcaFigures } from "@/domain/measure-pdca";
 import type { OpenMeasureView } from "@/domain/measures";
 import { MeasuresRegister, REGISTER_ROW_LIMIT } from "./measures-register";
 
@@ -11,9 +12,12 @@ const m = (over: Partial<OpenMeasureView>): OpenMeasureView => ({
   createdAt: new Date("2026-10-01T00:00:00Z"), days: 38, overdue: false, ...over,
 });
 const members = [{ userId: "u1", name: "Anna Muster" }, { userId: "u2", name: "Bruno Beispiel" }];
-const ALL: MeasureFilters = { status: "all", owner: "all", query: "" };
-const render = (rows: OpenMeasureView[], filters: MeasureFilters = ALL) =>
-  renderToStaticMarkup(createElement(MeasuresRegister, { rows, members, filters }));
+const ALL: MeasureFilters = { status: "all", phase: "all", owner: "all", query: "" };
+const NONE: PdcaFigures = {
+  total: 0, phases: { plan: 0, do: 0, check: 0, act: 0 }, effective: { percent: null, n: 0 }, averageDaysToClose: { days: null, n: 0 },
+};
+const render = (rows: OpenMeasureView[], filters: MeasureFilters = ALL, figures: PdcaFigures = NONE) =>
+  renderToStaticMarkup(createElement(MeasuresRegister, { rows, members, filters, figures }));
 const text = (html: string) => html.replace(/<[^>]+>/g, " ");
 
 const rows = [
@@ -26,12 +30,13 @@ describe("MeasuresRegister", () => {
   it("shows figures, filter segments with aria-current, search form and read-only table", () => {
     const html = render(rows);
     for (const w of ["Offen", "In Bearbeitung", "Überfällig", "Erledigt", "Alle", "Suchen", "Verantwortliche"]) expect(html).toContain(w);
-    expect(html.match(/aria-current="true"/g)).toHaveLength(1);
+    expect(html.match(/aria-current="true"/g)).toHaveLength(2); // Status «Alle» und Phase «Alle»
     expect(html).toContain('href="/measures?status=overdue"');
     expect(html).toContain("seit 3 Tagen überfällig");
-    expect(html).toContain("md:min-w-[860px]");
+    expect(html).toContain("md:min-w-[960px]");
     expect(html).toContain("05.10.2026");
-    expect(html).toContain('href="/criteria/7.3.10#measures-heading"');
+    expect(html).toContain('href="/measures/1"');
+    expect(html).toContain('href="/criteria/7.3.10"');
     expect(html).toContain("3 von 3 Massnahmen");
     expect(html).not.toContain("Zurücksetzen");
   });
@@ -46,11 +51,11 @@ describe("MeasuresRegister", () => {
   });
 
   it("filters by status, owner and query, counts follow search and owner", () => {
-    const html = render(rows, { status: "in_progress", owner: "all", query: "" });
+    const html = render(rows, { ...ALL, status: "in_progress" });
     expect(html).toContain("Läuft gerade");
     expect(html).not.toContain("Überfällige Sache");
     expect(html).toContain("1 von 3 Massnahmen");
-    const byQuery = render(rows, { status: "all", owner: "all", query: "SCHULUNGSKONZEPT" });
+    const byQuery = render(rows, { ...ALL, query: "SCHULUNGSKONZEPT" });
     expect(byQuery).toContain(">Fertig<");
     expect(byQuery).toContain("Zurücksetzen");
     expect(byQuery).toContain('value="SCHULUNGSKONZEPT"');
@@ -58,7 +63,7 @@ describe("MeasuresRegister", () => {
   });
 
   it("keeps the other parameters in segment links and the hidden status field", () => {
-    const html = render(rows, { status: "open", owner: "u2", query: "a b" });
+    const html = render(rows, { ...ALL, status: "open", owner: "u2", query: "a b" });
     expect(html).toContain("/measures?status=done&amp;owner=u2&amp;q=a+b");
     expect(html).toContain('<input type="hidden" name="status" value="open"');
     expect(html).toMatch(/<option value="u2" selected/);
@@ -69,14 +74,14 @@ describe("MeasuresRegister", () => {
     expect(html).toContain("Offen und in Bearbeitung");
     expect(html).toContain('aria-label="Filter «Offen und in Bearbeitung» aufheben"');
     expect(html).toContain('href="/measures?q=x"');
-    expect(html).not.toMatch(/aria-current="true"/);
+    expect(html.match(/aria-current="true"/g)).toHaveLength(1); // nur Phase «Alle», kein Status-Tab
     const plain = render(rows, { ...ALL, status: "active" });
     expect(plain).toContain("2 von 3 Massnahmen");
     expect(render(rows)).not.toContain("Filter aufheben");
   });
 
   it("shows a calm no-hit state with a way back", () => {
-    const html = render(rows, { status: "all", owner: "all", query: "zzz" });
+    const html = render(rows, { ...ALL, query: "zzz" });
     expect(text(html)).toContain("Keine Massnahmen mit dieser Auswahl");
     expect(html).toContain('href="/measures"');
     expect(html).toContain("0 von 3 Massnahmen");
@@ -105,5 +110,96 @@ describe("MeasuresRegister", () => {
     expect(q).not.toContain("<script>");
     expect(html).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
     expect(text(render(rows))).not.toMatch(/[—–]|--/);
+  });
+
+  describe("PDCA", () => {
+    const mixed = [
+      m({ id: "p", title: "Geplant", phase: "plan" }),
+      m({ id: "d", title: "Umsetzung", phase: "do", status: "in_progress" }),
+      m({ id: "c", title: "Prüfung", phase: "check", status: "in_progress", cycle: 2 }),
+      m({ id: "a", title: "Entscheid", phase: "act", status: "in_progress" }),
+      m({ id: "x", title: "Abgeschlossene", phase: "act", status: "done" }),
+    ];
+    const figs: PdcaFigures = {
+      total: 5, phases: { plan: 1, do: 1, check: 1, act: 2 }, effective: { percent: 67, n: 3 }, averageDaysToClose: { days: 12.5, n: 2 },
+    };
+
+    it("shows the Phase column with word and icon, the cycle only from cycle 2, and detail links", () => {
+      const html = render(mixed);
+      expect(html).toMatch(/<th[^>]*>Phase<\/th>/);
+      expect(text(html)).toContain("Zyklus 2");
+      expect(text(html).match(/Zyklus/g)).toHaveLength(2); // Zeile: Desktop plus mobile Liste
+      expect(text(html)).toContain("Abgeschlossen");
+      expect(html).toContain("lucide-search-check");
+      for (const id of ["p", "d", "c", "a", "x"]) expect(html).toContain(`href="/measures/${id}"`);
+      expect(html).toContain('href="/criteria/7.3.10"');
+      expect(text(render([m({ cycle: 1 })]))).not.toContain("Zyklus");
+    });
+
+    it("shows the phase distribution as filter links with done separate from act", () => {
+      const html = render(mixed);
+      for (const ph of ["plan", "do", "check", "act"]) expect(html).toContain(`href="/measures?phase=${ph}"`);
+      expect(html).toContain('aria-label="Act: 2, Liste filtern"');
+      expect(html).toContain('aria-label="Davon abgeschlossen: 1, Liste filtern"');
+      expect(text(html)).toContain("davon abgeschlossen");
+    });
+
+    it("filters by phase, highlights the phase tab and keeps the other parameters in links", () => {
+      const html = render(mixed, { ...ALL, phase: "act" });
+      expect(html).toContain("Entscheid");
+      expect(html).toContain("Abgeschlossene");
+      expect(html).not.toContain(">Geplant<");
+      expect(text(html)).toContain("2 von 5 Massnahmen");
+      expect(html.match(/aria-current="true"/g)).toHaveLength(2); // Status «Alle» und Phase «Act»
+      expect(html).toContain('<input type="hidden" name="phase" value="act"');
+      expect(html).toContain("/measures?status=overdue&amp;phase=act");
+      expect(html).toContain("/measures?phase=check");
+      expect(render(mixed)).not.toContain('name="phase"');
+    });
+
+    it("phase tab counts follow status, owner and search but not the phase itself", () => {
+      const html = render(mixed, { ...ALL, status: "active", phase: "act" });
+      const phaseNav = html.slice(html.indexOf('aria-label="Phase"'));
+      expect(phaseNav).toMatch(/Alle\s*<span[^>]*>4</);
+      expect(phaseNav).toMatch(/Act\s*<span[^>]*>1</);
+      expect(phaseNav).toMatch(/Plan\s*<span[^>]*>1</);
+    });
+
+    it("shows both figures with n from n = 1", () => {
+      const html = text(render(mixed, ALL, figs));
+      expect(html).toContain("67 %");
+      expect(html).toContain("(n=3)");
+      expect(html).toContain("12,5 Tage");
+      expect(html).toContain("(n=2)");
+      const one = text(render(mixed, ALL, { ...figs, effective: { percent: 100, n: 1 }, averageDaysToClose: { days: 21, n: 1 } }));
+      expect(one).toContain("100 %");
+      expect(one).toContain("(n=1)");
+      expect(one).toContain("21 Tage");
+    });
+
+    it("shows a calm empty sentence instead of numbers at n = 0 and for a single missing figure", () => {
+      const html = text(render(mixed, ALL, NONE));
+      expect(html).toContain("Noch keine Wirksamkeitsprüfung");
+      expect(html).toContain("Noch keine abgeschlossene Massnahme");
+      expect(html).not.toMatch(/\d+ %/);
+      expect(html).not.toContain("n=");
+      const half = text(render(mixed, ALL, { ...figs, averageDaysToClose: { days: null, n: 0 } }));
+      expect(half).toContain("67 %");
+      expect(half).toContain("Noch keine abgeschlossene Massnahme");
+      expect(half).not.toContain("Noch keine Wirksamkeitsprüfung");
+    });
+
+    it("stays read only for owner and viewer alike (same markup, no write controls)", () => {
+      const html = render(mixed, ALL, figs);
+      expect(html.match(/<form/g)).toHaveLength(1);
+      expect(html.match(/<button/g)).toHaveLength(1);
+    });
+
+    it("keeps the status figures equal to the row counts", () => {
+      const html = render(mixed);
+      expect(html).toContain('aria-label="Offen: 1, Liste filtern"');
+      expect(html).toContain('aria-label="In Bearbeitung: 3, Liste filtern"');
+      expect(html).toContain('aria-label="Erledigt: 1, Liste filtern"');
+    });
   });
 });
