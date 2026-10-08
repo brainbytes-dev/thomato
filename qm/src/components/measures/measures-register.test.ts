@@ -29,6 +29,7 @@ describe("MeasuresRegister", () => {
     expect(html.match(/aria-current="true"/g)).toHaveLength(1);
     expect(html).toContain('href="/measures?status=overdue"');
     expect(html).toContain("seit 3 Tagen überfällig");
+    expect(html).toContain("md:min-w-[860px]");
     expect(html).toContain("05.10.2026");
     expect(html).toContain('href="/criteria/7.3.10#measures-heading"');
     expect(html).toContain("3 von 3 Massnahmen");

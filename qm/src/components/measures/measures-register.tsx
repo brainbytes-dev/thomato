@@ -126,12 +126,35 @@ function SearchForm({ filters, members }: { filters: MeasureFilters; members: re
   );
 }
 
-function DueCell({ m }: { m: OpenMeasureView }) {
+function DueCell({ m, inline = false }: { m: OpenMeasureView; inline?: boolean }) {
   return (
     <>
       <span className={`type-meta-mono whitespace-nowrap ${m.overdue ? "font-semibold text-critical" : ""}`}>{formatDate(m.dueDate)}</span>
-      {m.overdue && <p className="type-meta mt-1 text-critical">seit {formatDaysDative(-m.days)} überfällig</p>}
+      {m.overdue &&
+        (inline ? (
+          <span className="type-meta text-critical">, seit {formatDaysDative(-m.days)} überfällig</span>
+        ) : (
+          <p className="type-meta mt-1 text-critical">seit {formatDaysDative(-m.days)} überfällig</p>
+        ))}
     </>
+  );
+}
+
+function StatusBadge({ m }: { m: OpenMeasureView }) {
+  return (
+    <Badge tone={m.overdue ? "critical" : MEASURE_STATUS_BADGE[m.status]} dot>
+      {m.overdue ? `${MEASURE_STATUS_LABEL[m.status]}, überfällig` : MEASURE_STATUS_LABEL[m.status]}
+    </Badge>
+  );
+}
+
+function OpenLink({ m, href }: { m: OpenMeasureView; href: string }) {
+  return (
+    <Link href={`${href}#measures-heading`} className={`type-label inline-flex items-center gap-2 text-primary hover:underline ${FOCUS}`}>
+      Öffnen
+      <span className="sr-only">: {m.title}</span>
+      <ArrowRight aria-hidden="true" className="size-4 shrink-0" />
+    </Link>
   );
 }
 
@@ -169,15 +192,15 @@ export function MeasuresRegister({
       </div>
       <div className={`${CARD} p-3 sm:p-4`}>
         <div className={TABLE_WRAP}>
-          <table className="w-full min-w-[860px] border-collapse text-left">
+          <table className="w-full border-collapse md:min-w-[860px] text-left">
             <caption className="sr-only">Massnahmen der Organisation mit Verantwortlichen, Frist und Status</caption>
             <thead className="bg-surface-subtle">
               <tr>
                 <th scope="col" className={TH}>Massnahme</th>
-                <th scope="col" className={TH}>Verantwortliche</th>
-                <th scope="col" className={TH}>Frist</th>
-                <th scope="col" className={TH}>Status</th>
-                <th scope="col" className={TH}><span className="sr-only">Aktion</span></th>
+                <th scope="col" className={`${TH} hidden md:table-cell`}>Verantwortliche</th>
+                <th scope="col" className={`${TH} hidden md:table-cell`}>Frist</th>
+                <th scope="col" className={`${TH} hidden md:table-cell`}>Status</th>
+                <th scope="col" className={`${TH} hidden md:table-cell`}><span className="sr-only">Aktion</span></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -193,6 +216,7 @@ export function MeasuresRegister({
               ) : (
                 shown.map((m) => {
                   const href = `/criteria/${encodeURIComponent(m.criterionNumber)}`;
+                  const owner = m.ownerName ?? <span className="text-text-muted">unbekannt</span>;
                   return (
                     <tr key={m.id} className="hover:bg-surface-subtle">
                       <td className={`${TD} max-w-[44ch]`}>
@@ -202,21 +226,26 @@ export function MeasuresRegister({
                             <span className="type-meta-mono">{m.criterionNumber}</span> {m.criterionTitle}
                           </Link>
                         </p>
+                        <dl className="type-meta mt-3 flex flex-col gap-2 md:hidden">
+                          <div className="flex flex-wrap items-baseline gap-x-2">
+                            <dt className="text-text-muted">Verantwortliche</dt>
+                            <dd>{owner}</dd>
+                          </div>
+                          <div className="flex flex-wrap items-baseline gap-x-2">
+                            <dt className="text-text-muted">Frist</dt>
+                            <dd><DueCell m={m} inline /></dd>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                            <dt className="sr-only">Status</dt>
+                            <dd><StatusBadge m={m} /></dd>
+                            <dd><OpenLink m={m} href={href} /></dd>
+                          </div>
+                        </dl>
                       </td>
-                      <td className={TD}>{m.ownerName ?? <span className="text-text-muted">unbekannt</span>}</td>
-                      <td className={TD}><DueCell m={m} /></td>
-                      <td className={`${TD} whitespace-nowrap`}>
-                        <Badge tone={m.overdue ? "critical" : MEASURE_STATUS_BADGE[m.status]} dot>
-                          {m.overdue ? `${MEASURE_STATUS_LABEL[m.status]}, überfällig` : MEASURE_STATUS_LABEL[m.status]}
-                        </Badge>
-                      </td>
-                      <td className={`${TD} whitespace-nowrap`}>
-                        <Link href={`${href}#measures-heading`} className={`type-label inline-flex items-center gap-2 text-primary hover:underline ${FOCUS}`}>
-                          Öffnen
-                          <span className="sr-only">: {m.title}</span>
-                          <ArrowRight aria-hidden="true" className="size-4 shrink-0" />
-                        </Link>
-                      </td>
+                      <td className={`${TD} hidden md:table-cell`}>{owner}</td>
+                      <td className={`${TD} hidden md:table-cell`}><DueCell m={m} /></td>
+                      <td className={`${TD} hidden whitespace-nowrap md:table-cell`}><StatusBadge m={m} /></td>
+                      <td className={`${TD} hidden whitespace-nowrap md:table-cell`}><OpenLink m={m} href={href} /></td>
                     </tr>
                   );
                 })
