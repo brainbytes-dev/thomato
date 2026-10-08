@@ -1,3 +1,4 @@
+import type { BadgeTone } from "@/components/ui/badge";
 import type { AssessmentStatus, MeasureStatus } from "@/db/schema";
 import type { EvidenceState } from "@/domain/evidence";
 import { DEFAULT_PROCEDURE } from "@/domain/procedure";
@@ -19,6 +20,14 @@ export const STATUS_TONE: Record<AssessmentStatus, string> = {
   not_applicable: "text-text-muted",
 };
 
+export const STATUS_BADGE: Record<AssessmentStatus, BadgeTone> = {
+  not_assessed: "neutral",
+  met: "success",
+  open: "warning",
+  critical: "critical",
+  not_applicable: "neutral",
+};
+
 export const MEASURE_STATUS_LABEL: Record<MeasureStatus, string> = {
   open: "Offen",
   in_progress: "In Bearbeitung",
@@ -35,6 +44,12 @@ export const EVIDENCE_TONE: Record<EvidenceState, string> = {
   none: "text-text-muted",
   stale: "text-warning",
   current: "text-success",
+};
+
+export const EVIDENCE_BADGE: Record<EvidenceState, BadgeTone> = {
+  none: "neutral",
+  stale: "warning",
+  current: "success",
 };
 
 export function scopeLabel(r: Omit<CriterionInput, "status">): string {

@@ -37,19 +37,19 @@ export function LoginForm() {
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-4">
-      <label className="flex flex-col gap-1">
-        <span className="text-text-muted">E-Mail</span>
+      <label className="flex flex-col gap-2">
+        <span className="type-label">E-Mail</span>
         <input name="email" type="email" required autoComplete="username"
-          className="h-10 rounded-[var(--radius)] border border-field-border bg-surface px-3" />
+          className="h-10 rounded border border-field-border bg-surface px-3 text-text" />
       </label>
-      <label className="flex flex-col gap-1">
-        <span className="text-text-muted">Passwort</span>
+      <label className="flex flex-col gap-2">
+        <span className="type-label">Passwort</span>
         <input name="password" type="password" required autoComplete="current-password"
-          className="h-10 rounded-[var(--radius)] border border-field-border bg-surface px-3" />
+          className="h-10 rounded border border-field-border bg-surface px-3 text-text" />
       </label>
       {error && <p role="alert" className="text-critical">{error}</p>}
       <button type="submit" disabled={pending}
-        className="h-10 rounded-[var(--radius)] bg-primary px-4 font-medium text-on-primary disabled:opacity-60">
+        className="type-label h-10 rounded bg-primary px-4 text-on-primary disabled:opacity-60">
         {pending ? "Anmelden..." : "Anmelden"}
       </button>
     </form>

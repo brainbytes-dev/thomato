@@ -16,7 +16,9 @@ import {
 } from "@/domain/criteria-filter";
 import { getEvidenceInfo } from "@/domain/documents";
 import type { EvidenceState } from "@/domain/evidence";
-import { EVIDENCE_LABEL, EVIDENCE_TONE, scopeLabel, STATUS_LABEL, STATUS_TONE } from "@/components/criteria/status-copy";
+import { EVIDENCE_BADGE, EVIDENCE_LABEL, scopeLabel, STATUS_BADGE, STATUS_LABEL } from "@/components/criteria/status-copy";
+import { Badge, CARD } from "@/components/ui/badge";
+import { TABLE_WRAP, TD, TH } from "@/components/ui/styles";
 
 type SearchParams = Promise<{ status?: string | string[]; evidence?: string | string[]; scope?: string | string[] }>;
 
@@ -34,9 +36,9 @@ function FilterGroup<V extends string>({
   active: V;
 }) {
   return (
-    <nav aria-label={label} className="flex flex-col gap-1">
-      <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">{label}</p>
-      <ul className="flex flex-wrap gap-2">
+    <nav aria-label={label} className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+      <p className="type-eyebrow w-20 shrink-0 text-text-muted">{label}</p>
+      <ul className="inline-flex flex-wrap gap-0.5 rounded-lg border border-border bg-surface-subtle p-0.5">
         {options.map((f) => {
           const isActive = f.value === active;
           return (
@@ -44,11 +46,12 @@ function FilterGroup<V extends string>({
               <Link
                 href={f.href}
                 aria-current={isActive ? "true" : undefined}
-                className={`inline-block rounded-[var(--radius)] border px-3 py-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
-                  isActive ? "border-primary bg-surface-subtle font-semibold underline" : "border-border hover:bg-surface-subtle"
+                className={`type-label inline-flex h-8 items-center gap-2 rounded-md border px-3 ${
+                  isActive ? "border-border bg-surface text-text" : "border-transparent text-text-muted hover:text-text"
                 }`}
               >
-                {f.label} ({f.count})
+                {f.label}
+                <span className="type-meta-mono">{f.count}</span>
               </Link>
             </li>
           );
@@ -82,12 +85,12 @@ async function CriteriaTable({ searchParams }: { searchParams: SearchParams }) {
     })),
   ].map((o) => ({ ...o, href: criteriaFilterHref(filter, o.value, scope) }));
   return (
-    <>
-      <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-6">
+      <div className={`${CARD} flex flex-col gap-4 p-5 sm:p-6`}>
         <FilterGroup label="Stand" options={statusOptions} active={filter} />
         <FilterGroup label="Nachweis" options={evidenceOptions} active={evidenceFilter} />
         {scope === "mandatory" && (
-          <p className="text-text-muted">
+          <p className="type-meta text-text-muted">
             Nur Pflichtkriterien im Verfahren.{" "}
             <Link
               href={criteriaFilterHref(filter, evidenceFilter)}
@@ -98,28 +101,29 @@ async function CriteriaTable({ searchParams }: { searchParams: SearchParams }) {
           </p>
         )}
       </div>
-      <div className="overflow-x-auto rounded-[var(--radius)] border border-border bg-surface">
-        <table className="w-full border-collapse text-left">
+      <div className={`${CARD} p-3 sm:p-4`}>
+      <div className={TABLE_WRAP}>
+        <table className="w-full min-w-[820px] border-collapse text-left">
           <caption className="sr-only">Kriterien mit Bewertungsstand und Nachweis</caption>
-          <thead className="bg-surface-subtle text-text-muted">
+          <thead className="bg-surface-subtle">
             <tr>
-              <th scope="col" className="whitespace-nowrap px-3 py-2">Nr.</th>
-              <th scope="col" className="px-3 py-2">Titel</th>
-              <th scope="col" className="px-3 py-2">Kapitel</th>
-              <th scope="col" className="whitespace-nowrap px-3 py-2">Pflicht</th>
-              <th scope="col" className="px-3 py-2">Stand</th>
-              <th scope="col" className="whitespace-nowrap px-3 py-2">Nachweis</th>
+              <th scope="col" className={TH}>Nr.</th>
+              <th scope="col" className={TH}>Titel</th>
+              <th scope="col" className={TH}>Kapitel</th>
+              <th scope="col" className={TH}>Pflicht</th>
+              <th scope="col" className={TH}>Stand</th>
+              <th scope="col" className={TH}>Nachweis</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-border">
             {rows.length === 0 ? (
-              <tr className="border-t border-border">
-                <td colSpan={6} className="px-3 py-4 text-text-muted">Keine Kriterien mit dieser Auswahl. Wählen Sie einen anderen Filter oder setzen Sie ihn auf «Alle».</td>
+              <tr>
+                <td colSpan={6} className="px-4 py-6 text-text-muted">Keine Kriterien mit dieser Auswahl. Wählen Sie einen anderen Filter oder setzen Sie ihn auf «Alle».</td>
               </tr>
             ) : (
               rows.map((r) => (
-                <tr key={r.criterionId} className="border-t border-border align-top">
-                  <td className="whitespace-nowrap px-3 py-2 font-mono">
+                <tr key={r.criterionId} className="align-top hover:bg-surface-subtle">
+                  <td className={`${TD} type-meta-mono whitespace-nowrap`}>
                     <Link
                       href={`/criteria/${encodeURIComponent(r.number)}`}
                       className="text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
@@ -127,22 +131,22 @@ async function CriteriaTable({ searchParams }: { searchParams: SearchParams }) {
                       {r.number}
                     </Link>
                   </td>
-                  <td className="px-3 py-2">{r.title}</td>
-                  <td className="px-3 py-2">{r.chapter}</td>
-                  <td className="whitespace-nowrap px-3 py-2">{scopeLabel(r)}</td>
-                  <td className="px-3 py-2">
-                    <span className={`whitespace-nowrap font-medium ${STATUS_TONE[r.status]}`}>{STATUS_LABEL[r.status]}</span>
+                  <td className={TD}>{r.title}</td>
+                  <td className={TD}>{r.chapter}</td>
+                  <td className={`${TD} whitespace-nowrap`}>{scopeLabel(r)}</td>
+                  <td className={TD}>
+                    <Badge tone={STATUS_BADGE[r.status]} dot>{STATUS_LABEL[r.status]}</Badge>
                     {r.status === "not_applicable" && r.notApplicableReason && (
-                      <p className="mt-1 text-text-muted">Begründung: {r.notApplicableReason}</p>
+                      <p className="type-meta mt-1 max-w-[48ch] text-text-muted">Begründung: {r.notApplicableReason}</p>
                     )}
                   </td>
-                  <td className="whitespace-nowrap px-3 py-2">
+                  <td className={`${TD} whitespace-nowrap`}>
                     {(() => {
                       const state = evidenceOf(r, info);
                       return state === null ? (
                         <span className="text-text-muted">-</span>
                       ) : (
-                        <span className={`font-medium ${EVIDENCE_TONE[state]}`}>{EVIDENCE_LABEL[state]}</span>
+                        <Badge tone={EVIDENCE_BADGE[state]}>{EVIDENCE_LABEL[state]}</Badge>
                       );
                     })()}
                   </td>
@@ -152,14 +156,15 @@ async function CriteriaTable({ searchParams }: { searchParams: SearchParams }) {
           </tbody>
         </table>
       </div>
-    </>
+      </div>
+    </div>
   );
 }
 
 export default function CriteriaPage({ searchParams }: { searchParams: SearchParams }) {
   return (
-    <main className="flex flex-col gap-4">
-      <h1 className="text-xl font-semibold">Kriterien</h1>
+    <main className="flex flex-col gap-6">
+      <h1 className="type-headline-section">Kriterien</h1>
       <Suspense fallback={<p className="text-text-muted">Kriterien werden geladen...</p>}>
         <CriteriaTable searchParams={searchParams} />
       </Suspense>

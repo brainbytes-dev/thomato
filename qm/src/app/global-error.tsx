@@ -15,25 +15,27 @@ export default function GlobalError({ retry }: { error: Error & { digest?: strin
       </head>
       <body className="min-h-full">
         <title>Fehler</title>
-        <main className="mx-auto flex min-h-screen max-w-xl flex-col justify-center gap-6 px-4 py-12">
-          <div className="flex flex-col gap-2" role="alert">
-            <h1 className="text-xl font-semibold">{ERROR_COPY.title}</h1>
-            <p className="text-text-muted">{ERROR_COPY.body}</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => retry()}
-              className="inline-flex h-10 items-center justify-center rounded-[var(--radius)] bg-primary px-4 font-medium text-on-primary"
-            >
-              {ERROR_COPY.retry}
-            </button>
-            <Link
-              href="/"
-              className="inline-flex h-10 items-center justify-center rounded-[var(--radius)] border border-border bg-surface px-4 font-medium"
-            >
-              {ERROR_COPY.home}
-            </Link>
+        <main className="mx-auto flex min-h-screen max-w-xl flex-col justify-center px-4 py-12">
+          <div className="flex flex-col gap-6 rounded-xl border border-border bg-surface p-6 sm:p-8">
+            <div className="flex flex-col gap-2" role="alert">
+              <h1 className="type-headline-section">{ERROR_COPY.title}</h1>
+              <p className="text-text-muted">{ERROR_COPY.body}</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => retry()}
+                className="type-label inline-flex h-10 items-center justify-center rounded bg-primary px-4 text-on-primary"
+              >
+                {ERROR_COPY.retry}
+              </button>
+              <Link
+                href="/"
+                className="type-label inline-flex h-10 items-center justify-center rounded border border-border bg-surface px-4 text-text hover:bg-surface-subtle"
+              >
+                {ERROR_COPY.home}
+              </Link>
+            </div>
           </div>
         </main>
       </body>

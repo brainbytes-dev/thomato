@@ -15,17 +15,17 @@ export const NOT_FOUND_COPY = {
 } as const;
 
 export const ACTION_BASE =
-  "inline-flex h-10 items-center justify-center rounded-[var(--radius)] px-4 font-medium";
+  "type-label inline-flex h-10 items-center justify-center rounded px-4";
 export const PRIMARY_ACTION = `${ACTION_BASE} bg-primary text-on-primary`;
-export const SECONDARY_ACTION = `${ACTION_BASE} border border-border bg-surface`;
+export const SECONDARY_ACTION = `${ACTION_BASE} border border-border bg-surface text-text hover:bg-surface-subtle`;
 
 /** Ruhige, gemeinsame Fläche für Fehler- und 404-Seiten. Keine Technikdetails, kein Stacktrace. */
 export function ErrorState({ title, body, children, alert = false }: { title: string; body: string; children: ReactNode; alert?: boolean }) {
   return (
-    <main className="mx-auto flex min-h-[50vh] max-w-xl flex-col justify-center gap-6 px-4 py-12">
+    <main className="mx-auto my-8 flex w-full max-w-xl flex-col gap-6 rounded-xl border border-border bg-surface p-6 sm:p-8">
       <div className="flex flex-col gap-2" role={alert ? "alert" : undefined}>
-        <h1 className="text-xl font-semibold">{title}</h1>
-        <p className="text-text-muted">{body}</p>
+        <h1 className="type-headline-section">{title}</h1>
+        <p className="max-w-[70ch] text-text-muted">{body}</p>
       </div>
       <div className="flex flex-wrap gap-2">{children}</div>
     </main>

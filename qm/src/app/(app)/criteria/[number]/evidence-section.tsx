@@ -1,4 +1,5 @@
 import { EVIDENCE_LABEL, EVIDENCE_TONE, STATUS_LABEL, STATUS_TONE } from "@/components/criteria/status-copy";
+import { EYEBROW, LINK_SUMMARY, SECTION_CARD, TD, TH } from "@/components/ui/styles";
 import { formatBytes } from "@/components/criteria/file-check";
 import type { AssessmentStatus } from "@/db/schema";
 import { formatDate, formatDateTime } from "@/domain/dates";
@@ -8,9 +9,7 @@ import type { OrgContext } from "@/domain/org-context";
 import { can } from "@/domain/rights";
 import { AddVersionForm, LinkDocumentForm, UnlinkForm, UnlinkNoticeScope, UploadDocumentForm } from "./evidence-forms";
 
-const TH = "whitespace-nowrap px-3 py-2";
-const TD = "px-3 py-2 align-top";
-const SUMMARY = "cursor-pointer font-medium text-primary underline";
+const SUMMARY = LINK_SUMMARY;
 
 function Download({ version, label, title }: { version: VersionView; label: string; title: string }) {
   return (
@@ -56,11 +55,11 @@ export async function EvidenceSection({
   const settled = status === "met" || status === "not_applicable";
 
   return (
-    <section aria-labelledby="evidence-heading" className="flex flex-col gap-4">
+    <section aria-labelledby="evidence-heading" className={SECTION_CARD}>
       <h2
         id="evidence-heading"
         tabIndex={-1}
-        className="text-xs font-semibold uppercase tracking-wide text-text-muted"
+        className={EYEBROW}
       >
         Nachweise
       </h2>
@@ -74,12 +73,12 @@ export async function EvidenceSection({
       </dl>
 
       {state === "current" && !settled && (
-        <p className="max-w-3xl text-text-muted">
+        <p className="max-w-[70ch] text-text-muted">
           Ein aktueller Nachweis liegt vor. Bitte den Stand prüfen und bei Bedarf unter «Bewertung» auf «Erfüllt» setzen.
         </p>
       )}
       {status === "met" && state !== "current" && (
-        <p className="max-w-3xl font-medium text-warning">
+        <p className="max-w-[70ch] font-medium text-warning">
           Das Kriterium ist als erfüllt bewertet, aber es gibt keinen aktuellen Nachweis.
         </p>
       )}
@@ -87,10 +86,10 @@ export async function EvidenceSection({
       {docs.length === 0 ? (
         <p className="text-text-muted">Für dieses Kriterium ist noch kein Dokument verknüpft.</p>
       ) : (
-        <div className="overflow-x-auto rounded-[var(--radius)] border border-border bg-surface">
+        <div className="overflow-x-auto rounded-lg border border-border">
           <table className="w-full border-collapse text-left">
             <caption className="sr-only">Mit diesem Kriterium verknüpfte Dokumente</caption>
-            <thead className="bg-surface-subtle text-text-muted">
+            <thead className="bg-surface-subtle">
               <tr>
                 <th scope="col" className={TH}>Titel</th>
                 <th scope="col" className={TH}>Aktuelle Version</th>
@@ -111,14 +110,14 @@ export async function EvidenceSection({
                   <td className={`${TD} whitespace-nowrap`}><Download version={d.latest} label="Herunterladen" title={d.title} /></td>
                 </tr>
                 <tr>
-                  <td colSpan={5} className="px-3 pb-3">
+                  <td colSpan={5} className="px-4 pb-4">
                     <div className="flex flex-col gap-3">
                     <details>
                       <summary className={SUMMARY}>Versionen anzeigen</summary>
-                      <div className="mt-2 overflow-x-auto rounded-[var(--radius)] border border-border">
+                      <div className="mt-2 overflow-x-auto rounded-lg border border-border">
                         <table className="w-full border-collapse text-left">
                           <caption className="sr-only">Alle Versionen von {d.title}, neueste zuerst</caption>
-                          <thead className="bg-surface-subtle text-text-muted">
+                          <thead className="bg-surface-subtle">
                             <tr>
                               <th scope="col" className={TH}>Version</th>
                               <th scope="col" className={TH}>Datei</th>
@@ -177,13 +176,13 @@ export async function EvidenceSection({
       {canWrite ? (
         <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-3">
-            <h3 className="font-semibold">Dokument hochladen</h3>
-            <p className="max-w-3xl text-text-muted">Das Dokument wird mit diesem Kriterium verknüpft. Die Bewertung ändert sich dadurch nicht.</p>
+            <h3 className="type-body-emphasis">Dokument hochladen</h3>
+            <p className="max-w-[70ch] text-text-muted">Das Dokument wird mit diesem Kriterium verknüpft. Die Bewertung ändert sich dadurch nicht.</p>
             <UploadDocumentForm number={number} maxBytes={MAX_FILE_BYTES} />
           </div>
           {linkable.length > 0 && (
             <div className="flex flex-col gap-3">
-              <h3 className="font-semibold">Vorhandenes Dokument verknüpfen</h3>
+              <h3 className="type-body-emphasis">Vorhandenes Dokument verknüpfen</h3>
               <LinkDocumentForm number={number} options={linkable} />
             </div>
           )}

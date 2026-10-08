@@ -17,11 +17,9 @@ import {
   updateMeasureAction,
   type MeasureFormState,
 } from "./measure-actions";
+import { AREA, FIELD, PRIMARY_BTN } from "@/components/ui/styles";
 
-const FIELD = "h-10 rounded-[var(--radius)] border border-field-border bg-surface px-3";
-const AREA = "min-h-20 rounded-[var(--radius)] border border-field-border bg-surface px-3 py-2";
-const PRIMARY =
-  "h-10 self-start rounded-[var(--radius)] bg-primary px-4 font-medium text-on-primary disabled:opacity-60";
+const PRIMARY = PRIMARY_BTN;
 
 export type MemberOption = { userId: string; name: string };
 export type StatusOption = { value: string; label: string };

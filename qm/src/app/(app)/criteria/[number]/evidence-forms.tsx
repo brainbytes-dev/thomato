@@ -19,11 +19,10 @@ import {
   uploadDocumentAction,
   type EvidenceFormState,
 } from "./evidence-actions";
+import { FIELD, PRIMARY_BTN, SECONDARY_BTN } from "@/components/ui/styles";
 
-const FIELD = "h-10 rounded-[var(--radius)] border border-field-border bg-surface px-3";
-const PRIMARY =
-  "h-10 self-start rounded-[var(--radius)] bg-primary px-4 font-medium text-on-primary disabled:opacity-60";
-const SECONDARY = "h-10 self-start rounded-[var(--radius)] border border-border bg-surface px-4 font-medium";
+const PRIMARY = PRIMARY_BTN;
+const SECONDARY = SECONDARY_BTN;
 
 type Action = (prev: EvidenceFormState, formData: FormData) => Promise<EvidenceFormState>;
 

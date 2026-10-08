@@ -28,7 +28,7 @@ export function AssessmentForm(props: {
         <select
           name="status"
           defaultValue={props.status}
-          className="h-10 rounded-[var(--radius)] border border-field-border bg-surface px-3"
+          className="h-10 rounded border border-field-border bg-surface px-3"
         >
           {props.statusOptions.map((o) => (
             <option key={o.value} value={o.value}>{o.label}</option>
@@ -42,7 +42,7 @@ export function AssessmentForm(props: {
           rows={3}
           maxLength={500}
           defaultValue={props.reason ?? ""}
-          className="rounded-[var(--radius)] border border-field-border bg-surface px-3 py-2"
+          className="rounded border border-field-border bg-surface px-3 py-2"
         />
       </label>
       <label className="flex flex-col gap-1">
@@ -51,7 +51,7 @@ export function AssessmentForm(props: {
           type="date"
           name="dueDate"
           defaultValue={props.dueDate ?? ""}
-          className="h-10 rounded-[var(--radius)] border border-field-border bg-surface px-3"
+          className="h-10 rounded border border-field-border bg-surface px-3"
         />
       </label>
       </Fragment>
@@ -60,7 +60,7 @@ export function AssessmentForm(props: {
       <button
         type="submit"
         disabled={pending}
-        className="h-10 self-start rounded-[var(--radius)] bg-primary px-4 font-medium text-on-primary disabled:opacity-60"
+        className="type-label h-10 self-start rounded bg-primary px-4 text-on-primary disabled:opacity-60"
       >
         {pending ? "Speichern..." : "Speichern"}
       </button>
