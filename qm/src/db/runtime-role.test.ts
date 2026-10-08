@@ -127,6 +127,42 @@ describe("qm_app runtime role", () => {
     expect(await errorOf(app.query(statement))).toMatch(new RegExp(`permission denied for table ${table}`));
   });
 
+  it("keeps measure_review append-only: qm_app may INSERT and SELECT, never UPDATE, DELETE or TRUNCATE, and the owner is stopped by the trigger", async () => {
+    const ins = await app.query<{ id: string }>(
+      `INSERT INTO measure_review (organization_id, measure_id, cycle, result, note, checked_by)
+       VALUES ($1, $2, 1, 'partly', 'Teilweise wirksam', $3) RETURNING id`,
+      [f.orgId, f.measureId, f.userId],
+    );
+    const reviewId = ins.rows[0].id;
+    const read = await app.query<{ n: string }>(`SELECT count(*)::text AS n FROM measure_review WHERE id = $1`, [reviewId]);
+    expect(read.rows[0].n).toBe("1");
+    for (const statement of [
+      `UPDATE measure_review SET note = 'anders'`,
+      `DELETE FROM measure_review`,
+      `TRUNCATE measure_review`,
+    ]) {
+      expect(await errorOf(app.query(statement)), statement).toMatch(/permission denied for table measure_review/);
+    }
+    // Besitzer: Rechte vorhanden, aber der Trigger lehnt ab.
+    expect(await errorOf(owner.query(`UPDATE measure_review SET note = 'anders' WHERE id = $1`, [reviewId]))).toMatch(/append-only/);
+    expect(await errorOf(owner.query(`DELETE FROM measure_review WHERE id = $1`, [reviewId]))).toMatch(/append-only/);
+    expect(await errorOf(app.query(`ALTER TABLE measure_review DISABLE TRIGGER ALL`))).toMatch(/must be owner of table measure_review/);
+    const after = await owner.query<{ note: string }>(`SELECT note FROM measure_review WHERE id = $1`, [reviewId]);
+    expect(after.rows[0].note).toBe("Teilweise wirksam");
+  });
+
+  it("lets qm_app insert, update and delete measure_step rows", async () => {
+    const ins = await app.query<{ id: string }>(
+      `INSERT INTO measure_step (organization_id, measure_id, position, title) VALUES ($1, $2, 1, 'Schritt eins') RETURNING id`,
+      [f.orgId, f.measureId],
+    );
+    await app.query(`UPDATE measure_step SET title = 'Schritt zwei', done_at = now(), done_by = $2 WHERE id = $1`, [ins.rows[0].id, f.userId]);
+    await app.query(`SELECT id FROM measure_step WHERE id = $1 FOR UPDATE`, [ins.rows[0].id]);
+    await app.query(`DELETE FROM measure_step WHERE id = $1`, [ins.rows[0].id]);
+    const left = await owner.query<{ n: string }>(`SELECT count(*)::text AS n FROM measure_step`);
+    expect(left.rows[0].n).toBe("0");
+  });
+
   it("denies TRUNCATE on every public table (c)", async () => {
     const tables = await owner.query<{ tablename: string }>(`SELECT tablename FROM pg_tables WHERE schemaname = 'public'`);
     expect(tables.rows.length).toBeGreaterThan(10);

@@ -90,6 +90,18 @@ describe("roles.sql without superuser", () => {
       [PROBE_APP],
     );
     expect(priv.rows[0].p).toBe("INSERT,SELECT");
+    const privOf = async (table: string) =>
+      (
+        await adminProbe.query<{ p: string }>(
+          `SELECT coalesce(string_agg(t, ',' ORDER BY t), '') AS p FROM unnest(ARRAY['SELECT','INSERT','UPDATE','DELETE','TRUNCATE']) AS t
+           WHERE has_table_privilege($1, $2, t)`,
+          [PROBE_APP, table],
+        )
+      ).rows[0].p;
+    // Plan 8.3: Bewertungen append-only, Checkliste frei änderbar.
+    expect(await privOf("measure_review")).toBe("INSERT,SELECT");
+    expect(await privOf("measure_step")).toBe("DELETE,INSERT,SELECT,UPDATE");
+    expect(await privOf("measure")).toBe("INSERT,SELECT,UPDATE");
   });
 
   it("aborts when a pre-existing qm_app is over-powerful, and changes nothing", async () => {
