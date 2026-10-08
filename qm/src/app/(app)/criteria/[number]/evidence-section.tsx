@@ -20,6 +20,8 @@ import { can } from "@/domain/rights";
 import { AddVersionForm, LinkDocumentForm, UnlinkForm, UnlinkNoticeScope, UploadDocumentForm } from "./evidence-forms";
 
 const SUMMARY = LINK_SUMMARY;
+const TH_C = `${TH} !px-3`;
+const TD_C = `${TD} !px-3`;
 
 type Evidence = { docs: EvidenceDoc[]; state: EvidenceState };
 type Linkable = { documentId: string; title: string }[];
@@ -84,19 +86,19 @@ function VersionsTable({ d }: { d: EvidenceDoc }) {
         <caption className="sr-only">Alle Versionen von {d.title}, neueste zuerst</caption>
         <thead className="bg-surface-subtle">
           <tr>
-            <th scope="col" className={TH}>Version</th>
-            <th scope="col" className={TH}>Datei</th>
-            <th scope="col" className={TH}>Grösse</th>
-            <th scope="col" className={TH}>Hochgeladen von</th>
-            <th scope="col" className={TH}>Zeitpunkt</th>
-            <th scope="col" className={TH}>Gültig bis</th>
-            <th scope="col" className={TH}>Download</th>
+            <th scope="col" className={TH_C}>Version</th>
+            <th scope="col" className={TH_C}>Datei</th>
+            <th scope="col" className={TH_C}>Grösse</th>
+            <th scope="col" className={TH_C}>Hochgeladen von</th>
+            <th scope="col" className={TH_C}>Zeitpunkt</th>
+            <th scope="col" className={TH_C}>Gültig bis</th>
+            <th scope="col" className={TH_C}>Download</th>
           </tr>
         </thead>
         <tbody>
           {d.versions.map((v, i) => (
             <tr key={v.id} className="border-t border-border">
-              <th scope="row" className={`${TD} whitespace-nowrap font-medium`}>
+              <th scope="row" className={`${TD_C} whitespace-nowrap font-medium`}>
                 V{v.versionNumber}
                 {i === 0 ? (
                   <span className="font-normal text-text-muted"> (neueste)</span>
@@ -104,12 +106,12 @@ function VersionsTable({ d }: { d: EvidenceDoc }) {
                   <span className="font-normal text-text-muted"> (ersetzt)</span>
                 )}
               </th>
-              <td className={TD}>{v.fileName}</td>
-              <td className={`${TD} whitespace-nowrap`}>{formatBytes(v.sizeBytes)}</td>
-              <td className={`${TD} whitespace-nowrap`}>{v.uploadedByName ?? "unbekannt"}</td>
-              <td className={`${TD} whitespace-nowrap type-meta-mono`}>{formatDateTime(v.createdAt)}</td>
-              <td className={`${TD} whitespace-nowrap`}>{validUntilText(v.validUntil)}</td>
-              <td className={`${TD} whitespace-nowrap`}>
+              <td className={TD_C}>{v.fileName}</td>
+              <td className={`${TD_C} whitespace-nowrap`}>{formatBytes(v.sizeBytes)}</td>
+              <td className={`${TD_C} whitespace-nowrap`}>{v.uploadedByName ?? "unbekannt"}</td>
+              <td className={`${TD_C} whitespace-nowrap type-meta-mono`}>{formatDateTime(v.createdAt)}</td>
+              <td className={`${TD_C} whitespace-nowrap`}>{validUntilText(v.validUntil)}</td>
+              <td className={`${TD_C} whitespace-nowrap`}>
                 <Download version={v} label={`V${v.versionNumber} herunterladen`} title={d.title} />
               </td>
             </tr>
@@ -161,26 +163,26 @@ export function EvidenceRegisteredView({
               <caption className="sr-only">Mit diesem Kriterium verknüpfte Dokumente</caption>
               <thead className="bg-surface-subtle">
                 <tr>
-                  <th scope="col" className={TH}>Titel</th>
-                  <th scope="col" className={TH}>Aktuelle Version</th>
-                  <th scope="col" className={TH}>Gültig bis</th>
-                  <th scope="col" className={TH}>Nachweis</th>
-                  <th scope="col" className={TH}>Download</th>
+                  <th scope="col" className={TH_C}>Titel</th>
+                  <th scope="col" className={TH_C}>Aktuelle Version</th>
+                  <th scope="col" className={TH_C}>Gültig bis</th>
+                  <th scope="col" className={TH_C}>Nachweis</th>
+                  <th scope="col" className={TH_C}>Download</th>
                 </tr>
               </thead>
               {docs.map((d) => (
                 <tbody key={d.linkId} className="border-t border-border">
                   <tr>
-                    <th scope="row" className={`${TD} font-medium`}>{d.title}</th>
-                    <td className={TD}>V{d.latest.versionNumber}, {d.latest.fileName}</td>
-                    <td className={`${TD} whitespace-nowrap`}>{validUntilText(d.latest.validUntil)}</td>
-                    <td className={`${TD} whitespace-nowrap`}>
+                    <th scope="row" className={`${TD_C} font-medium`}>{d.title}</th>
+                    <td className={TD_C}>V{d.latest.versionNumber}, {d.latest.fileName}</td>
+                    <td className={`${TD_C} whitespace-nowrap`}>{validUntilText(d.latest.validUntil)}</td>
+                    <td className={`${TD_C} whitespace-nowrap`}>
                       <Badge tone={EVIDENCE_BADGE[d.state]} dot>{EVIDENCE_LABEL[d.state]}</Badge>
                     </td>
-                    <td className={`${TD} whitespace-nowrap`}><Download version={d.latest} label="Herunterladen" title={d.title} /></td>
+                    <td className={`${TD_C} whitespace-nowrap`}><Download version={d.latest} label="Herunterladen" title={d.title} /></td>
                   </tr>
                   <tr>
-                    <td colSpan={5} className="px-4 pb-4">
+                    <td colSpan={5} className="px-3 pb-4">
                       <div className="flex flex-col gap-3">
                         <details>
                           <summary className={SUMMARY}>Versionen anzeigen</summary>
