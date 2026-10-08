@@ -39,6 +39,10 @@ Alles im Ablauf unten dient diesen drei Sätzen. Wenn die Zeit knapp wird, genü
 | 10:45 | 14. Dunkler Modus (optional) | Systemeinstellung wechseln, die Oberfläche folgt | «Gleiche Informationen, für lange Arbeitstage.» |
 | 11:15 | 15. Abschluss | Hinweis auf den Entwurfsstatus des Katalogs, nächste Schritte | «Nächster Schritt ist die Abstimmung des Katalogs mit dem IVR.» |
 
+## Optional: Quellen und Wissen (1 Minute)
+
+Im Kriteriendetail steht unter «Quelle» Ausgabe, Kapitel und Seite mit Link auf das offizielle PDF. Der Menüpunkt «Wissen» erklärt Verfahren und Fristen in eigenen Worten (Entwurf, solange nicht fachlich freigegeben). Satz dazu: «Wir ersetzen die Richtlinie nicht, wir führen Sie dorthin.»
+
 ## Wenn etwas hakt
 
 - Login schlägt fehl: kurz warten (Anmeldebegrenzung), erneut versuchen.

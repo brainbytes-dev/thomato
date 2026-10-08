@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { CARD } from "@/components/ui/badge";
 import type { DeadlineView } from "@/domain/deadlines";
 import { formatDate } from "@/domain/dates";
@@ -16,6 +17,12 @@ export function DeadlineList({ deadlines }: { deadlines: DeadlineView[] }) {
   return (
     <section aria-labelledby="deadlines-heading" className={`${CARD} p-5 sm:p-6`}>
       <h2 id="deadlines-heading" className="type-headline-sub">Fristen</h2>
+      <p className="type-meta mt-1 text-text-muted">
+        Woher die Fristen kommen: Wissen, Kapitel{" "}
+        <Link href="/wissen/2" className="text-primary underline underline-offset-2">2</Link>,{" "}
+        <Link href="/wissen/4" className="text-primary underline underline-offset-2">4</Link> und{" "}
+        <Link href="/wissen/5" className="text-primary underline underline-offset-2">5</Link>.
+      </p>
       {deadlines.length === 0 ? (
         <p className="mt-4 text-text-muted">Keine Fristen erfasst.</p>
       ) : (

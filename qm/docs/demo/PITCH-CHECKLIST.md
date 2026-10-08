@@ -14,11 +14,14 @@ Stand: 2026-10-08. Diese Liste gehört in die Vorbereitung des Gesprächs vom 17
 4. **Katalog «geprüft».** Der Katalog ist gegen die Ausgabe 08/2025 abgeglichen (siehe `qm/docs/catalog/richtlinie-abgleich-2025-08.md`), aber bleibt «Entwurf, nicht validiert», bis der IVR ihn bestätigt. Ist eine Bestätigung oder ein Review möglich?
 5. **Wording.** Die App ist eine interne Arbeitsbewertung und kein offizielles IVR-Werkzeug. Passt die Formulierung für den IVR, oder wünscht er einen Hinweis?
 
+6. **Wissensseiten.** Die App zeigt unter «Wissen» eigene Zusammenfassungen der Kapitel 1 bis 5 und des Anhangs mit Seitenverweis auf das offizielle PDF (kein Richtlinientext). Ist das aus Sicht des IVR in Ordnung, und möchte er die Formulierung des Hinweises («Zusammenfassung. Massgebend ist die offizielle IVR-Richtlinie.») ändern?
+
 ## Eigene offene Punkte vor dem Termin
 
 - Produktname: «QM Rettungsdienst» ist der Arbeitstitel (Markenfrage offen).
 - Zugang: Demo nur per Bildschirmfreigabe (Entscheid vom 2026-10-08). Falls der IVR selbst klicken soll, braucht es vorher einen kontrollierten Zugang.
 - Plan 8 (8/4-Detail, Massnahmen-Register, PDCA) in den Demo-Stand übernehmen, dann Generalprobe mit `DEMO-FLOW.md` und neuen Tag setzen.
+- Wissenstexte fachlich prüfen (Henrik) und dann die Markierung «Entwurf» ausschalten (`WISSEN_DRAFT=false`).
 - Passwörter und Schlüssel: nur in `~/.config/qm-demo/secrets.env`, siehe `ACCESS.md`.
 
 ## Mitbringen

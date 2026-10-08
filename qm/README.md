@@ -22,6 +22,13 @@ docker compose exec db psql -U qm -d qm_dev -c '\l'
 
 `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm build`, `pnpm db:generate`, `pnpm db:migrate`, `pnpm db:roles`.
 
+## Katalog und Quellen
+
+- **Zählweise:** Der Katalog hat 61 operative Zeilen. Das sind 56 Kriterien der Richtlinie (Kapitel 6 bis 8) + 4 Dossier-Unterlagen aus dem Handbuch (Kap. 5.2, in der Oberfläche «Dossier-Unterlagen») + 1 explizit modellierter Unterpunkt (7.4.1). Intern und in Texten nicht von «61 IVR-Kriterien» sprechen. Der Abgleich gegen die Ausgabe 08/2025 steht in `docs/catalog/richtlinie-abgleich-2025-08.md`.
+- **Quellen:** `src/domain/sources.ts` führt Ausgabe, offizielle URL und Prüfsumme der Richtlinie und des Handbuchs; `src/domain/source-pages.ts` (generiert) ordnet jeder Katalognummer Quelle und Seite zu. Erzeugen: `scripts/gen-source-pages.ts` mit den lokalen PDFs (nicht im Repo). `pnpm sources:check` meldet ALARM, wenn ein PDF unter derselben URL ersetzt wurde (Prüfsumme weicht ab); dann gilt die Zuordnung als ungeprüft, bis sie neu erzeugt und kontrolliert wurde.
+- **Wissen:** `/wissen` enthält eigene Zusammenfassungen der Richtlinienkapitel 1 bis 5 und 9 mit Quelle, Seite und Link. Es steht kein Richtlinientext im Repo. `pnpm wissen:check` ist ein technisches Warnsystem gegen übernommene Wortfolgen, keine juristische Freigabe; Struktur- und Paraphrasenähe prüft ein Review. Die Seiten tragen «Entwurf, fachlich noch zu prüfen», bis die fachliche Prüfung erfolgt ist (`WISSEN_DRAFT` in `src/content/wissen/config.ts`).
+- **Auswahlkriterien (8.1, 8.2, 8.4):** Die Richtlinie verlangt eine Mindestanzahl gewählter Kriterien. Die App rechnet sie vorerst nicht als Muss (Entscheid: später, nach Rückmeldung des IVR); Wissen Kap. 1 erklärt das.
+
 ## Deployment (Vercel + Neon)
 
 Vercel-Projekt mit Root Directory `qm`. Deploy ausschliesslich über die Git-Integration. Der Build (`pnpm build`) läuft auch ohne Umgebungsvariablen durch (Better Auth meldet dann nur Warnungen), die Variablen müssen aber zur Laufzeit gesetzt sein.
