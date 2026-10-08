@@ -46,7 +46,7 @@ describe("core services run end to end as qm_app", () => {
     // Datenvorbereitung ausschliesslich als Besitzer.
     const ownerDb = drizzle(ownerPool, { schema });
     await ownerPool.query(
-      `TRUNCATE measure, evidence_link, document_version, document, deadline, audit_event, criterion_assessment,
+      `TRUNCATE measure_review, measure_step, measure, evidence_link, document_version, document, deadline, audit_event, criterion_assessment,
        criterion, standard_version, invitation, member, session, account, verification, organization, "user"
        RESTART IDENTITY CASCADE`,
     );

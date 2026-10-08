@@ -20,6 +20,8 @@ export function authId(): string {
 }
 
 const TABLES = [
+  "measure_review",
+  "measure_step",
   "measure",
   "evidence_link",
   "document_version",

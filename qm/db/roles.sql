@@ -52,6 +52,8 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO qm_app;
 REVOKE UPDATE, DELETE, TRUNCATE ON audit_event FROM qm_app;
 REVOKE UPDATE, DELETE, TRUNCATE ON document_version FROM qm_app;
 REVOKE DELETE ON measure FROM qm_app;  -- Massnahmen werden nie gelöscht (R31, R45, R48)
+REVOKE UPDATE, DELETE, TRUNCATE ON measure_review FROM qm_app;  -- Wirksamkeitsbewertungen sind append-only (Plan 8.3)
+-- measure_step (Checkliste) darf qm_app ändern und löschen: bewusst keine Ausnahme.
 
 -- Künftige Tabellen und Sequenzen (nur für Objekte des ausführenden Besitzers).
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO qm_app;

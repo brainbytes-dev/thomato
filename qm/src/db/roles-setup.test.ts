@@ -55,6 +55,8 @@ beforeAll(async () => {
   await probe.query(`CREATE TABLE audit_event (id int)`);
   await probe.query(`CREATE TABLE document_version (id int)`);
   await probe.query(`CREATE TABLE measure (id int)`);
+  await probe.query(`CREATE TABLE measure_review (id int)`);
+  await probe.query(`CREATE TABLE measure_step (id int)`);
 });
 
 afterAll(async () => {

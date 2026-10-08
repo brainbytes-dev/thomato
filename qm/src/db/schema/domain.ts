@@ -208,6 +208,12 @@ export const evidenceLink = pgTable(
 export const MEASURE_STATUSES = ["open", "in_progress", "done"] as const;
 export type MeasureStatus = (typeof MEASURE_STATUSES)[number];
 
+export const MEASURE_PHASES = ["plan", "do", "check", "act"] as const;
+export type MeasurePhase = (typeof MEASURE_PHASES)[number];
+
+export const REVIEW_RESULTS = ["effective", "partly", "not_effective"] as const;
+export type ReviewResult = (typeof REVIEW_RESULTS)[number];
+
 export const measure = pgTable(
   "measure",
   {
@@ -224,12 +230,16 @@ export const measure = pgTable(
       .references(() => user.id),
     dueDate: date("due_date").notNull(),
     status: text("status", { enum: MEASURE_STATUSES }).notNull().default("open"),
+    phase: text("phase", { enum: MEASURE_PHASES }).notNull().default("plan"),
+    cycle: integer("cycle").notNull().default(1),
+    effectivenessCriterion: text("effectiveness_criterion"),
     completedAt: timestamp("completed_at", { withTimezone: true }),
     createdBy: text("created_by").references(() => user.id),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
+    unique("measure_id_org").on(t.id, t.organizationId),
     foreignKey({
       name: "measure_criterion_fk",
       columns: [t.standardVersionId, t.criterionNumber],
@@ -240,7 +250,75 @@ export const measure = pgTable(
       "measure_status_completed_check",
       sql`(${t.status} = 'done' AND ${t.completedAt} IS NOT NULL) OR (${t.status} <> 'done' AND ${t.completedAt} IS NULL)`,
     ),
+    check("measure_phase_check", sql`${t.phase} in ('plan', 'do', 'check', 'act')`),
+    check("measure_done_phase_check", sql`${t.status} <> 'done' OR ${t.phase} = 'act'`),
+    check("measure_cycle_check", sql`${t.cycle} >= 1`),
+    check(
+      "measure_effectiveness_criterion_check",
+      sql`${t.effectivenessCriterion} IS NULL OR char_length(btrim(${t.effectivenessCriterion})) BETWEEN 3 AND 500`,
+    ),
     index("measure_org_criterion_idx").on(t.organizationId, t.criterionNumber),
     index("measure_org_due_idx").on(t.organizationId, t.dueDate),
   ],
 );
+
+// Checkliste einer Massnahme. Die Organisation steckt im zusammengesetzten Fremdschlüssel: ein Schritt kann
+// nie an einer Massnahme einer anderen Organisation hängen.
+export const measureStep = pgTable(
+  "measure_step",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: text("organization_id").notNull(),
+    measureId: uuid("measure_id").notNull(),
+    phase: text("phase", { enum: MEASURE_PHASES }).notNull().default("do"),
+    position: integer("position").notNull(),
+    title: text("title").notNull(),
+    doneAt: timestamp("done_at", { withTimezone: true }),
+    doneBy: text("done_by").references(() => user.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    foreignKey({
+      name: "measure_step_measure_fk",
+      columns: [t.measureId, t.organizationId],
+      foreignColumns: [measure.id, measure.organizationId],
+    }),
+    check("measure_step_phase_check", sql`${t.phase} in ('plan', 'do', 'check', 'act')`),
+    check("measure_step_title_check", sql`char_length(btrim(${t.title})) BETWEEN 3 AND 200`),
+    check("measure_step_done_check", sql`(${t.doneAt} IS NULL) = (${t.doneBy} IS NULL)`),
+    check("measure_step_position_check", sql`${t.position} >= 1`),
+    index("measure_step_measure_idx").on(t.organizationId, t.measureId, t.position),
+  ],
+);
+
+// Wirksamkeitsbewertungen: append-only (Trigger und Rollenrechte), damit kein Zyklus die Historie überschreibt.
+export const measureReview = pgTable(
+  "measure_review",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: text("organization_id").notNull(),
+    measureId: uuid("measure_id").notNull(),
+    cycle: integer("cycle").notNull(),
+    result: text("result", { enum: REVIEW_RESULTS }).notNull(),
+    note: text("note").notNull(),
+    checkedAt: timestamp("checked_at", { withTimezone: true }).notNull().defaultNow(),
+    checkedBy: text("checked_by")
+      .notNull()
+      .references(() => user.id),
+  },
+  (t) => [
+    foreignKey({
+      name: "measure_review_measure_fk",
+      columns: [t.measureId, t.organizationId],
+      foreignColumns: [measure.id, measure.organizationId],
+    }),
+    check("measure_review_result_check", sql`${t.result} in ('effective', 'partly', 'not_effective')`),
+    check("measure_review_note_check", sql`char_length(btrim(${t.note})) BETWEEN 3 AND 1000`),
+    check("measure_review_cycle_check", sql`${t.cycle} >= 1`),
+    index("measure_review_measure_idx").on(t.organizationId, t.measureId, t.checkedAt),
+  ],
+);
+
+export type MeasureRow = typeof measure.$inferSelect;
+export type MeasureStepRow = typeof measureStep.$inferSelect;
+export type MeasureReviewRow = typeof measureReview.$inferSelect;

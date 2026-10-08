@@ -19,13 +19,17 @@ async function setup() {
   return makeOrg("mea-schema");
 }
 
-type Row = { orgId: string; userId: string; number?: string; status?: string; completedAt?: string | null };
+type Row = {
+  orgId: string; userId: string; number?: string; status?: string; completedAt?: string | null; phase?: string; cycle?: number;
+  criterion?: string | null;
+};
 
 function insert(r: Row) {
   const completed = r.completedAt === undefined || r.completedAt === null ? sql`NULL` : sql`${r.completedAt}::timestamptz`;
+  const phase = r.phase ?? (r.status === "done" ? "act" : "plan");
   return db.execute(sql`
-    INSERT INTO measure (organization_id, standard_version_id, criterion_number, title, owner_user_id, due_date, status, completed_at)
-    VALUES (${r.orgId}, ${ACTIVE_STANDARD_VERSION}, ${r.number ?? "7.3.10"}, 'Titel', ${r.userId}, '2026-11-15', ${r.status ?? "open"}, ${completed})
+    INSERT INTO measure (organization_id, standard_version_id, criterion_number, title, owner_user_id, due_date, status, completed_at, phase, cycle, effectiveness_criterion)
+    VALUES (${r.orgId}, ${ACTIVE_STANDARD_VERSION}, ${r.number ?? "7.3.10"}, 'Titel', ${r.userId}, '2026-11-15', ${r.status ?? "open"}, ${completed}, ${phase}, ${r.cycle ?? 1}, ${r.criterion ?? null})
   `);
 }
 
@@ -60,6 +64,19 @@ describe("measure table constraints", () => {
     expect(
       await failureText(insert({ orgId: org.id, userId: user.id, status: "open", completedAt: "2026-10-08T10:00:00Z" })),
     ).toContain("measure_status_completed_check");
+  });
+
+  it("rejects done outside phase act and an unknown phase, cycle below 1 and a bad effectiveness criterion", async () => {
+    const { org, user } = await setup();
+    const done = { orgId: org.id, userId: user.id, status: "done", completedAt: "2026-10-08T10:00:00Z" };
+    for (const phase of ["plan", "do", "check"]) {
+      expect(await failureText(insert({ ...done, phase }))).toContain("measure_done_phase_check");
+    }
+    expect(await failureText(insert({ orgId: org.id, userId: user.id, phase: "later" }))).toContain("measure_phase_check");
+    expect(await failureText(insert({ orgId: org.id, userId: user.id, cycle: 0 }))).toContain("measure_cycle_check");
+    expect(await failureText(insert({ orgId: org.id, userId: user.id, criterion: "ab" }))).toContain("measure_effectiveness_criterion_check");
+    expect(await failureText(insert({ orgId: org.id, userId: user.id, criterion: "x".repeat(501) }))).toContain("measure_effectiveness_criterion_check");
+    await insert({ orgId: org.id, userId: user.id, phase: "check", criterion: "x".repeat(500) });
   });
 
   it("rejects an unknown status", async () => {

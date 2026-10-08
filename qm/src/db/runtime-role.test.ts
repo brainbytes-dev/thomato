@@ -34,7 +34,7 @@ type Fixture = { orgId: string; userId: string; docId: string; versionId: string
 
 async function prepare(): Promise<Fixture> {
   await owner.query(
-    `TRUNCATE measure, evidence_link, document_version, document, deadline, audit_event, criterion_assessment,
+    `TRUNCATE measure_review, measure_step, measure, evidence_link, document_version, document, deadline, audit_event, criterion_assessment,
      criterion, standard_version, invitation, member, session, account, verification, organization, "user"
      RESTART IDENTITY CASCADE`,
   );
@@ -207,7 +207,7 @@ describe("qm_app runtime role", () => {
     expect(
       await errorOf(app.query(`UPDATE criterion_assessment SET status = 'not_applicable', not_applicable_reason = NULL`)),
     ).toMatch(/assessment_na_reason_check/);
-    expect(await errorOf(app.query(`UPDATE measure SET status = 'done', completed_at = NULL WHERE id = $1`, [f.measureId]))).toMatch(
+    expect(await errorOf(app.query(`UPDATE measure SET status = 'done', phase = 'act', completed_at = NULL WHERE id = $1`, [f.measureId]))).toMatch(
       /measure_status_completed_check/,
     );
   });
