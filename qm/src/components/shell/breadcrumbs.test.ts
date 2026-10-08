@@ -1,0 +1,36 @@
+import { describe, expect, it } from "vitest";
+import { breadcrumbsFor, initialsOf } from "./breadcrumbs";
+
+describe("breadcrumbsFor", () => {
+  it("builds org / Übersicht for the dashboard", () => {
+    expect(breadcrumbsFor("/", "Rettung Muster")).toEqual([{ label: "Rettung Muster" }, { label: "Übersicht" }]);
+  });
+
+  it("builds section crumbs", () => {
+    expect(breadcrumbsFor("/criteria", "Org")).toEqual([{ label: "Org" }, { label: "Kriterien" }]);
+    expect(breadcrumbsFor("/documents", "Org")).toEqual([{ label: "Org" }, { label: "Dokumente" }]);
+  });
+
+  it("links the section on detail pages and decodes the criterion number", () => {
+    expect(breadcrumbsFor("/criteria/7.3.10", "Org")).toEqual([
+      { label: "Org" },
+      { label: "Kriterien", href: "/criteria" },
+      { label: "7.3.10" },
+    ]);
+    expect(breadcrumbsFor("/criteria/a%20b", "Org").at(-1)).toEqual({ label: "a b" });
+    expect(breadcrumbsFor("/criteria/%E0%A4%A", "Org").at(-1)).toEqual({ label: "%E0%A4%A" });
+  });
+
+  it("falls back to the organisation for unknown paths", () => {
+    expect(breadcrumbsFor("/nope", "Org")).toEqual([{ label: "Org" }]);
+  });
+});
+
+describe("initialsOf", () => {
+  it("uses first and last word", () => {
+    expect(initialsOf("Anna Beispiel")).toBe("AB");
+    expect(initialsOf("anna maria beispiel")).toBe("AB");
+    expect(initialsOf("Cher")).toBe("C");
+    expect(initialsOf("  ")).toBe("?");
+  });
+});
