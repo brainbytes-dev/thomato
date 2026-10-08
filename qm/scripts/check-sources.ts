@@ -1,5 +1,5 @@
 /**
- * Prüft die offiziellen PDFs bei 144.ch: erreichbar, und stimmt die SHA-256 mit der Registry?
+ * Prüft die offiziellen PDFs bei 144.ch (GET): erreichbar, und stimmt die SHA-256 mit der Registry?
  * Nicht Teil von CI oder Tests (braucht Netz). Aufruf: pnpm sources:check
  * Weicht eine Prüfsumme ab, wurde das PDF unter derselben URL ersetzt: ALARM, Exit-Code 1.
  * Die Seitenzuordnung ist dann ungeprüft; neu erzeugen (pnpm sources:gen) und nachkontrollieren.
@@ -17,8 +17,6 @@ async function main(): Promise<number> {
   try {
     for (const s of Object.values(SOURCES)) {
       try {
-        const head = await fetch(s.url, { method: "HEAD", redirect: "follow" });
-        if (!head.ok) throw new Error(`HEAD ${head.status}`);
         const res = await fetch(s.url, { redirect: "follow" });
         if (!res.ok) throw new Error(`GET ${res.status}`);
         const buf = Buffer.from(await res.arrayBuffer());
@@ -45,4 +43,9 @@ async function main(): Promise<number> {
   return alarms === 0 ? 0 : 1;
 }
 
-main().then((code) => process.exit(code));
+main()
+  .then((code) => process.exit(code))
+  .catch((e: unknown) => {
+    console.error(`ALARM  Prüfung abgebrochen: ${e instanceof Error ? e.message : String(e)}`);
+    process.exit(1);
+  });

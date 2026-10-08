@@ -2,9 +2,10 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { ChapterProgressTable } from "@/components/dashboard/chapter-progress";
-import { sourceReferenceFor } from "@/domain/source-reference";
+import { criteriaGroupOf, sourceReferenceFor } from "@/domain/source-reference";
 import { CriteriaLegend } from "./criteria-legend";
 import { CriterionHeader } from "./criterion-header";
+import { GroupHeadingRow } from "./group-heading-row";
 
 const header = (number: string, chapter: string) =>
   renderToStaticMarkup(
@@ -59,5 +60,20 @@ describe("display name for the data chapter", () => {
     expect(html).toContain("Dossier-Unterlagen");
     expect(html).not.toContain("Antrag");
     expect(html).toContain("Struktur");
+  });
+});
+
+describe("group heading row", () => {
+  it("renders the chapter headings as colgroup header cells", () => {
+    for (const [n, heading] of [
+      ["6.1", "6 Strukturkriterien"], ["7.3.10", "7 Prozesskriterien"], ["8.5", "8 Ergebniskriterien"],
+      ["5.2.1", "Dossier-Unterlagen (Handbuch 5.2)"],
+    ] as const) {
+      const html = renderToStaticMarkup(createElement("table", null, createElement("tbody", null,
+        createElement(GroupHeadingRow, { group: criteriaGroupOf(n), colSpan: 6 }))));
+      expect(html).toContain('scope="colgroup"');
+      expect(html).toContain('colSpan="6"');
+      expect(html).toContain(heading);
+    }
   });
 });

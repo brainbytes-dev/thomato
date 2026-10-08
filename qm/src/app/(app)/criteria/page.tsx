@@ -18,6 +18,7 @@ import { getEvidenceInfo } from "@/domain/documents";
 import type { EvidenceState } from "@/domain/evidence";
 import { EVIDENCE_BADGE, EVIDENCE_LABEL, scopeLabel, STATUS_BADGE, STATUS_LABEL } from "@/components/criteria/status-copy";
 import { Badge, CARD } from "@/components/ui/badge";
+import { GroupHeadingRow } from "@/components/criteria/group-heading-row";
 import { CriteriaLegend } from "@/components/criteria/criteria-legend";
 import { chapterDisplayName, criteriaGroupOf } from "@/domain/source-reference";
 import { TABLE_WRAP, TD, TH } from "@/components/ui/styles";
@@ -126,42 +127,39 @@ async function CriteriaTable({ searchParams }: { searchParams: SearchParams }) {
             ) : (
               rows.flatMap((r, i) => {
                 const group = criteriaGroupOf(r.number);
-                const heading = i === 0 || criteriaGroupOf(rows[i - 1].number).key !== group.key ? (
-                  <tr key={`group-${group.key}`} className="bg-surface-subtle">
-                    <th scope="colgroup" colSpan={6} className="type-label px-4 py-3 text-left">{group.heading}</th>
-                  </tr>
-                ) : null;
-                return [heading, (
-                <tr key={r.criterionId} className="align-top hover:bg-surface-subtle">
-                  <td className={`${TD} type-meta-mono whitespace-nowrap`}>
-                    <Link
-                      href={`/criteria/${encodeURIComponent(r.number)}`}
-                      className="text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                    >
-                      {r.number}
-                    </Link>
-                  </td>
-                  <td className={TD}>{r.title}</td>
-                  <td className={TD}>{chapterDisplayName(r.chapter)}</td>
-                  <td className={`${TD} whitespace-nowrap`}>{scopeLabel(r)}</td>
-                  <td className={TD}>
-                    <Badge tone={STATUS_BADGE[r.status]} dot>{STATUS_LABEL[r.status]}</Badge>
-                    {r.status === "not_applicable" && r.notApplicableReason && (
-                      <p className="type-meta mt-1 max-w-[48ch] text-text-muted">Begründung: {r.notApplicableReason}</p>
-                    )}
-                  </td>
-                  <td className={`${TD} whitespace-nowrap`}>
-                    {(() => {
-                      const state = evidenceOf(r, info);
-                      return state === null ? (
-                        <span className="text-text-muted">-</span>
-                      ) : (
-                        <Badge tone={EVIDENCE_BADGE[state]}>{EVIDENCE_LABEL[state]}</Badge>
-                      );
-                    })()}
-                  </td>
-                </tr>
-                )];
+                const startsGroup = i === 0 || criteriaGroupOf(rows[i - 1].number).key !== group.key;
+                return [
+                  startsGroup ? <GroupHeadingRow key={`group-${group.key}`} group={group} colSpan={6} /> : null,
+                  <tr key={r.criterionId} className="align-top hover:bg-surface-subtle">
+                    <td className={`${TD} type-meta-mono whitespace-nowrap`}>
+                      <Link
+                        href={`/criteria/${encodeURIComponent(r.number)}`}
+                        className="text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                      >
+                        {r.number}
+                      </Link>
+                    </td>
+                    <td className={TD}>{r.title}</td>
+                    <td className={TD}>{chapterDisplayName(r.chapter)}</td>
+                    <td className={`${TD} whitespace-nowrap`}>{scopeLabel(r)}</td>
+                    <td className={TD}>
+                      <Badge tone={STATUS_BADGE[r.status]} dot>{STATUS_LABEL[r.status]}</Badge>
+                      {r.status === "not_applicable" && r.notApplicableReason && (
+                        <p className="type-meta mt-1 max-w-[48ch] text-text-muted">Begründung: {r.notApplicableReason}</p>
+                      )}
+                    </td>
+                    <td className={`${TD} whitespace-nowrap`}>
+                      {(() => {
+                        const state = evidenceOf(r, info);
+                        return state === null ? (
+                          <span className="text-text-muted">-</span>
+                        ) : (
+                          <Badge tone={EVIDENCE_BADGE[state]}>{EVIDENCE_LABEL[state]}</Badge>
+                        );
+                      })()}
+                    </td>
+                  </tr>,
+                ];
               })
             )}
           </tbody>

@@ -27,12 +27,14 @@ export function chapterDisplayName(chapter: string): string {
   return chapter === "Antrag" ? "Dossier-Unterlagen" : chapter;
 }
 
-export type CriteriaGroup = { key: "dossier" | "6" | "7" | "8"; heading: string };
+export type CriteriaGroup = { key: "dossier" | "6" | "7" | "8" | "other"; heading: string };
 
 /** Gruppe einer Katalognummer nach Richtlinienkapitel; 5.2.x gehört zu den Dossier-Unterlagen. */
 export function criteriaGroupOf(number: string): CriteriaGroup {
-  if (number.startsWith("5.")) return { key: "dossier", heading: "Dossier-Unterlagen (Handbuch 5.2)" };
-  if (number.startsWith("6")) return { key: "6", heading: "6 Strukturkriterien" };
-  if (number.startsWith("7")) return { key: "7", heading: "7 Prozesskriterien" };
-  return { key: "8", heading: "8 Ergebniskriterien" };
+  const chapter = number.split(".")[0];
+  if (chapter === "5" && number.startsWith("5.2.")) return { key: "dossier", heading: "Dossier-Unterlagen (Handbuch 5.2)" };
+  if (chapter === "6") return { key: "6", heading: "6 Strukturkriterien" };
+  if (chapter === "7") return { key: "7", heading: "7 Prozesskriterien" };
+  if (chapter === "8") return { key: "8", heading: "8 Ergebniskriterien" };
+  return { key: "other", heading: "Weitere Kriterien" };
 }

@@ -99,6 +99,9 @@ describe("display names", () => {
     expect(heading("6.11.2")).toBe("6 Strukturkriterien");
     expect(heading("7.10")).toBe("7 Prozesskriterien");
     expect(heading("8.1.5")).toBe("8 Ergebniskriterien");
+    expect(criteriaGroupOf("9.1")).toEqual({ key: "other", heading: "Weitere Kriterien" });
+    expect(criteriaGroupOf("5.1").key).toBe("other");
+    expect(criteriaGroupOf("60.1").key).toBe("other");
     for (const r of catalog) {
       expect(criteriaGroupOf(r.nummer).key === "dossier").toBe(r.kapitel === "Antrag");
     }
