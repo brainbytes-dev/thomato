@@ -1,9 +1,12 @@
+import { chapterLabel, wissenChapterBySlug } from "@/content/wissen";
+
 export type Crumb = { label: string; href?: string };
 
 const SECTIONS: ReadonlyArray<{ prefix: string; label: string }> = [
   { prefix: "/criteria", label: "Kriterien" },
   { prefix: "/measures", label: "Massnahmen" },
   { prefix: "/documents", label: "Dokumente" },
+  { prefix: "/wissen", label: "Wissen" },
 ];
 
 /** Brotkrumen «Organisation / Bereich [/ Detail]» aus dem Pfad. Das letzte Element ist die aktuelle Seite. */
@@ -16,6 +19,10 @@ export function breadcrumbsFor(pathname: string, organizationName: string): Crum
   if (rest.length === 0) return [org, { label: section.label }];
   // Massnahmen-IDs sind UUIDs und taugen nicht als Beschriftung.
   if (section.prefix === "/measures") return [org, { label: section.label, href: section.prefix }, { label: "Detail" }];
+  if (section.prefix === "/wissen") {
+    const chapter = wissenChapterBySlug(rest[0]);
+    return [org, { label: section.label, href: section.prefix }, { label: chapter ? chapterLabel(chapter) : "Kapitel" }];
+  }
   let detail = rest[0];
   try {
     detail = decodeURIComponent(detail);

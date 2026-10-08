@@ -22,6 +22,17 @@ describe("breadcrumbsFor", () => {
     expect(breadcrumbsFor("/criteria/%E0%A4%A", "Org").at(-1)).toEqual({ label: "%E0%A4%A" });
   });
 
+  it("builds Organisation / Wissen / Kapitel", () => {
+    expect(breadcrumbsFor("/wissen", "Org")).toEqual([{ label: "Org" }, { label: "Wissen" }]);
+    expect(breadcrumbsFor("/wissen/5", "Org")).toEqual([
+      { label: "Org" },
+      { label: "Wissen", href: "/wissen" },
+      { label: "5 Erneuerung der Anerkennung" },
+    ]);
+    expect(breadcrumbsFor("/wissen/kriterien", "Org").at(-1)).toEqual({ label: "Kriterien (Kapitel 6 bis 8)" });
+    expect(breadcrumbsFor("/wissen/unbekannt", "Org").at(-1)).toEqual({ label: "Kapitel" });
+  });
+
   it("labels a measure detail page without showing the id", () => {
     expect(breadcrumbsFor("/measures/3f2b8c1e-5d4a-4e6b-9a7c-1b2c3d4e5f60", "Org")).toEqual([
       { label: "Org" },

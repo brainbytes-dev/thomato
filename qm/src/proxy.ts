@@ -1,10 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getSessionCookie } from "better-auth/cookies";
+import { isWissenSlug } from "@/content/wissen";
 import { criterionExistsMemoized } from "@/domain/criterion-lookup";
 import { measureProvablyMissing } from "@/domain/measure-lookup";
 
 const CRITERION_PATH = /^\/criteria\/([^/]+)\/?$/;
 const MEASURE_PATH = /^\/measures\/([^/]+)\/?$/;
+const WISSEN_PATH = /^\/wissen\/(.+?)\/?$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // Fällt die Katalogabfrage aus (Datenbank kurz weg), geht die Anfrage weiter: Die Seite prüft ohnehin selbst
@@ -48,6 +50,17 @@ export async function proxy(request: NextRequest) {
   if (measure && !UUID.test(measure[1])) {
     return NextResponse.rewrite(new URL("/_not-found", request.url), { status: 404 });
   }
+  // Wissensseiten sind statisch: Ein unbekanntes Kapitel bekommt den echten 404, auch ohne Sitzung (kein Mandantenbezug).
+  const wissen = WISSEN_PATH.exec(request.nextUrl.pathname);
+  if (wissen) {
+    let slug = wissen[1];
+    try {
+      slug = decodeURIComponent(slug);
+    } catch {
+      // Ungültige Kodierung: bleibt unbekannt.
+    }
+    if (!isWissenSlug(slug)) return NextResponse.rewrite(new URL("/_not-found", request.url), { status: 404 });
+  }
   // Nur ein schneller Cookie-Check. Die eigentliche Prüfung macht requireOrgContext() serverseitig.
   const sessionCookie = getSessionCookie(request);
   if (!sessionCookie) {
@@ -63,4 +76,4 @@ export async function proxy(request: NextRequest) {
   return NextResponse.next();
 }
 
-export const config = { matcher: ["/", "/criteria/:path*", "/measures/:path*", "/documents/:path*"] };
+export const config = { matcher: ["/", "/criteria/:path*", "/measures/:path*", "/documents/:path*", "/wissen/:path*"] };

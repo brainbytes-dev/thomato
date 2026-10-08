@@ -68,3 +68,25 @@ describe("proxy measure detail", () => {
     expect((await proxy(req(`/measures/${id}`, "better-auth.session_token=x.y"))).headers.get("x-middleware-next")).toBe("1");
   });
 });
+
+describe("proxy wissen", () => {
+  it("answers unknown chapter slugs with a 404 rewrite, even anonymously", () => {
+    return Promise.all(
+      ["/wissen/10", "/wissen/abc", "/wissen/%E0%A4%A", "/wissen/1/extra"].map(async (path) => {
+        const res = await proxy(req(path));
+        expect(res.status, path).toBe(404);
+        expect(res.headers.get("x-middleware-rewrite")).toContain("/_not-found");
+      }),
+    );
+  });
+
+  it("redirects known pages without a session and lets them through with one", async () => {
+    for (const path of ["/wissen", "/wissen/1", "/wissen/kriterien", "/wissen?q=frist"]) {
+      const res = await proxy(req(path));
+      expect(res.status, path).toBe(307);
+      expect(res.headers.get("location")).toBe("http://localhost:3000/login");
+      expect((await proxy(req(path, "better-auth.session_token=x.y"))).headers.get("x-middleware-next"), path).toBe("1");
+    }
+    expect(config.matcher).toContain("/wissen/:path*");
+  });
+});

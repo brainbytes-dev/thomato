@@ -22,9 +22,15 @@ function render(path: string): string {
 }
 
 describe("AppShell", () => {
+  it("lists Wissen after Dokumente and marks it active on a chapter page", () => {
+    const html = render("/wissen/5");
+    expect(html.indexOf("Dokumente")).toBeLessThan(html.indexOf(">Wissen<"));
+    expect(html).toMatch(/<a [^>]*(aria-current="page"[^>]*href="\/wissen"|href="\/wissen"[^>]*aria-current="page")/);
+  });
+
   it("offers only the real navigation targets", () => {
     const html = render("/");
-    for (const label of ["Übersicht", "Kriterien", "Massnahmen", "Dokumente"]) expect(html).toContain(label);
+    for (const label of ["Übersicht", "Kriterien", "Massnahmen", "Dokumente", "Wissen"]) expect(html).toContain(label);
     for (const phantom of ["Betriebshandbuch", "Fälle", "Analysen", "Qualitätskreisläufe", "THOMATO", "IVR"]) {
       expect(html).not.toContain(phantom);
     }

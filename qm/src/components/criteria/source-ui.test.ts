@@ -41,8 +41,8 @@ describe("criteria legend", () => {
   it("explains Muss, Soll and Auswahl and points to the knowledge area", () => {
     for (const t of ["Muss", "Soll", "Auswahl", "Mindestanzahl", "Bereich Wissen"]) expect(html).toContain(t);
   });
-  it("renders no link while the knowledge area does not exist", () => {
-    expect(html).not.toContain("<a ");
+  it("links to the selection section of chapter 1 now that the knowledge area exists", () => {
+    expect(html).toContain('href="/wissen/1#auswahl"');
   });
 });
 
