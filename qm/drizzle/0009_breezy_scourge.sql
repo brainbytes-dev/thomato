@@ -5,7 +5,7 @@ CREATE TABLE "measure_review" (
 	"cycle" integer NOT NULL,
 	"result" text NOT NULL,
 	"note" text NOT NULL,
-	"checked_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"checked_at" timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
 	"checked_by" text NOT NULL,
 	CONSTRAINT "measure_review_result_check" CHECK ("measure_review"."result" in ('effective', 'partly', 'not_effective')),
 	CONSTRAINT "measure_review_note_check" CHECK (char_length(btrim("measure_review"."note")) BETWEEN 3 AND 1000),

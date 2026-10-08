@@ -1,11 +1,13 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { db, type Tx } from "@/db";
-import { ACTIVE_STANDARD_VERSION, criterion, MEASURE_STATUSES, member, measure, user, type MeasureStatus } from "@/db/schema";
+import {
+  ACTIVE_STANDARD_VERSION, criterion, MEASURE_STATUSES, member, measure, user, type MeasurePhase, type MeasureStatus,
+} from "@/db/schema";
 import { insertAuditEvent, withAudit, type AuditEventInput } from "./audit";
 import { daysUntil, isValidIsoDate } from "./dates";
 import { assertCan, ValidationError, type OrgContext } from "./org-context";
 
-export type { MeasureStatus };
+export type { MeasurePhase, MeasureStatus };
 
 export type MeasureView = {
   id: string;
@@ -16,6 +18,8 @@ export type MeasureView = {
   ownerName: string | null;
   dueDate: string;
   status: MeasureStatus;
+  phase: MeasurePhase;
+  cycle: number;
   completedAt: Date | null;
   createdAt: Date;
   days: number;
@@ -31,7 +35,7 @@ const TITLE_MIN = 3;
 const TITLE_MAX = 120;
 const DESCRIPTION_MAX = 1000;
 const OWNER_ID_MAX = 64;
-const NOT_FOUND = "Die Massnahme wurde nicht gefunden.";
+export const MEASURE_NOT_FOUND = "Die Massnahme wurde nicht gefunden.";
 
 function validateFields(input: MeasureFields): MeasureFields {
   const title = input.title.trim();
@@ -70,19 +74,20 @@ async function ownerNameOf(tx: Tx, ctx: OrgContext, userId: string): Promise<str
   return row.name;
 }
 
-async function lockMeasure(tx: Tx, ctx: OrgContext, id: string) {
-  if (!UUID.test(id)) throw new ValidationError(NOT_FOUND);
+/** Sperrt die Zeile der eigenen Organisation (FOR UPDATE); fremde, unbekannte und fehlerhafte IDs liefern dieselbe Meldung. */
+export async function lockMeasure(tx: Tx, ctx: OrgContext, id: string) {
+  if (!UUID.test(id)) throw new ValidationError(MEASURE_NOT_FOUND);
   const [row] = await tx
     .select()
     .from(measure)
     .where(and(eq(measure.id, id), eq(measure.organizationId, ctx.organizationId)))
     .for("update");
-  if (!row) throw new ValidationError(NOT_FOUND);
+  if (!row) throw new ValidationError(MEASURE_NOT_FOUND);
   return row;
 }
 
 /** Wie withAudit, aber ohne Event, wenn die Aktion nichts geändert hat (No-op). */
-async function withOptionalAudit<T>(
+export async function withOptionalAudit<T>(
   ctx: OrgContext,
   fn: (tx: Tx) => Promise<{ result: T; event: AuditEventInput | null }>,
 ): Promise<T> {
@@ -175,43 +180,58 @@ export async function updateMeasure(
   });
 }
 
+/**
+ * Kompatibler Status-Wechsel für Plan und Do: «in_progress» setzt die Phase Do, «open» die Phase Plan.
+ * Abgeschlossen wird nur in der Phase Act (closeMeasure); in Check und Act steuern allein die Phasenaktionen.
+ */
 export async function setMeasureStatus(
   ctx: OrgContext,
   id: string,
   status: MeasureStatus,
-  now: Date,
+  _now?: Date,
 ): Promise<{ status: MeasureStatus; completedAt: Date | null; criterionNumber: string }> {
   assertCan(ctx, "measure", "write");
   if (!MEASURE_STATUSES.includes(status)) throw new ValidationError("Der Status ist ungültig.");
 
   return withOptionalAudit(ctx, async (tx) => {
     const row = await lockMeasure(tx, ctx, id);
-    if (row.status === status) return { result: { status: row.status, completedAt: row.completedAt, criterionNumber: row.criterionNumber }, event: null };
-    const completedAt = status === "done" ? now : null;
+    if (status === "done") throw new ValidationError("Abgeschlossen wird eine Massnahme in der Phase Act.");
+    if (row.phase === "check" || row.phase === "act") {
+      throw new ValidationError(
+        `In der Phase ${row.phase === "check" ? "Check" : "Act"} wird der Status nur über die Phasenaktionen geändert.`,
+      );
+    }
+    const phase: MeasurePhase = status === "in_progress" ? "do" : "plan";
+    const unchanged = { status: row.status, completedAt: row.completedAt, criterionNumber: row.criterionNumber };
+    if (row.status === status && row.phase === phase) return { result: unchanged, event: null };
     await tx
       .update(measure)
-      .set({ status, completedAt, updatedAt: new Date() })
+      .set({ status, phase, completedAt: null, updatedAt: new Date() })
       .where(and(eq(measure.id, row.id), eq(measure.organizationId, ctx.organizationId)));
     const numbers = [row.criterionNumber];
+    const statusChanged = row.status !== status;
     return {
-      result: { status, completedAt, criterionNumber: row.criterionNumber },
+      result: { status, completedAt: null, criterionNumber: row.criterionNumber },
       event: {
-        eventType: "measure.status_changed",
+        // Nur die Phase hat gewechselt (z. B. Plan zu Do bei gleichem Status): kein Statuswechsel, sondern Phasenwechsel.
+        eventType: statusChanged ? "measure.status_changed" : "measure.phase_changed",
         entityType: "measure",
         entityId: row.id,
         before: {
           status: row.status,
+          phase: row.phase,
+          cycle: row.cycle,
           completedAt: row.completedAt ? row.completedAt.toISOString() : null,
           title: row.title,
           criterionNumbers: numbers,
         },
-        after: { status, completedAt: completedAt ? completedAt.toISOString() : null, title: row.title, criterionNumbers: numbers },
+        after: { status, phase, cycle: row.cycle, completedAt: null, title: row.title, criterionNumbers: numbers },
       },
     };
   });
 }
 
-const viewColumns = {
+export const viewColumns = {
   id: measure.id,
   criterionNumber: measure.criterionNumber,
   title: measure.title,
@@ -220,13 +240,15 @@ const viewColumns = {
   ownerName: user.name,
   dueDate: measure.dueDate,
   status: measure.status,
+  phase: measure.phase,
+  cycle: measure.cycle,
   completedAt: measure.completedAt,
   createdAt: measure.createdAt,
 };
 
-type ViewRow = Omit<MeasureView, "days" | "overdue">;
+export type ViewRow = Omit<MeasureView, "days" | "overdue">;
 
-function toView(r: ViewRow, now: Date): MeasureView {
+export function toView(r: ViewRow, now: Date): MeasureView {
   const days = daysUntil(r.dueDate, now);
   return { ...r, days, overdue: days < 0 && r.status !== "done" };
 }

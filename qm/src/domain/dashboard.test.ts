@@ -8,7 +8,8 @@ import { importCatalog } from "./catalog";
 import { buildActionItems, chapterProgress, getDashboard, selectActionItems, type ActionItem } from "./dashboard";
 import { createDocument, getEvidenceInfo } from "./documents";
 import type { DeadlineView } from "./deadlines";
-import { createMeasure, setMeasureStatus, type OpenMeasureView } from "./measures";
+import { createMeasure, type OpenMeasureView } from "./measures";
+import { finishMeasure } from "@/test/measure-helpers";
 import { ctxFor, makeOrg, resetDb } from "@/test/helpers";
 import { eq } from "drizzle-orm";
 
@@ -486,7 +487,7 @@ describe("getDashboard", () => {
     await createMeasure(ctxA, { ...base, title: "Bald", dueDate: "2026-10-17" });
     await createMeasure(ctxA, { ...base, title: "Weit weg", dueDate: "2027-03-01" });
     const { id: doneId } = await createMeasure(ctxA, { ...base, title: "Erledigt", dueDate: "2026-09-01" });
-    await setMeasureStatus(ctxA, doneId, "done", NOW);
+    await finishMeasure(ctxA, doneId, NOW);
 
     const dash = await getDashboard(ctxA, NOW);
     expect(dash.measures).toEqual({ open: 3, overdue: 1 });

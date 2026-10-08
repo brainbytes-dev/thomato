@@ -19,7 +19,10 @@ import { ACTIVE_STANDARD_VERSION, criterion, document, documentVersion, measure 
 import { importCatalog } from "@/domain/catalog";
 import { setAssessmentStatus, listCriterionHistory } from "@/domain/assessments";
 import { addDocumentVersion, createDocument } from "@/domain/documents";
-import { createMeasure, setMeasureStatus } from "@/domain/measures";
+import { createMeasure } from "@/domain/measures";
+import {
+  addStep, closeMeasure, completeDo, completePlan, recordEffectiveness, removeStep, renameStep, toggleStep,
+} from "@/domain/measure-pdca";
 import { getDashboard } from "@/domain/dashboard";
 import { authId } from "@/test/helpers";
 import { eq } from "drizzle-orm";
@@ -85,9 +88,20 @@ describe("core services run end to end as qm_app", () => {
     const { id: measureId } = await createMeasure(ctx, {
       criterionNumber: "7.3.10", title: "Schulung planen", description: null, ownerUserId: userId, dueDate: "2026-11-15",
     });
-    const done = await setMeasureStatus(ctx, measureId, "done", NOW);
-    expect(done.status).toBe("done");
-    expect(await ownerDb.select().from(measure).where(eq(measure.id, measureId))).toHaveLength(1);
+    // Ganzer PDCA-Kreislauf als qm_app: Checkliste ändern und löschen, Bewertung nur anfügen.
+    await completePlan(ctx, measureId);
+    const { stepId } = await addStep(ctx, measureId, "Schulung durchführen");
+    const { stepId: extraId } = await addStep(ctx, measureId, "Überflüssiger Schritt");
+    await renameStep(ctx, measureId, stepId, "Schulung durchführen und dokumentieren");
+    await removeStep(ctx, measureId, extraId);
+    await toggleStep(ctx, measureId, stepId, true, NOW);
+    await completeDo(ctx, measureId, {});
+    await recordEffectiveness(ctx, measureId, { result: "partly", note: "Teilweise wirksam" });
+    await closeMeasure(ctx, measureId, { reason: "Restrisiko ist bekannt und akzeptiert" }, NOW);
+    const [closed] = await ownerDb.select().from(measure).where(eq(measure.id, measureId));
+    expect(closed).toMatchObject({ status: "done", phase: "act" });
+    expect(await ownerDb.select().from(schema.measureStep).where(eq(schema.measureStep.measureId, measureId))).toHaveLength(1);
+    expect(await ownerDb.select().from(schema.measureReview).where(eq(schema.measureReview.measureId, measureId))).toHaveLength(1);
 
     // Lesepfade
     const dash = await getDashboard(ctx, NOW);

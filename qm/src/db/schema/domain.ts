@@ -301,7 +301,8 @@ export const measureReview = pgTable(
     cycle: integer("cycle").notNull(),
     result: text("result", { enum: REVIEW_RESULTS }).notNull(),
     note: text("note").notNull(),
-    checkedAt: timestamp("checked_at", { withTimezone: true }).notNull().defaultNow(),
+    // clock_timestamp: streng monoton innerhalb der durch die Zeilensperre serialisierten Einfügungen (wie audit_event).
+    checkedAt: timestamp("checked_at", { withTimezone: true }).notNull().default(sql`clock_timestamp()`),
     checkedBy: text("checked_by")
       .notNull()
       .references(() => user.id),

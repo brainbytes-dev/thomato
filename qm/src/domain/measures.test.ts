@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { seedAuth } from "@/auth/seed-auth";
 import { ACTIVE_STANDARD_VERSION, auditEvent, criterionAssessment, member, measure } from "@/db/schema";
@@ -9,11 +9,13 @@ import { listCriterionHistory } from "./assessments";
 import {
   createMeasure, listAllMeasures, listCriterionMeasures, listOpenMeasures, listOrgMembers, setMeasureStatus, updateMeasure,
 } from "./measures";
+import { closeMeasure, completeDo, completePlan, recordEffectiveness } from "./measure-pdca";
 import { ROLES } from "./rights";
 import { filterMeasures } from "./measure-filter";
 import { ForbiddenError, ValidationError } from "./org-context";
 import { randomUUID } from "node:crypto";
 import { addMemberTo, ctxFor, makeOrg, resetDb } from "@/test/helpers";
+import { finishMeasure } from "@/test/measure-helpers";
 
 const NOW = new Date("2026-10-08T10:00:00Z");
 
@@ -128,7 +130,7 @@ describe("rights", () => {
     await expect(
       updateMeasure(ctxV, id, { title: "Neuer Titel", description: null, ownerUserId: a.user.id, dueDate: "2026-12-01" }),
     ).rejects.toBeInstanceOf(ForbiddenError);
-    await expect(setMeasureStatus(ctxV, id, "done", NOW)).rejects.toBeInstanceOf(ForbiddenError);
+    await expect(setMeasureStatus(ctxV, id, "in_progress", NOW)).rejects.toBeInstanceOf(ForbiddenError);
     expect(await listAuditEvents(ctxA)).toHaveLength(1);
   });
 });
@@ -136,34 +138,76 @@ describe("rights", () => {
 describe("setMeasureStatus", () => {
   beforeEach(resetDb);
 
-  it("walks open, in_progress, done, open with correct completedAt and events", async () => {
+  it("walks open, in_progress, open with phase, completedAt and events", async () => {
     const { ctxA, a } = await setup();
     const { id } = await createMeasure(ctxA, valid(a.user.id));
-    const base = { title: "Hygieneschulung planen", criterionNumbers: ["7.3.10"] };
+    const base = { title: "Hygieneschulung planen", criterionNumbers: ["7.3.10"], cycle: 1, completedAt: null };
 
     expect(await setMeasureStatus(ctxA, id, "in_progress", NOW)).toEqual({ status: "in_progress", completedAt: null, criterionNumber: "7.3.10" });
-    expect(await setMeasureStatus(ctxA, id, "done", NOW)).toEqual({ status: "done", completedAt: NOW, criterionNumber: "7.3.10" });
     expect(await setMeasureStatus(ctxA, id, "open", NOW)).toEqual({ status: "open", completedAt: null, criterionNumber: "7.3.10" });
+    expect(await db.select({ phase: measure.phase }).from(measure)).toEqual([{ phase: "plan" }]);
 
     const events = (await listAuditEvents(ctxA))
       .filter((e) => e.eventType === "measure.status_changed")
       .reverse();
     expect(events.map((e) => [e.beforeJson, e.afterJson])).toEqual([
-      [{ ...base, status: "open", completedAt: null }, { ...base, status: "in_progress", completedAt: null }],
-      [{ ...base, status: "in_progress", completedAt: null }, { ...base, status: "done", completedAt: NOW.toISOString() }],
-      [{ ...base, status: "done", completedAt: NOW.toISOString() }, { ...base, status: "open", completedAt: null }],
+      [{ ...base, status: "open", phase: "plan" }, { ...base, status: "in_progress", phase: "do" }],
+      [{ ...base, status: "in_progress", phase: "do" }, { ...base, status: "open", phase: "plan" }],
     ]);
+  });
+
+  it("sets the phase together with the status: in_progress means Do, open means Plan", async () => {
+    const { ctxA, a } = await setup();
+    const { id } = await createMeasure(ctxA, valid(a.user.id));
+    await setMeasureStatus(ctxA, id, "in_progress", NOW);
+    expect(await db.select({ phase: measure.phase, status: measure.status }).from(measure)).toEqual([{ phase: "do", status: "in_progress" }]);
+    await setMeasureStatus(ctxA, id, "open", NOW);
+    expect(await db.select({ phase: measure.phase, status: measure.status }).from(measure)).toEqual([{ phase: "plan", status: "open" }]);
+  });
+
+  it("writes a phase_changed event when only the phase moves (Plan with status in_progress to Do)", async () => {
+    const { ctxA, a } = await setup();
+    const { id } = await createMeasure(ctxA, valid(a.user.id));
+    await db.update(measure).set({ status: "in_progress" }).where(eq(measure.id, id));
+    await setMeasureStatus(ctxA, id, "in_progress", NOW);
+    expect((await listAuditEvents(ctxA, 1))[0]).toMatchObject({
+      eventType: "measure.phase_changed", beforeJson: { phase: "plan" }, afterJson: { phase: "do", status: "in_progress" },
+    });
+  });
+
+  it("refuses done with a clear message and writes nothing", async () => {
+    const { ctxA, a } = await setup();
+    const { id } = await createMeasure(ctxA, valid(a.user.id));
+    await expect(setMeasureStatus(ctxA, id, "done", NOW)).rejects.toThrow(
+      new ValidationError("Abgeschlossen wird eine Massnahme in der Phase Act."),
+    );
+    expect(await listAuditEvents(ctxA)).toHaveLength(1);
+    expect(await db.select({ status: measure.status, completedAt: measure.completedAt }).from(measure)).toEqual([{ status: "open", completedAt: null }]);
+  });
+
+  it("leaves the status to the phase actions in Check and Act", async () => {
+    const { ctxA, a } = await setup();
+    const { id } = await createMeasure(ctxA, valid(a.user.id));
+    await completePlan(ctxA, id);
+    await completeDo(ctxA, id, { confirmNoSteps: true });
+    const before = (await listAuditEvents(ctxA)).length;
+    for (const status of ["open", "in_progress"] as const) {
+      await expect(setMeasureStatus(ctxA, id, status, NOW)).rejects.toThrow(/Phase Check/);
+    }
+    await recordEffectiveness(ctxA, id, { result: "partly", note: "Teilweise wirksam" });
+    await expect(setMeasureStatus(ctxA, id, "open", NOW)).rejects.toThrow(/Phase Act/);
+    expect((await listAuditEvents(ctxA)).length).toBe(before + 1);
+    await closeMeasure(ctxA, id, { reason: "Restrisiko akzeptiert" }, NOW);
+    await expect(setMeasureStatus(ctxA, id, "in_progress", NOW)).rejects.toBeInstanceOf(ValidationError);
+    expect(await db.select({ status: measure.status }).from(measure)).toEqual([{ status: "done" }]);
   });
 
   it("is a no-op for the same status", async () => {
     const { ctxA, a } = await setup();
     const { id } = await createMeasure(ctxA, valid(a.user.id));
-    await setMeasureStatus(ctxA, id, "done", NOW);
-    const later = new Date("2026-10-09T10:00:00Z");
-    expect(await setMeasureStatus(ctxA, id, "done", later)).toEqual({ status: "done", completedAt: NOW, criterionNumber: "7.3.10" });
+    await setMeasureStatus(ctxA, id, "in_progress", NOW);
+    expect(await setMeasureStatus(ctxA, id, "in_progress", new Date("2026-10-09T10:00:00Z"))).toEqual({ status: "in_progress", completedAt: null, criterionNumber: "7.3.10" });
     expect((await listAuditEvents(ctxA)).filter((e) => e.eventType === "measure.status_changed")).toHaveLength(1);
-    const [row] = await db.select().from(measure);
-    expect(row.completedAt).toEqual(NOW);
   });
 
   it("rejects a status outside the list", async () => {
@@ -180,7 +224,7 @@ describe("updateMeasure", () => {
   it("changes the four fields, audits before/after and leaves status untouched", async () => {
     const { ctxA, a, colleague } = await setup();
     const { id } = await createMeasure(ctxA, valid(a.user.id));
-    await setMeasureStatus(ctxA, id, "done", NOW);
+    await finishMeasure(ctxA, id, NOW);
     await updateMeasure(ctxA, id, {
       title: "Hygieneschulung durchführen", description: null, ownerUserId: colleague.id, dueDate: "2026-12-01",
     });
@@ -249,8 +293,8 @@ describe("listings", () => {
     const d1 = await createMeasure(ctxA, { ...valid(a.user.id), title: "Erledigt eins", dueDate: "2026-09-01" });
     const d2 = await createMeasure(ctxA, { ...valid(a.user.id), title: "Erledigt zwei", dueDate: "2026-09-02" });
     await createMeasure(ctxA, { ...valid(a.user.id), title: "Andere Nummer", criterionNumber: "6.3.2", dueDate: "2026-10-10" });
-    await setMeasureStatus(ctxA, d1.id, "done", new Date("2026-10-01T10:00:00Z"));
-    await setMeasureStatus(ctxA, d2.id, "done", new Date("2026-10-05T10:00:00Z"));
+    await finishMeasure(ctxA, d1.id, new Date("2026-10-01T10:00:00Z"));
+    await finishMeasure(ctxA, d2.id, new Date("2026-10-05T10:00:00Z"));
     await setMeasureStatus(ctxA, late.id, "in_progress", NOW);
 
     const list = await listCriterionMeasures(ctxA, "7.3.10", NOW);
@@ -266,25 +310,20 @@ describe("listings", () => {
 describe("concurrency", () => {
   beforeEach(resetDb);
 
-  it("serializes concurrent status changes: two events chained, never done without a date", async () => {
+  it("serializes concurrent status changes: the events form one chain and status and phase stay a valid pair", async () => {
     const { ctxA, a } = await setup();
     for (let round = 0; round < 8; round++) {
       const { id } = await createMeasure(ctxA, { ...valid(a.user.id), title: `Runde ${round}` });
-      await Promise.all([setMeasureStatus(ctxA, id, "in_progress", NOW), setMeasureStatus(ctxA, id, "done", NOW)]);
-      const events = (await db.select().from(auditEvent).where(and(eq(auditEvent.entityId, id), eq(auditEvent.eventType, "measure.status_changed"))))
-        .sort((x, y) => x.createdAt.getTime() - y.createdAt.getTime());
-      expect(events).toHaveLength(2);
-      const stat = (v: unknown) => (v as { status: string }).status;
-      const first = events.filter((e) => stat(e.beforeJson) === "open");
-      expect(first).toHaveLength(1);
-      const second = events.find((e) => e !== first[0])!;
-      expect(second.beforeJson).toEqual(first[0].afterJson);
+      await Promise.all([setMeasureStatus(ctxA, id, "in_progress", NOW), setMeasureStatus(ctxA, id, "open", NOW), setMeasureStatus(ctxA, id, "in_progress", NOW)]);
+      const events = (await db.select().from(auditEvent).where(and(eq(auditEvent.entityId, id), eq(auditEvent.eventType, "measure.status_changed"))).orderBy(asc(auditEvent.createdAt)));
+      expect(events.length).toBeGreaterThanOrEqual(1);
+      expect(events[0].beforeJson).toMatchObject({ status: "open", phase: "plan" });
+      for (let i = 1; i < events.length; i++) expect(events[i].beforeJson).toEqual(events[i - 1].afterJson);
       const [row] = await db.select().from(measure).where(eq(measure.id, id));
-      if (row.status === "done") expect(row.completedAt).not.toBeNull();
-      else {
-        expect(row.status).toBe("in_progress");
-        expect(row.completedAt).toBeNull();
-      }
+      expect(row.completedAt).toBeNull();
+      const last = events.at(-1)!.afterJson as { status: string; phase: string };
+      expect([row.status, row.phase]).toEqual([last.status, last.phase]);
+      expect([`${row.status}/${row.phase}`]).toEqual([expect.stringMatching(/^(open\/plan|in_progress\/do)$/)]);
     }
   });
 });
@@ -319,7 +358,7 @@ describe("side effects", () => {
   it("never touches criterion_assessment", async () => {
     const { ctxA, a } = await setup();
     const { id } = await createMeasure(ctxA, valid(a.user.id));
-    await setMeasureStatus(ctxA, id, "done", NOW);
+    await finishMeasure(ctxA, id, NOW);
     await updateMeasure(ctxA, id, { title: "Anderer Titel", description: null, ownerUserId: a.user.id, dueDate: "2026-12-01" });
     expect(await db.select().from(criterionAssessment)).toEqual([]);
   });
@@ -382,7 +421,7 @@ describe("listAllMeasures", () => {
     const wip = await createMeasure(ctxA, { ...valid(a.user.id), title: "Läuft", dueDate: "2026-10-20" });
     const done = await createMeasure(ctxA, { ...valid(a.user.id), title: "Fertig", dueDate: "2026-09-01" });
     await setMeasureStatus(ctxA, wip.id, "in_progress", NOW);
-    await setMeasureStatus(ctxA, done.id, "done", NOW);
+    await finishMeasure(ctxA, done.id, NOW);
 
     const all = await listAllMeasures(ctxA, NOW);
     expect(all.map((m) => m.title)).toEqual(["Überfällig", "Läuft", "Spät", "Fertig"]);
@@ -398,7 +437,7 @@ describe("listAllMeasures", () => {
     const wip = await createMeasure(ctxA, { ...valid(a.user.id), title: "Zwei" });
     const done = await createMeasure(ctxA, { ...valid(a.user.id), title: "Drei" });
     await setMeasureStatus(ctxA, wip.id, "in_progress", NOW);
-    await setMeasureStatus(ctxA, done.id, "done", NOW);
+    await finishMeasure(ctxA, done.id, NOW);
     const all = await listAllMeasures(ctxA, NOW);
     const filtered = filterMeasures(all, { status: "active", owner: "all", query: "" });
     expect(filtered).toHaveLength((await listOpenMeasures(ctxA, NOW)).length);
