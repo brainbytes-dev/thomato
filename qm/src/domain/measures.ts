@@ -258,8 +258,7 @@ export async function listCriterionMeasures(ctx: OrgContext, number: string, now
   return sortViews(rows.map((r) => toView(r, now)));
 }
 
-export async function listOpenMeasures(ctx: OrgContext, now: Date): Promise<OpenMeasureView[]> {
-  assertCan(ctx, "measure", "read");
+async function listWithCriterion(ctx: OrgContext, now: Date, statuses: readonly MeasureStatus[] | null): Promise<OpenMeasureView[]> {
   const rows = await db
     .select({ ...viewColumns, criterionTitle: criterion.title })
     .from(measure)
@@ -272,11 +271,22 @@ export async function listOpenMeasures(ctx: OrgContext, now: Date): Promise<Open
       and(
         eq(measure.organizationId, ctx.organizationId),
         eq(measure.standardVersionId, ACTIVE_STANDARD_VERSION),
-        inArray(measure.status, ["open", "in_progress"]),
+        statuses ? inArray(measure.status, [...statuses]) : undefined,
       ),
     )
     .orderBy(asc(measure.dueDate), asc(measure.id));
   return sortViews(rows.map(({ criterionTitle, ...r }) => ({ ...toView(r, now), criterionTitle })));
+}
+
+export async function listOpenMeasures(ctx: OrgContext, now: Date): Promise<OpenMeasureView[]> {
+  assertCan(ctx, "measure", "read");
+  return listWithCriterion(ctx, now, ["open", "in_progress"]);
+}
+
+/** Alle Massnahmen der Organisation (jeder Status, alle Kriterien) für das Register. */
+export async function listAllMeasures(ctx: OrgContext, now: Date): Promise<OpenMeasureView[]> {
+  assertCan(ctx, "measure", "read");
+  return listWithCriterion(ctx, now, null);
 }
 
 export async function listOrgMembers(ctx: OrgContext): Promise<{ userId: string; name: string }[]> {

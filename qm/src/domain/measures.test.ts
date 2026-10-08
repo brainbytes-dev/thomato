@@ -7,8 +7,9 @@ import { importCatalog } from "./catalog";
 import { listAuditEvents } from "./audit";
 import { listCriterionHistory } from "./assessments";
 import {
-  createMeasure, listCriterionMeasures, listOpenMeasures, listOrgMembers, setMeasureStatus, updateMeasure,
+  createMeasure, listAllMeasures, listCriterionMeasures, listOpenMeasures, listOrgMembers, setMeasureStatus, updateMeasure,
 } from "./measures";
+import { ROLES } from "./rights";
 import { ForbiddenError, ValidationError } from "./org-context";
 import { randomUUID } from "node:crypto";
 import { addMemberTo, ctxFor, makeOrg, resetDb } from "@/test/helpers";
@@ -367,5 +368,42 @@ describe("real Better Auth users", () => {
     ).rejects.toBeInstanceOf(ValidationError);
     const [after] = await db.select().from(measure);
     expect(after.ownerUserId).toBe(colleague.id);
+  });
+});
+
+describe("listAllMeasures", () => {
+  beforeEach(resetDb);
+
+  it("returns every status across criteria, sorted overdue first and done last, with the dashboard overdue count", async () => {
+    const { ctxA, a } = await setup();
+    await createMeasure(ctxA, { ...valid(a.user.id), title: "Spät", dueDate: "2026-12-01" });
+    await createMeasure(ctxA, { ...valid(a.user.id), title: "Überfällig", criterionNumber: "6.3.2", dueDate: "2026-10-01" });
+    const wip = await createMeasure(ctxA, { ...valid(a.user.id), title: "Läuft", dueDate: "2026-10-20" });
+    const done = await createMeasure(ctxA, { ...valid(a.user.id), title: "Fertig", dueDate: "2026-09-01" });
+    await setMeasureStatus(ctxA, wip.id, "in_progress", NOW);
+    await setMeasureStatus(ctxA, done.id, "done", NOW);
+
+    const all = await listAllMeasures(ctxA, NOW);
+    expect(all.map((m) => m.title)).toEqual(["Überfällig", "Läuft", "Spät", "Fertig"]);
+    expect(all[0]).toMatchObject({ criterionNumber: "6.3.2", criterionTitle: "K 6.3.2", overdue: true, ownerName: a.user.name });
+    expect(all.at(-1)).toMatchObject({ status: "done", overdue: false });
+    const open = await listOpenMeasures(ctxA, NOW);
+    expect(all.filter((m) => m.overdue).length).toBe(open.filter((m) => m.days < 0).length);
+  });
+
+  it("is empty for an organisation without measures and never leaks other organisations", async () => {
+    const { ctxA, ctxB, a } = await setup();
+    await createMeasure(ctxA, valid(a.user.id));
+    expect(await listAllMeasures(ctxB, NOW)).toEqual([]);
+    expect(await listAllMeasures(ctxA, NOW)).toHaveLength(1);
+  });
+
+  it("is readable for every role", async () => {
+    const { ctxA, a } = await setup();
+    await createMeasure(ctxA, valid(a.user.id));
+    for (const role of ROLES.filter((r) => r !== "owner")) {
+      const u = await addMemberTo(a.org.id, `R-${role}`, role);
+      expect(await listAllMeasures(ctxFor(a.org.id, u.id, role), NOW)).toHaveLength(1);
+    }
   });
 });
