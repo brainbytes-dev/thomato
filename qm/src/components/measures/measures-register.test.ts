@@ -7,7 +7,7 @@ import { MeasuresRegister, REGISTER_ROW_LIMIT } from "./measures-register";
 
 const m = (over: Partial<OpenMeasureView>): OpenMeasureView => ({
   id: "id", criterionNumber: "7.3.10", criterionTitle: "Hygiene im Fahrzeug", title: "Hygieneschulung", description: null,
-  ownerUserId: "u1", ownerName: "Anna Muster", dueDate: "2026-11-15", status: "open", completedAt: null,
+  ownerUserId: "u1", ownerName: "Anna Muster", dueDate: "2026-11-15", status: "open", phase: "plan", cycle: 1, completedAt: null,
   createdAt: new Date("2026-10-01T00:00:00Z"), days: 38, overdue: false, ...over,
 });
 const members = [{ userId: "u1", name: "Anna Muster" }, { userId: "u2", name: "Bruno Beispiel" }];

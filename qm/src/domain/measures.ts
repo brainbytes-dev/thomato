@@ -188,7 +188,6 @@ export async function setMeasureStatus(
   ctx: OrgContext,
   id: string,
   status: MeasureStatus,
-  _now?: Date,
 ): Promise<{ status: MeasureStatus; completedAt: Date | null; criterionNumber: string }> {
   assertCan(ctx, "measure", "write");
   if (!MEASURE_STATUSES.includes(status)) throw new ValidationError("Der Status ist ungültig.");

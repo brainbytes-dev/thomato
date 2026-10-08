@@ -74,8 +74,8 @@ export async function updateMeasureAction(_prev: MeasureFormState, formData: For
 }
 
 export async function setMeasureStatusAction(_prev: MeasureFormState, formData: FormData): Promise<MeasureFormState> {
-  return run(statusInput, formData, "Status geändert.", async (ctx, data, now) => {
-    const { criterionNumber } = await setMeasureStatus(ctx, data.measureId, data.status, now);
+  return run(statusInput, formData, "Status geändert.", async (ctx, data) => {
+    const { criterionNumber } = await setMeasureStatus(ctx, data.measureId, data.status);
     return criterionNumber;
   });
 }

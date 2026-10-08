@@ -23,7 +23,7 @@ const doc = (over: Partial<EvidenceDoc> = {}): EvidenceDoc => ({
 
 const measure = (over: Partial<MeasureView> = {}): MeasureView => ({
   id: "m1", criterionNumber: "7.3.10", title: "Desinfektion schulen", description: null, ownerUserId: "u1",
-  ownerName: "Beat Beispiel", dueDate: "2026-10-01", status: "open", completedAt: null,
+  ownerName: "Beat Beispiel", dueDate: "2026-10-01", status: "open", phase: "plan", cycle: 1, completedAt: null,
   createdAt: new Date("2026-09-01T08:00:00Z"), days: -7, overdue: true, ...over,
 });
 

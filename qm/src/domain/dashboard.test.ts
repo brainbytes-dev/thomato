@@ -200,7 +200,7 @@ describe("buildActionItems with evidence", () => {
 
 const mv = (over: Partial<OpenMeasureView>): OpenMeasureView => ({
   id: "m1", criterionNumber: "7.3.10", criterionTitle: "Hygiene", title: "Schulung planen", description: null,
-  ownerUserId: "u", ownerName: "Anna", dueDate: "2026-10-20", status: "open", completedAt: null,
+  ownerUserId: "u", ownerName: "Anna", dueDate: "2026-10-20", status: "open", phase: "plan", cycle: 1, completedAt: null,
   createdAt: NOW, days: 13, overdue: false, ...over,
 });
 
