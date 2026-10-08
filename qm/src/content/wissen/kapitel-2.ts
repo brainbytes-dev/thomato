@@ -11,13 +11,11 @@ export const KAPITEL_2: WissenChapter = {
     {
       id: "entscheid",
       heading: "Mögliche Ergebnisse",
-      paragraphs: [
-        "Die Geschäftsstelle und der Vorsitz der Fachgruppe entscheiden auf Grundlage des Expertenberichts. Die Experten selbst entscheiden nicht. Zum Bericht können Sie vorher Stellung nehmen.",
-      ],
+      paragraphs: ["Über die Anerkennung befinden Geschäftsstelle und Fachgruppenvorsitz, gestützt auf den Expertenbericht, zu dem Sie vorher Stellung nehmen können. Einzelheiten: Richtlinie Kap. 2.3, S. 8."],
       items: [
-        "Anerkennung erteilt",
-        "Anerkennung mit Auflagen: Sie setzen diese innerhalb eines Jahres um, die Urkunde ist so lange befristet, und die Nachweise reichen Sie von sich aus ein",
-        "Anerkennung nicht erteilt",
+        "ja",
+        "ja, mit Auflagen und einer Urkunde für höchstens ein Jahr",
+        "nein",
       ],
       refs: [
         { source: "richtlinie", chapter: "Kap. 2.3", page: 8 },
@@ -36,17 +34,17 @@ export const KAPITEL_2: WissenChapter = {
       ],
       refs: [
         { source: "richtlinie", chapter: "Kap. 2", page: 7 },
-        { source: "handbuch", chapter: "Kap. 1.5 und 2.3", page: 8 },
+        { source: "handbuch", chapter: "Kap. 1.5", page: 8 },
+        { source: "handbuch", chapter: "Kap. 2.3", page: 9 },
       ],
     },
     {
       id: "besuch",
       heading: "Der Besuch",
-      paragraphs: [
-        "Zwei unabhängige Fachleute, vom IVR eingesetzt, kommen zu Ihnen: je eine Person aus präklinischer Notfallmedizin (Notarzt) und eine aus dem Rettungssanitätsdienst (HF). Sie dürfen nicht bei Ihnen gearbeitet haben und keinen Interessenkonflikt haben.",
-        "Immer dabei ist eine Vertretung der Geschäftsstelle; die kantonale Behörde kann als Gast teilnehmen. Besprochen wird die Umsetzung der Kriterien mit ärztlicher Leitung, Leitung Rettungsdienst und Qualitätsverantwortlichen. Rechnen Sie mit einem Tag.",
-      ],
+      paragraphs: ["Ein Besuchstag vor Ort mit zwei unabhängigen Fachexperten (Notarzt und Rettungssanitäter HF) sowie der Geschäftsstelle; der Kanton kann teilnehmen. Einzelheiten: Richtlinie Kap. 2.2, S. 7; Ablauf des Tages: Handbuch Kap. 2.2 und 2.3, S. 9 und 10."],
       refs: [
+        { source: "handbuch", chapter: "Kap. 2.2", page: 9 },
+
         { source: "richtlinie", chapter: "Kap. 2.2", page: 7 },
         { source: "handbuch", chapter: "Kap. 2.3", page: 10 },
       ],
@@ -54,18 +52,13 @@ export const KAPITEL_2: WissenChapter = {
     {
       id: "instanz",
       heading: "Zuständigkeit und Umfang",
-      paragraphs: [
-        "Der IVR wird als Anerkennungsinstanz für die Qualitätssicherung nach Art. 77 KVV tätig; fachlich zuständig ist die Fachgruppe Rettungs- und Patiententransportdienst.",
-        "Die Anerkennung umfasst auch Sekundäreinsätze und Patiententransporte, sofern Sie diese im Verfahren und beim Besuch eindeutig angegeben haben.",
-      ],
+      paragraphs: ["Der IVR anerkennt im Rahmen von Art. 77 KVV. Ob Sekundäreinsätze und Patiententransporte mit abgedeckt sind, hängt von Ihren Angaben im Verfahren ab; Einzelheiten: Richtlinie Kap. 2 und 2.1, S. 7."],
       refs: [{ source: "richtlinie", chapter: "Kap. 2 und 2.1", page: 7 }],
     },
     {
       id: "kosten",
       heading: "Kosten",
-      paragraphs: [
-        "Das Verfahren ist gebührenpflichtig, die Prüfung von Auflagen kann zusätzlich kosten. Die Tarife veröffentlicht der IVR online.",
-      ],
+      paragraphs: ["Gebührenpflichtig, Tarife auf der IVR-Website. Einzelheiten: Richtlinie Kap. 2.4, S. 8."],
       refs: [{ source: "richtlinie", chapter: "Kap. 2.4", page: 8 }],
     },
   ],

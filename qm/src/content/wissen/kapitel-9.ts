@@ -26,9 +26,7 @@ export const KAPITEL_9: WissenChapter = {
     {
       id: "notarzt",
       heading: "Notarzt",
-      paragraphs: [
-        "Als Notarzt gilt, wer den entsprechenden Fähigkeitsausweis der Fachgesellschaft besitzt oder ihn gerade erwirbt. Für Dienstärzte gibt es eine Ausnahme, wenn ein kantonales oder regionales Programm sie einbindet.",
-      ],
+      paragraphs: ["Massgeblich ist der SGNOR-Fähigkeitsausweis Notarzt, auch während der Ausbildung dazu; für Dienstärzte gibt es eine Ausnahmeregel. Einzelheiten: Richtlinie Kap. 9.3, S. 22."],
       refs: [{ source: "richtlinie", chapter: "Kap. 9.3", page: 22 }],
     },
     {

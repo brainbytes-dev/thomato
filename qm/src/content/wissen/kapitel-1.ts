@@ -10,11 +10,11 @@ export const KAPITEL_1: WissenChapter = {
     {
       id: "stufen",
       heading: "Muss, Soll und Auswahl",
-      paragraphs: ["Jedes Kriterium hat eine von drei Stufen. Strukturen allein genügen nicht, das Gewicht liegt auf Prozess und Ergebnis."],
+      paragraphs: ["Jedes Kriterium trägt eine Stufe: Muss, Soll oder Auswahl. Einzelheiten: Richtlinie Kap. 1.1 bis 1.3, S. 5 und 6."],
       items: [
-        "Muss: gilt ohne Ausnahme.",
-        "Soll: Sie zeigen, dass Sie darauf hinarbeiten, und halten Ihre Aktivitäten fest.",
-        "Auswahl: Sie suchen sich aus mehreren Vorschlägen die verlangte Anzahl selbst aus.",
+        "Muss: Voraussetzung für die Anerkennung",
+        "Soll: Fortschritt in diese Richtung belegen",
+        "Auswahl: Anzahl vorgegeben, Themen frei wählbar",
       ],
       refs: [{ source: "richtlinie", chapter: "Kap. 1.1 und 1.2", page: 5 }],
     },
@@ -37,14 +37,7 @@ export const KAPITEL_1: WissenChapter = {
     {
       id: "dossier",
       heading: "Das Dossier",
-      paragraphs: ["Für den Antrag legen Sie ein Dossier an. Es besteht aus fünf Teilen:"],
-      items: [
-        "Jahresberichte der letzten zwei Jahre mit Einsatzstatistik",
-        "Nachweise und Erläuterungen je Kriterium",
-        "kurze Vorstellung Ihres Dienstes",
-        "Organigramm",
-        "Bewilligung der zuständigen Behörde",
-      ],
+      paragraphs: ["Zum Antrag gehört ein Dossier mit Grunddokumenten zu Ihrem Dienst und Belegen zu den Kriterien. Einzelheiten: Richtlinie Kap. 1.3, S. 6; Aufbau der Unterlagen: Handbuch Kap. 5.2, S. 13."],
       appNote: "In der App stehen die vier Unterlagen davor als «Dossier-Unterlagen» (5.2.1 bis 5.2.4) in der Kriterienliste, Quelle Handbuch 5.2.",
       refs: [
         { source: "richtlinie", chapter: "Kap. 1.3", page: 6 },
@@ -54,9 +47,7 @@ export const KAPITEL_1: WissenChapter = {
     {
       id: "sonderfaelle",
       heading: "Verbund und besondere Gegebenheiten",
-      paragraphs: [
-        "Ein regionaler Verbund kann die Anerkennung gemeinsam beantragen, wenn alle zusammen die Anforderungen erfüllen. Besondere Umstände, etwa dünne Besiedlung oder schwierige Topografie, macht die kantonale Aufsicht schriftlich beim IVR-Vorstand geltend. Dafür brauchen Sie ein Qualitätskonzept und eine Begründung.",
-      ],
+      paragraphs: ["Möglich sind ein gemeinsamer Antrag mehrerer Dienste als regionaler Verbund und, auf Gesuch des Kantons, die Berücksichtigung besonderer regionaler Verhältnisse. Einzelheiten: Richtlinie Kap. 1, S. 5, und Kap. 1.3, S. 6."],
       refs: [
         { source: "richtlinie", chapter: "Kap. 1", page: 5 },
         { source: "richtlinie", chapter: "Kap. 1.3", page: 6 },
@@ -65,9 +56,7 @@ export const KAPITEL_1: WissenChapter = {
     {
       id: "start",
       heading: "Organisatorischer Start",
-      paragraphs: [
-        "Bestimmen Sie eine Person für die Qualität und holen Sie das Team früh ab: Qualität entsteht im Alltag. Die Geschäftsstelle des IVR berät auf Anfrage. Externe Beratung und ein Vor-Audit sind möglich und kostenpflichtig.",
-      ],
+      paragraphs: ["Im Betrieb trägt eine Person die Verantwortung für die Qualitätssicherung. Beratung durch die Geschäftsstelle und kostenpflichtige externe Unterstützung sind möglich; Einzelheiten: Richtlinie Kap. 1, S. 5."],
       refs: [{ source: "richtlinie", chapter: "Kap. 1", page: 5 }],
     },
   ],

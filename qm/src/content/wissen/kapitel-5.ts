@@ -21,21 +21,17 @@ export const KAPITEL_5: WissenChapter = {
     {
       id: "ablauf-ohne-start",
       heading: "Wenn die Frist verstreicht",
-      paragraphs: [
-        "Haben Sie nach Ablauf noch nicht begonnen, erlischt die Anerkennung durch Entzug und die Behörden erfahren davon. Ein neues Verfahren können Sie dann erst nach einem Jahr beantragen.",
+      paragraphs: ["Entscheidend ist, ob die Erneuerung bei Ablauf der Anerkennung begonnen hat. Einzelheiten: Richtlinie Kap. 5, S. 10."],
+      items: [
+        "sonst: Entzug, Meldung an die Behörden",
+        "neuer Antrag: frühestens nach einem Jahr",
       ],
       refs: [{ source: "richtlinie", chapter: "Kap. 5", page: 10 }],
     },
     {
       id: "berichte",
       heading: "Zusätzliche Unterlagen",
-      paragraphs: [
-        "Zwischen den Anerkennungen senden Sie jährlich einen elektronischen Bericht zur Qualitätsentwicklung. Für die Erneuerung kommen zu den Dossierunterlagen aus Kapitel 1 zwei Dokumente dazu:",
-      ],
-      items: [
-        "die jährlichen Qualitätsberichte (Kriterium 7.1)",
-        "eine knappe Gegenüberstellung: früher und heute",
-      ],
+      paragraphs: ["Während der Geltung reichen Sie jährlich einen Qualitätsbericht ein; bei der Erneuerung ergänzen diese Berichte und eine kurze Vorher-nachher-Übersicht das Dossier. Einzelheiten: Richtlinie Kap. 5, S. 10, und Kriterium 7.1, S. 14."],
       refs: [
         { source: "richtlinie", chapter: "Kap. 5", page: 10 },
         { source: "richtlinie", chapter: "Kap. 7.1", page: 14 },
@@ -43,11 +39,8 @@ export const KAPITEL_5: WissenChapter = {
     },
     {
       id: "kreislauf",
-      heading: "Qualitätskreislauf mit erneuter Messung",
-      paragraphs: [
-        "Zeigen Sie, was sich in vier Jahren verbessert hat, was noch offen ist und wohin Sie wollen. Eine zweite Messung muss belegen, dass eine Korrekturmassnahme gewirkt hat.",
-        "Geprüft werden alle Punkte, am stärksten Prozess und Ergebnis. Vorbereitung, Verfahren und Rekurs laufen wie bei der ersten Anerkennung.",
-      ],
+      heading: "Schwerpunkt der Erneuerung",
+      paragraphs: ["Im Vordergrund steht Ihre Entwicklung seit der letzten Anerkennung, einschliesslich nachgemessener Wirkung von Massnahmen. Was darzustellen ist: Richtlinie Kap. 5, S. 10."],
       refs: [{ source: "richtlinie", chapter: "Kap. 5", page: 10 }],
     },
   ],

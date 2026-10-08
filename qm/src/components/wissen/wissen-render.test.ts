@@ -85,15 +85,15 @@ describe("overview", () => {
 });
 
 describe("search excerpt", () => {
+  const sec = WISSEN_CHAPTERS.find((c) => c.slug === "5")!.sections.find((x) => x.id === "fristen")!;
   it("shows the text that contains the hit, not always the first paragraph", () => {
-    const sec = WISSEN_CHAPTERS.find((c) => c.slug === "2")!.sections.find((s) => s.id === "besuch")!;
-    const ex = hitExcerpt(sec, "Interessenkonflikt");
-    expect(ex).toContain("Interessenkonflikt");
-    expect(hitExcerpt(sec, "Gast")).toContain("Gast");
+    const ex = hitExcerpt(sec, "Besuchstermin");
+    expect(ex).toContain("Besuchstermin");
+    expect(ex).not.toBe(sec.paragraphs[0]);
     expect(hitExcerpt(sec, "zzzz")).toBe(sec.paragraphs[0]);
   });
   it("finds hits in list items", () => {
-    expect(searchWissen("Gegenüberstellung").map((h) => h.chapter.slug)).toContain("5");
+    expect(searchWissen("frühestens nach einem Jahr").map((h) => h.chapter.slug)).toContain("5");
   });
 });
 

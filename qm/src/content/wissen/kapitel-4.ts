@@ -11,23 +11,13 @@ export const KAPITEL_4: WissenChapter = {
     {
       id: "dauer",
       heading: "Wie lange die Anerkennung läuft",
-      paragraphs: [
-        "Eine Anerkennung dauert höchstens vier Jahre ab dem Datum der Urkunde. Wie Sie sie verlängern, steht in Kapitel 5.",
-        "Sie entfällt, wenn Auflagen nicht nachgewiesen oder die Bestimmungen nicht eingehalten werden. Dann gilt:",
-      ],
-      items: [
-        "Die zuständigen Behörden werden informiert.",
-        "Der Dienst wird aus der Liste anerkannter Dienste genommen.",
-        "Bezeichnung und Q-Label an den Fahrzeugen dürfen nicht mehr geführt werden.",
-      ],
+      paragraphs: ["Gültig höchstens vier Jahre ab Urkundendatum; zur Verlängerung siehe Kapitel 5. Wann der IVR die Anerkennung entzieht und welche Folgen das hat: Richtlinie Kap. 4.1, S. 9."],
       refs: [{ source: "richtlinie", chapter: "Kap. 4.1", page: 9 }],
     },
     {
       id: "pflichten",
       heading: "Pflichten während der Geltung",
-      paragraphs: [
-        "Laut Handbuch müssen Sie die Qualität laufend verbessern, Veränderungen, die die Einhaltung gefährden könnten, sofort melden und verlangte Nachweise fristgerecht liefern. Ein angekündigter Kontrollbesuch ist möglich.",
-      ],
+      paragraphs: ["Auch nach dem Entscheid bestehen Pflichten, etwa Änderungen zu melden; der IVR kann einen Kontrollbesuch ansetzen. Einzelheiten: Handbuch Kap. 4.1, S. 12."],
       refs: [{ source: "handbuch", chapter: "Kap. 4.1", page: 12 }],
     },
   ],
