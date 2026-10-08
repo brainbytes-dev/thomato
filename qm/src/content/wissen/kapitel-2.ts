@@ -44,7 +44,6 @@ export const KAPITEL_2: WissenChapter = {
       paragraphs: ["Ein Besuchstag vor Ort mit zwei unabhängigen Fachexperten (Notarzt und Rettungssanitäter HF) sowie der Geschäftsstelle; der Kanton kann teilnehmen. Einzelheiten: Richtlinie Kap. 2.2, S. 7; Ablauf des Tages: Handbuch Kap. 2.2 und 2.3, S. 9 und 10."],
       refs: [
         { source: "handbuch", chapter: "Kap. 2.2", page: 9 },
-
         { source: "richtlinie", chapter: "Kap. 2.2", page: 7 },
         { source: "handbuch", chapter: "Kap. 2.3", page: 10 },
       ],
