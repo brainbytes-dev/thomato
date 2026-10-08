@@ -16,7 +16,8 @@
     "seed:demo": "tsx scripts/seed-demo.ts",
     "import:catalog": "tsx scripts/import-catalog.ts",
     "sources:gen": "tsx scripts/gen-source-pages.ts",
-    "sources:check": "tsx scripts/check-sources.ts"
+    "sources:check": "tsx scripts/check-sources.ts",
+    "wissen:check": "tsx scripts/check-wissen-overlap.ts"
   },
   "dependencies": {
     "@better-auth/drizzle-adapter": "^1.7.7",
