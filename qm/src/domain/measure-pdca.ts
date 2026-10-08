@@ -315,6 +315,8 @@ export async function recordEffectiveness(
   ctx: OrgContext,
   id: string,
   input: { result: ReviewResult; note: string },
+  /** Nur für Seed und Tests mit festem Zeitpunkt; im Betrieb setzt die Datenbank die Zeit selbst (monoton unter der Zeilensperre). */
+  checkedAt?: Date,
 ): Promise<Done & { reviewId: string }> {
   assertCan(ctx, "measure", "approve");
   if (!REVIEW_RESULTS.includes(input.result)) throw new ValidationError("Das Ergebnis der Wirksamkeitsprüfung ist ungültig.");
@@ -327,7 +329,7 @@ export async function recordEffectiveness(
     requirePhase(row, ["check"], "Die Wirksamkeit zu bewerten");
     const [review] = await tx
       .insert(measureReview)
-      .values({ organizationId: ctx.organizationId, measureId: row.id, cycle: row.cycle, result: input.result, note, checkedBy: ctx.userId })
+      .values({ organizationId: ctx.organizationId, measureId: row.id, cycle: row.cycle, result: input.result, note, checkedBy: ctx.userId, ...(checkedAt ? { checkedAt } : {}) })
       .returning({ id: measureReview.id });
     // Auch bei «wirksam» geht es nur nach Act; abgeschlossen wird nie automatisch.
     const next = await patchMeasure(tx, ctx, row, { phase: "act" });

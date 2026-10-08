@@ -5,13 +5,17 @@ import {
   ACTIVE_STANDARD_VERSION,
   criterion,
   deadline,
+  measure,
   member,
   organization,
 } from "@/db/schema";
 import type { AssessmentStatus } from "@/db/schema";
 import { setAssessmentDueDate, setAssessmentStatus } from "@/domain/assessments";
 import { importCatalog } from "@/domain/catalog";
-import { createMeasure, setMeasureStatus } from "@/domain/measures";
+import { createMeasure } from "@/domain/measures";
+import {
+  addStep, closeMeasure, completeDo, completePlan, recordEffectiveness, setEffectivenessCriterion, toggleStep,
+} from "@/domain/measure-pdca";
 import { addDays, zurichDate } from "@/domain/dates";
 import { ROLES, type Role } from "@/domain/rights";
 import { seedDemoDocuments } from "./demo-documents";
@@ -55,14 +59,27 @@ type DemoMeasure = {
   status: "open" | "in_progress" | "done";
   /** Nur für erledigte Massnahmen: Erledigung liegt so viele Tage vor dem Seed-Zeitpunkt. */
   completedDaysAgo?: number;
+  /** Wirksamkeitskriterium aus der Plan-Phase (nur für Massnahmen jenseits von Plan). */
+  effectivenessCriterion?: string;
+  /** Checkliste der Do-Phase; erledigte Schritte sind abgehakt. */
+  steps?: { title: string; done: boolean }[];
+  /** Nur für erledigte Massnahmen: Bewertung in der Check-Phase. */
+  review?: string;
 };
 
 // Eine laufende, eine offene, eine überfällige und eine erledigte Massnahme; die erledigte darf nirgends als offen zählen.
 const DEMO_MEASURES: DemoMeasure[] = [
-  { criterion: "7.3.10", title: "Hygienekonzept überarbeiten und neu freigeben (Demo)", owner: "qm_admin", dueInDays: 12, status: "in_progress" },
+  { criterion: "7.3.10", title: "Hygienekonzept überarbeiten und neu freigeben (Demo)", owner: "qm_admin", dueInDays: 12, status: "in_progress",
+    effectivenessCriterion: "Bei der nächsten Begehung sind alle Hygienestandards im Fahrzeug nachweisbar.",
+    steps: [{ title: "Hygienekonzept überarbeiten", done: true }, { title: "Freigabe durch die Leitung einholen", done: false }],
+  },
   { criterion: "6.3.2", title: "Statusmeldungen an die SNZ 144 technisch sicherstellen (Demo)", owner: "editor", dueInDays: 25, status: "open" },
   { criterion: "7.3.8", title: "Wartungsplan für Fahrzeuge vervollständigen (Demo)", owner: "reviewer", dueInDays: -4, status: "open" },
-  { criterion: "5.2.2", title: "Organigramm aktualisieren (Demo)", owner: "owner", dueInDays: -30, status: "done", completedDaysAgo: 32 },
+  { criterion: "5.2.2", title: "Organigramm aktualisieren (Demo)", owner: "owner", dueInDays: -30, status: "done", completedDaysAgo: 32,
+    effectivenessCriterion: "Das Organigramm ist im Intranet aktuell und für alle Teams auffindbar.",
+    steps: [{ title: "Organigramm überarbeiten und veröffentlichen", done: true }],
+    review: "Stichprobe in zwei Teams: Organigramm ist aktuell und wird gefunden.",
+  },
 ];
 
 export async function seedDemo(input: { catalog: unknown; now?: Date }) {
@@ -141,9 +158,20 @@ export async function seedDemo(input: { catalog: unknown; now?: Date }) {
       ownerUserId: ids[m.owner],
       dueDate: addDays(today, m.dueInDays),
     });
-    if (m.status !== "open") {
-      const at = m.completedDaysAgo === undefined ? now : new Date(now.getTime() - m.completedDaysAgo * 86_400_000);
-      await setMeasureStatus(ctx, id, m.status, at);
+    if (m.status === "open") continue;
+    // Alle Massnahmen jenseits von Plan laufen über die echten Übergänge (Plan, Do, Check, Act), nie über direkte Statuswerte.
+    const at = m.completedDaysAgo === undefined ? now : new Date(now.getTime() - m.completedDaysAgo * 86_400_000);
+    if (m.effectivenessCriterion) await setEffectivenessCriterion(ctx, id, m.effectivenessCriterion);
+    await completePlan(ctx, id);
+    const stepIds: { id: string; done: boolean }[] = [];
+    for (const step of m.steps ?? []) stepIds.push({ id: (await addStep(ctx, id, step.title)).stepId, done: step.done });
+    for (const step of stepIds) if (step.done) await toggleStep(ctx, id, step.id, true, at);
+    if (m.status === "done") {
+      await completeDo(ctx, id, { confirmNoSteps: stepIds.length === 0 });
+      await recordEffectiveness(ctx, id, { result: "effective", note: m.review ?? "Wirksamkeit bestätigt (Demo)" }, at);
+      await closeMeasure(ctx, id, {}, at);
+      // Anlage liegt vor dem Abschluss, damit «Dauer bis Abschluss» plausibel bleibt.
+      await db.update(measure).set({ createdAt: new Date(at.getTime() - 21 * 86_400_000) }).where(eq(measure.id, id));
     }
   }
   await db.insert(deadline).values([

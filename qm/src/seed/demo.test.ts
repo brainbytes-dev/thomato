@@ -8,7 +8,8 @@ import { listAuditEvents } from "@/domain/audit";
 import { ACTION_CENTER_LIMIT, DEFAULT_PROCEDURE, getDashboard, selectActionItems } from "@/domain/dashboard";
 import { addDays, zurichDate } from "@/domain/dates";
 import { addDocumentVersion, listCriterionEvidence } from "@/domain/documents";
-import { listCriterionMeasures } from "@/domain/measures";
+import { listAllMeasures, listCriterionMeasures } from "@/domain/measures";
+import { getMeasureDetail, getPdcaFigures } from "@/domain/measure-pdca";
 import { buildDemoPdf } from "./demo-documents";
 import { scopeOf } from "@/domain/readiness";
 import { resetDb } from "@/test/helpers";
@@ -183,6 +184,23 @@ describe("seedDemo measures story", () => {
     expect(done[0].title).toBe("Organigramm aktualisieren (Demo)");
     expect(done[0].completedAt).toEqual(new Date(NOW.getTime() - 32 * 86_400_000));
     expect(done[0].completedAt!.getTime()).toBeLessThan(new Date(`${done[0].dueDate}T23:59:59Z`).getTime());
+
+    // Phasen: offen = Plan, in Bearbeitung = Do (mit Checkliste), erledigt = Act mit bestätigter Bewertung.
+    expect(mine[0]).toMatchObject({ phase: "do", cycle: 1 });
+    const wip = await getMeasureDetail(ctx, mine[0].id, NOW);
+    expect(wip.steps.map((st) => [st.title, st.done])).toEqual([["Hygienekonzept überarbeiten", true], ["Freigabe durch die Leitung einholen", false]]);
+    expect(wip.measure.effectivenessCriterion).toContain("Hygienestandards");
+    expect(done[0]).toMatchObject({ phase: "act", cycle: 1 });
+    const closed = await getMeasureDetail(ctx, done[0].id, NOW);
+    expect(closed.reviewsByCycle).toHaveLength(1);
+    expect(closed.reviewsByCycle[0].reviews[0]).toMatchObject({ result: "effective", cycle: 1 });
+    expect(closed.allowedActions).toEqual(["reopen"]);
+    const figures = await getPdcaFigures(ctx);
+    expect(figures.phases).toEqual({ plan: 2, do: 1, check: 0, act: 1 });
+    expect(figures.effective).toEqual({ percent: 100, n: 1 });
+    expect(figures.averageDaysToClose).toEqual({ days: 21, n: 1 });
+    const all = await listAllMeasures(ctx, NOW);
+    expect(all.map((m2) => m2.phase).sort()).toEqual(["act", "do", "plan", "plan"]);
 
     // Das Limit des Action Centers schneidet die zwei anstehenden Massnahmen ab; Kritisches und Überfälliges bleiben sichtbar.
     const visible = selectActionItems(dash.actions, ACTION_CENTER_LIMIT);
