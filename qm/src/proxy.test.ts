@@ -5,7 +5,7 @@ import { ACTIVE_STANDARD_VERSION } from "@/db/schema";
 import { importCatalog } from "@/domain/catalog";
 import { clearCriterionMemo } from "@/domain/criterion-lookup";
 import { resetDb } from "@/test/helpers";
-import { proxy } from "./proxy";
+import { config, proxy } from "./proxy";
 
 const req = (path: string, cookie?: string) =>
   new NextRequest(`http://localhost:3000${path}`, cookie ? { headers: { cookie } } : undefined);
@@ -40,5 +40,13 @@ describe("proxy criterion check (R51)", () => {
     expect((await proxy(req("/criteria/7.3.10", cookie))).headers.get("x-middleware-next")).toBe("1");
     expect((await proxy(req("/criteria", cookie))).headers.get("x-middleware-next")).toBe("1");
     expect((await proxy(req("/criteria"))).status).toBe(307);
+  });
+
+  it("redirects /measures without a session, lets it through with one, and matches it", async () => {
+    const res = await proxy(req("/measures?status=overdue"));
+    expect(res.status).toBe(307);
+    expect(res.headers.get("location")).toBe("http://localhost:3000/login");
+    expect((await proxy(req("/measures", "better-auth.session_token=x.y"))).headers.get("x-middleware-next")).toBe("1");
+    expect(config.matcher).toContain("/measures/:path*");
   });
 });

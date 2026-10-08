@@ -29,4 +29,4 @@ export async function proxy(request: NextRequest) {
   return NextResponse.next();
 }
 
-export const config = { matcher: ["/", "/criteria/:path*", "/documents/:path*"] };
+export const config = { matcher: ["/", "/criteria/:path*", "/measures/:path*", "/documents/:path*"] };

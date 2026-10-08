@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ClipboardCheck, FileText, LayoutDashboard, type LucideIcon } from "lucide-react";
+import { ClipboardCheck, FileText, LayoutDashboard, ListChecks, type LucideIcon } from "lucide-react";
 
 const ITEMS: ReadonlyArray<{ href: string; label: string; Icon: LucideIcon }> = [
   { href: "/", label: "Übersicht", Icon: LayoutDashboard },
   { href: "/criteria", label: "Kriterien", Icon: ClipboardCheck },
+  { href: "/measures", label: "Massnahmen", Icon: ListChecks },
   { href: "/documents", label: "Dokumente", Icon: FileText },
 ];
 

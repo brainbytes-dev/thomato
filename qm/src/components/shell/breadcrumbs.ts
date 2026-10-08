@@ -2,6 +2,7 @@ export type Crumb = { label: string; href?: string };
 
 const SECTIONS: ReadonlyArray<{ prefix: string; label: string }> = [
   { prefix: "/criteria", label: "Kriterien" },
+  { prefix: "/measures", label: "Massnahmen" },
   { prefix: "/documents", label: "Dokumente" },
 ];
 

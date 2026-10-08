@@ -55,11 +55,19 @@ function Bar({ percent }: { percent: number | null }) {
   );
 }
 
-function MiniStat({ label, value, toneClass = "" }: { label: string; value: number; toneClass?: string }) {
+function MiniStat({ label, value, toneClass = "", href }: { label: string; value: number; toneClass?: string; href?: string }) {
   return (
     <div>
       <dt className="type-meta text-text-muted">{label}</dt>
-      <dd className={`type-headline-sub tabular-nums ${toneClass}`}>{value}</dd>
+      <dd className={`type-headline-sub tabular-nums ${toneClass}`}>
+        {href ? (
+          <Link href={href} className="hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+            {value}
+          </Link>
+        ) : (
+          value
+        )}
+      </dd>
     </div>
   );
 }
@@ -139,9 +147,12 @@ export function ReadinessHero({ data, asOf }: { data: DashboardData; asOf: strin
         <div>
           <h3 className="type-eyebrow text-text-muted">Massnahmen</h3>
           <dl className="mt-3 grid grid-cols-2 gap-4">
-            <MiniStat label="Offen" value={data.measures.open} />
-            <MiniStat label="Überfällig" value={data.measures.overdue} toneClass={data.measures.overdue > 0 ? "text-critical" : ""} />
+            <MiniStat label="Offen" value={data.measures.open} href="/measures?status=open" />
+            <MiniStat label="Überfällig" value={data.measures.overdue} toneClass={data.measures.overdue > 0 ? "text-critical" : ""} href="/measures?status=overdue" />
           </dl>
+          <Link href="/measures" className="type-label mt-3 inline-block text-primary underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+            Alle Massnahmen
+          </Link>
         </div>
       </div>
 

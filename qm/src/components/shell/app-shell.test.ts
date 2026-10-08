@@ -24,7 +24,7 @@ function render(path: string): string {
 describe("AppShell", () => {
   it("offers only the real navigation targets", () => {
     const html = render("/");
-    for (const label of ["Übersicht", "Kriterien", "Dokumente"]) expect(html).toContain(label);
+    for (const label of ["Übersicht", "Kriterien", "Massnahmen", "Dokumente"]) expect(html).toContain(label);
     for (const phantom of ["Betriebshandbuch", "Fälle", "Analysen", "Qualitätskreisläufe", "THOMATO", "IVR"]) {
       expect(html).not.toContain(phantom);
     }
@@ -34,6 +34,13 @@ describe("AppShell", () => {
     const html = render("/criteria/7.3.10");
     expect(html).toMatch(/aria-current="page"[^>]*href="\/criteria"|href="\/criteria"[^>]*aria-current="page"/);
     expect(html.match(/aria-current="page"/g)?.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("places Massnahmen between Kriterien and Dokumente and marks it current", () => {
+    const html = render("/measures");
+    expect(html.indexOf('href="/criteria"')).toBeLessThan(html.indexOf('href="/measures"'));
+    expect(html.indexOf('href="/measures"')).toBeLessThan(html.indexOf('href="/documents"'));
+    expect(html).toMatch(/aria-current="page"[^>]*href="\/measures"|href="\/measures"[^>]*aria-current="page"/);
   });
 
   it("renders breadcrumbs, org, role, user and sign-out", () => {

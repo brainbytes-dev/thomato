@@ -8,6 +8,7 @@ describe("breadcrumbsFor", () => {
 
   it("builds section crumbs", () => {
     expect(breadcrumbsFor("/criteria", "Org")).toEqual([{ label: "Org" }, { label: "Kriterien" }]);
+    expect(breadcrumbsFor("/measures", "Org")).toEqual([{ label: "Org" }, { label: "Massnahmen" }]);
     expect(breadcrumbsFor("/documents", "Org")).toEqual([{ label: "Org" }, { label: "Dokumente" }]);
   });
 
