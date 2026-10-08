@@ -8,6 +8,13 @@
 
 **Branch:** `feat/qm-plan9`, abgezweigt von `feat/qm-plan8` (erst nach Henriks Go für den Start; Rebase/Merge, falls Plan 8 vorher Korrekturen bekommt). `pitch-candidate` und `feat/qm-foundation` bleiben unberührt. Keine Migration, keine neuen Tabellen.
 
+## Zusätzliche Leitplanken (Henrik, Go vom 2026-10-08)
+
+1. Plan 9 wird gebaut und auf eigener Preview geprüft. Weder Plan 8 noch Plan 9 gehen nach `feat/qm-foundation`, solange der manuelle Plan-8-Gate nicht erfolgt ist.
+2. Der 6-Wörter-Checker ist ein technisches Warnsystem, keine juristische Freigabe. Der Review prüft zusätzlich Struktur- und Paraphrase-Nähe (Gliederung, Reihenfolge der Aufzählungen, Satzbau), nicht nur identische Wortfolgen.
+3. Die Prüfsumme gehört zur konkreten Dokumentausgabe, nicht zur URL. Ersetzt 144.ch ein PDF unter derselben URL, schlägt `check-sources` bewusst Alarm (Prüfsumme weicht ab), und die Seitenzuordnung gilt als ungeprüft, bis sie neu erzeugt wurde.
+4. Wissensseiten erklären und verlinken, sind aber keine normative Ersatzquelle. Der Disclaimer bleibt exakt: «Zusammenfassung. Massgebend ist die offizielle IVR-Richtlinie.»
+
 ## Global Constraints
 
 - **Urheberrecht (hart):** Kein Richtlinien- oder Handbuchtext im Repo, in der Datenbank oder auf der Oberfläche. Nur eigene, knappe Zusammenfassungen in unseren Worten (Fakten wie Fristen und Abläufe dürfen genannt werden), pro Wissensseite höchstens rund 150 Wörter je Abschnitt, keine übernommenen Satzfolgen. Normative Tabellen des Anhangs 9 werden beschrieben und verlinkt, nicht abgeschrieben. Die Richtlinien-PDFs bleiben ausserhalb des Repos (lokal unter `~/IVR_NotebookLM_failed_attempt_20260919/01_Rettungsdienst/aktuell/`).
