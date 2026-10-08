@@ -88,7 +88,7 @@ export function ReadinessHero({ data, asOf }: { data: DashboardData; asOf: strin
         {expiry.line && <p className="type-body-emphasis mt-1 text-critical">{expiry.line}</p>}
       </div>
 
-      <dl className="grid grid-cols-1 items-end gap-6 border-t border-border pt-6 md:grid-cols-3 md:gap-8">
+      <dl className="grid grid-cols-1 items-start gap-6 border-t border-border pt-6 md:grid-cols-3 md:gap-8">
         <Metric
           value={r.progressPercent === null ? "k. A." : `${r.progressPercent} %`}
           label="Dokumentationsstand"

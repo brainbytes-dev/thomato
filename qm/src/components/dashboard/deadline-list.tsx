@@ -10,7 +10,7 @@ function relative(d: DeadlineView): string {
 }
 
 const TONE = { overdue: "text-critical", soon: "text-warning", upcoming: "text-text-muted" } as const;
-const TH = "type-eyebrow px-4 py-3 text-left text-text-muted whitespace-nowrap";
+const TH = "type-eyebrow px-3 py-3 sm:px-4 text-left text-text-muted whitespace-nowrap";
 
 export function DeadlineList({ deadlines }: { deadlines: DeadlineView[] }) {
   return (
@@ -32,9 +32,9 @@ export function DeadlineList({ deadlines }: { deadlines: DeadlineView[] }) {
             <tbody className="divide-y divide-border">
               {deadlines.map((d) => (
                 <tr key={d.id} className="hover:bg-surface-subtle">
-                  <td className="type-meta-mono whitespace-nowrap px-4 py-3">{formatDate(d.dueDate)}</td>
-                  <td className="px-4 py-3">{d.label}</td>
-                  <td className={`type-label whitespace-nowrap px-4 py-3 ${TONE[d.urgency]}`}>{relative(d)}</td>
+                  <td className="type-meta-mono whitespace-nowrap px-3 py-3 sm:px-4">{formatDate(d.dueDate)}</td>
+                  <td className="px-3 py-3 sm:px-4">{d.label}</td>
+                  <td className={`type-label px-3 py-3 sm:whitespace-nowrap sm:px-4 ${TONE[d.urgency]}`}>{relative(d)}</td>
                 </tr>
               ))}
             </tbody>
