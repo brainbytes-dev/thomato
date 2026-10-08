@@ -117,5 +117,8 @@ describe("proxy measure detail with a session (R55)", () => {
     expect(sessionTokenFromCookie(".sig")).toBeNull();
     expect(sessionTokenFromCookie("%E0%A4%A")).toBeNull();
     expect(sessionTokenFromCookie("x".repeat(300))).toBeNull();
+    expect(sessionTokenFromCookie("ab-c.sig")).toBeNull();
+    expect(sessionTokenFromCookie("ab%00c.sig")).toBeNull();
+    expect(sessionTokenFromCookie("a b.sig")).toBeNull();
   });
 });

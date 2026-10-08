@@ -17,11 +17,20 @@ async function existsOrAssume(raw: string): Promise<boolean> {
   }
 }
 
+// Eigenes Zeitlimit: Ist die Datenbank überlastet, soll die Seite nicht bis zum Pool-Timeout im Proxy hängen.
+const LOOKUP_TIMEOUT_MS = 1500;
+
 async function missingOrAssumeFound(cookie: string, id: string): Promise<boolean> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<boolean>((resolve) => {
+    timer = setTimeout(() => resolve(false), LOOKUP_TIMEOUT_MS);
+  });
   try {
-    return await measureProvablyMissing(cookie, id);
+    return await Promise.race([measureProvablyMissing(cookie, id), timeout]);
   } catch {
     return false;
+  } finally {
+    clearTimeout(timer);
   }
 }
 

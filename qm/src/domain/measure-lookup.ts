@@ -3,6 +3,8 @@ import { db } from "@/db";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MAX_TOKEN_LENGTH = 256;
+// Better-Auth-Tokens sind alphanumerisch; alles andere ist nie eine echte Sitzung und spart den Datenbankzugriff.
+const TOKEN_CHARSET = /^[A-Za-z0-9]+$/;
 
 /**
  * Der Better-Auth-Cookie hat die Form `<token>.<signatur>` (URL-kodiert). Hier wird nur der Token davor gelesen und
@@ -17,7 +19,7 @@ export function sessionTokenFromCookie(value: string): string | null {
   }
   const dot = decoded.indexOf(".");
   const token = dot === -1 ? decoded : decoded.slice(0, dot);
-  return token.length > 0 && token.length <= MAX_TOKEN_LENGTH ? token : null;
+  return token.length > 0 && token.length <= MAX_TOKEN_LENGTH && TOKEN_CHARSET.test(token) ? token : null;
 }
 
 /**
