@@ -18,7 +18,8 @@ Ein Verlust des Demo-Passworts ist kein Datenverlust: Neu seeden mit einem neuen
 - URL: `https://qm-rettungsdienst-demo-git-feat-qm-abeddf-brain-byt-es-projects.vercel.app`
 - Schutz: Vercel Authentication für alle Deployments. Wer die Seite öffnet, muss bei Vercel im Team angemeldet sein.
 - Für den Zoom reicht es, wenn nur die präsentierende Person den Bildschirm teilt.
-- Soll der IVR selbst klicken, braucht es vorher eine kontrollierte Freigabe: Teammitglied bei Vercel einladen oder eine andere Schutzvariante entscheiden. Kein Bypass-Token weitergeben, kein Schutz abschalten.
+- Entscheidung (2026-10-08): Die Demo wird nur per Bildschirmfreigabe gezeigt, der IVR klickt nicht selbst; eventuell geht nur das Pitchdeck mit den Fallback-Screenshots an den IVR. Damit bleibt der aktuelle Vercel-Schutz unverändert.
+- Falls sich das ändert und der IVR selbst klicken soll, braucht es vorher eine kontrollierte Freigabe: Teammitglied bei Vercel einladen oder eine andere Schutzvariante entscheiden. Kein Bypass-Token weitergeben, kein Schutz abschalten.
 
 ## Neu seeden (vor jedem Termin und nach jedem Durchlauf)
 
