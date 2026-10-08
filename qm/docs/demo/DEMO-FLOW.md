@@ -32,16 +32,25 @@ Alles im Ablauf unten dient diesen drei Sätzen. Wenn die Zeit knapp wird, genü
 | 5:30 | 7. Versionen und Verlauf | «Versionen anzeigen»: V2 neueste, V1 ersetzt, Download beider. Darunter der Verlauf mit Upload und neuer Version | «Wer hat wann was hochgeladen: lückenlos, nicht nachträglich änderbar.» |
 | 6:30 | 8. Stand bewusst setzen | Stand auf «Erfüllt», Verlauf zeigt den Statuswechsel | «Der Nachweis allein setzt nichts. Die Entscheidung bleibt bei der verantwortlichen Person.» |
 | 7:00 | 9. Zurück zur Übersicht | Kritische Pflichtkriterien 2 auf 1, veralteter Nachweis weg, Readiness weiterhin «Kritisch» | «Die Wirkung ist sofort sichtbar, ohne dass die Bewertung geschönt wird.» |
-| 7:45 | 10. Massnahmen | Kriterium 7.3.8: Massnahme mit Verantwortlicher und Frist, Status setzen | «Aus Lücken werden Massnahmen mit Frist und Verantwortung.» |
-| 8:30 | 11. Dokumente | Seite «Dokumente»: alle Nachweise, Zuordnung zu Kriterien | «Ein Dokument kann mehrere Kriterien belegen.» |
-| 9:15 | 12. Rolle Viewer | Anmelden als `viewer@demo.qm.test`: nur Lesen, keine Formulare, kein Verlauf | «Lesen und Schreiben sind getrennt, auch Verlauf und Audit sind rollenabhängig.» |
-| 10:00 | 13. Rolle Reviewer (optional) | Schreiben möglich, Verlauf nicht sichtbar | «Prüfende sehen den Stand, den Audit-Verlauf lesen nur Inhaber und QM-Administration.» |
-| 10:45 | 14. Dunkler Modus (optional) | Systemeinstellung wechseln, die Oberfläche folgt | «Gleiche Informationen, für lange Arbeitstage.» |
-| 11:15 | 15. Abschluss | Hinweis auf den Entwurfsstatus des Katalogs, nächste Schritte | «Nächster Schritt ist die Abstimmung des Katalogs mit dem IVR.» |
+| 7:45 | 10. Massnahmen-Register | Menüpunkt «Massnahmen»: alle Massnahmen mit Phase, Frist und Status; Filter «Überfällig», Suche; Kennzahlen «Wirksam» und «Ø Dauer» erscheinen erst, wenn es geprüfte oder abgeschlossene Massnahmen gibt | «Hier steuern Sie alle Massnahmen an einem Ort, nicht nur pro Kriterium.» |
+| 8:15 | 10b. PDCA-Detail | Massnahme «Hygienekonzept überarbeiten» öffnen: Stepper Plan, Do, Check, Act, Checkliste, Wirksamkeitskriterium | «Erledigt ist nicht gleich wirksam: erst die Wirksamkeitsprüfung beantwortet, ob das Problem gelöst ist.» |
+| 9:00 | 11. Dokumente | Seite «Dokumente»: alle Nachweise, Zuordnung zu Kriterien | «Ein Dokument kann mehrere Kriterien belegen.» |
+| 9:30 | 12. Rolle Viewer | Anmelden als `viewer@demo.qm.test`: nur Lesen, keine Formulare, kein Verlauf | «Lesen und Schreiben sind getrennt, auch Verlauf und Audit sind rollenabhängig.» |
+| 10:15 | 13. Rolle Reviewer (optional) | Schreiben möglich, Verlauf nicht sichtbar | «Prüfende sehen den Stand, den Audit-Verlauf lesen nur Inhaber und QM-Administration.» |
+| 11:00 | 14. Dunkler Modus (optional) | Systemeinstellung wechseln, die Oberfläche folgt | «Gleiche Informationen, für lange Arbeitstage.» |
+| 11:30 | 15. Abschluss | Hinweis auf den Entwurfsstatus des Katalogs, nächste Schritte | «Nächster Schritt ist die Abstimmung des Katalogs mit dem IVR.» |
 
 ## Optional: Quellen und Wissen (1 Minute)
 
 Im Kriteriendetail steht unter «Quelle» Ausgabe, Kapitel und Seite mit Link auf das offizielle PDF. Der Menüpunkt «Wissen» erklärt Verfahren und Fristen in eigenen Worten (Entwurf, solange nicht fachlich freigegeben). Satz dazu: «Wir ersetzen die Richtlinie nicht, wir führen Sie dorthin.»
+
+## Stand der Generalprobe (2026-10-08, Production, automatisiert)
+
+- Fünf Rollen: 81 Prüfungen, alle bestanden (die zwei Ausreisser waren die Verlauf-Prüfung im Skript, per Einzelprüfung bestätigt: Owner und QM-Admin sehen den Verlauf, Reviewer, Editor und Viewer nicht).
+- Kompletter PDCA-Durchlauf (Plan, Do, Check «teilweise», Nachschärfen, Check «nicht wirksam», neuer Zyklus, Check «wirksam», bewusster Abschluss, Register, Rechte aller Rollen): 25 von 25.
+- Demo-Pfad des Owners (Upload, Versionen, Statuswechsel, Dashboard): 10 von 10.
+- Danach neu geseedet; die Screenshots in `docs/demo/screenshots/` zeigen den frischen Ausgangszustand.
+- Bekannt: Bei sehr vielen schnellen Anfragen kann eine Anfrage wegen eines Datenbank-Timeouts kurz auf die Anmeldung zurückfallen (zwei Fälle bei rund 300 automatischen Anfragen). Beim Vorführen: Seite neu laden.
 
 ## Wenn etwas hakt
 
