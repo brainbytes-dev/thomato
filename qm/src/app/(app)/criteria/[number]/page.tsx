@@ -9,6 +9,7 @@ import { ASSESSMENT_STATUSES } from "@/db/schema";
 import { getAssessmentByNumber, listCriterionHistory } from "@/domain/assessments";
 import { formatDate, formatDateTime } from "@/domain/dates";
 import { listCriterionEvidence } from "@/domain/documents";
+import { chapterDisplayName, sourceReferenceFor } from "@/domain/source-reference";
 import { requireOrgContextOrRedirect } from "@/domain/request-context";
 import { can } from "@/domain/rights";
 import { AssessmentForm } from "./assessment-form";
@@ -39,7 +40,8 @@ async function Detail({ params }: { params: Promise<{ number: string }> }) {
       <CriterionHeader
         number={detail.number}
         title={detail.title}
-        chapter={detail.chapter}
+        chapter={chapterDisplayName(detail.chapter)}
+        source={sourceReferenceFor(detail.number)}
         status={detail.status}
         scope={scopeLabel(detail)}
         dueDateText={detail.dueDate ? formatDate(detail.dueDate) : "ohne Frist"}

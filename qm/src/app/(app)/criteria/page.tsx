@@ -18,6 +18,8 @@ import { getEvidenceInfo } from "@/domain/documents";
 import type { EvidenceState } from "@/domain/evidence";
 import { EVIDENCE_BADGE, EVIDENCE_LABEL, scopeLabel, STATUS_BADGE, STATUS_LABEL } from "@/components/criteria/status-copy";
 import { Badge, CARD } from "@/components/ui/badge";
+import { CriteriaLegend } from "@/components/criteria/criteria-legend";
+import { chapterDisplayName, criteriaGroupOf } from "@/domain/source-reference";
 import { TABLE_WRAP, TD, TH } from "@/components/ui/styles";
 
 type SearchParams = Promise<{ status?: string | string[]; evidence?: string | string[]; scope?: string | string[] }>;
@@ -101,7 +103,8 @@ async function CriteriaTable({ searchParams }: { searchParams: SearchParams }) {
           </p>
         )}
       </div>
-      <div className={`${CARD} p-3 sm:p-4`}>
+      <div className={`${CARD} flex flex-col gap-4 p-3 sm:p-4`}>
+      <CriteriaLegend />
       <div className={TABLE_WRAP}>
         <table className="w-full min-w-[820px] border-collapse text-left">
           <caption className="sr-only">Kriterien mit Bewertungsstand und Nachweis</caption>
@@ -121,7 +124,14 @@ async function CriteriaTable({ searchParams }: { searchParams: SearchParams }) {
                 <td colSpan={6} className="px-4 py-6 text-text-muted">Keine Kriterien mit dieser Auswahl. Wählen Sie einen anderen Filter oder setzen Sie ihn auf «Alle».</td>
               </tr>
             ) : (
-              rows.map((r) => (
+              rows.flatMap((r, i) => {
+                const group = criteriaGroupOf(r.number);
+                const heading = i === 0 || criteriaGroupOf(rows[i - 1].number).key !== group.key ? (
+                  <tr key={`group-${group.key}`} className="bg-surface-subtle">
+                    <th scope="colgroup" colSpan={6} className="type-label px-4 py-3 text-left">{group.heading}</th>
+                  </tr>
+                ) : null;
+                return [heading, (
                 <tr key={r.criterionId} className="align-top hover:bg-surface-subtle">
                   <td className={`${TD} type-meta-mono whitespace-nowrap`}>
                     <Link
@@ -132,7 +142,7 @@ async function CriteriaTable({ searchParams }: { searchParams: SearchParams }) {
                     </Link>
                   </td>
                   <td className={TD}>{r.title}</td>
-                  <td className={TD}>{r.chapter}</td>
+                  <td className={TD}>{chapterDisplayName(r.chapter)}</td>
                   <td className={`${TD} whitespace-nowrap`}>{scopeLabel(r)}</td>
                   <td className={TD}>
                     <Badge tone={STATUS_BADGE[r.status]} dot>{STATUS_LABEL[r.status]}</Badge>
@@ -151,7 +161,8 @@ async function CriteriaTable({ searchParams }: { searchParams: SearchParams }) {
                     })()}
                   </td>
                 </tr>
-              ))
+                )];
+              })
             )}
           </tbody>
         </table>

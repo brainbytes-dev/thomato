@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { ArrowLeft, CalendarClock, History } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import type { SourceReference } from "@/domain/source-reference";
+import { SourceLine } from "./source-line";
 import type { AssessmentStatus } from "@/db/schema";
 import { STATUS_BADGE, STATUS_LABEL } from "./status-copy";
 
@@ -12,6 +14,7 @@ export type CriterionHeaderProps = {
   scope: string;
   dueDateText: string;
   updatedAtText: string;
+  source?: SourceReference | null;
 };
 
 export function CriterionHeader(p: CriterionHeaderProps) {
@@ -47,6 +50,7 @@ export function CriterionHeader(p: CriterionHeaderProps) {
           <h1 className="type-headline-section max-w-[70ch] text-balance">
             <span className="font-mono">{p.number}</span> {p.title}
           </h1>
+          {p.source && <SourceLine reference={p.source} />}
         </div>
 
         <dl className="type-meta flex shrink-0 flex-wrap gap-x-6 gap-y-2 rounded-lg border border-border bg-surface px-4 py-3">

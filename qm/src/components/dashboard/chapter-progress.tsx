@@ -1,5 +1,6 @@
 import { CARD } from "@/components/ui/badge";
 import type { ChapterProgress } from "@/domain/dashboard";
+import { chapterDisplayName } from "@/domain/source-reference";
 
 /** ≥90 Prozent erfüllt, <70 Prozent Warnung, dazwischen Primärfarbe. */
 export function chapterBarTone(percent: number | null): "success" | "warning" | "primary" {
@@ -26,7 +27,7 @@ export function ChapterProgressTable({ chapters }: { chapters: ChapterProgress[]
       <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {chapters.map((c) => (
           <li key={c.chapter} className="rounded-lg border border-border bg-surface-subtle p-4">
-            <p className="type-body-emphasis">{c.chapter}</p>
+            <p className="type-body-emphasis">{chapterDisplayName(c.chapter)}</p>
             <p className="mt-3 flex items-baseline gap-2">
               <span className="type-headline-section tabular-nums">{c.percent === null ? "k. A." : `${c.percent} %`}</span>
               <span className="type-meta text-text-muted">{c.met} / {c.applicable} Kriterien</span>

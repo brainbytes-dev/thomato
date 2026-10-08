@@ -8,6 +8,7 @@ import { getEvidenceInfo } from "./documents";
 import { listOpenMeasures, type OpenMeasureView } from "./measures";
 import { summarizeEvidence, type EvidenceState } from "./evidence";
 import { DEFAULT_PROCEDURE } from "./procedure";
+import { chapterDisplayName } from "./source-reference";
 import { assertCan, type OrgContext } from "./org-context";
 import { computeReadiness, percentOf, scopeOf, type ProcedureMode, type ReadinessResult } from "./readiness";
 
@@ -98,7 +99,7 @@ export function buildActionItems(
       criterionNumber: c.number,
       topic: `${c.number} ${c.title}`,
       title: c.title,
-      reference: `${c.number} · ${c.chapter}`,
+      reference: `${c.number} · ${chapterDisplayName(c.chapter)}`,
       ownerName: null,
       dueDate: c.dueDate,
       dueInDays: c.dueDate ? daysUntil(c.dueDate, now) : null,
