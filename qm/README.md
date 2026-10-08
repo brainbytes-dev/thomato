@@ -75,9 +75,9 @@ Regeln:
 ### Stand des Demo-Deployments
 
 - Vercel-Projekt `qm-rettungsdienst-demo` (Root Directory `qm`, Build Machine `standard`, Funktionsregion `fra1`, Elastic Concurrency aus). Deployments laufen nur über die Git-Integration (Push auf `feat/qm-foundation`).
-- Schutz: Vercel Authentication für **alle** Deployments (Production und Preview). Anonyme Aufrufe werden auf die Vercel-Anmeldung umgeleitet; das Passwortschutz-Add-on wird nicht verwendet.
+- Schutz: Vercel Authentication für **alle** Deployments (alle Deployments). Anonyme Aufrufe werden auf die Vercel-Anmeldung umgeleitet; das Passwortschutz-Add-on wird nicht verwendet.
 - Datenbank: Neon (Free-Plan, Region Frankfurt, über die Vercel-Integration). Die Laufzeit nutzt ausschliesslich die Rolle `qm_app` über den Pooler; Besitzer-Zugangsdaten sind aus den Projekt-Umgebungsvariablen entfernt und liegen nur lokal ausserhalb des Repos.
-- Umgebungsvariablen im Projekt: `DATABASE_URL` (qm_app, gepoolt, `sslmode=verify-full`), `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` (nur Production, stabiler Alias `https://qm-rettungsdienst-demo.vercel.app`). Auf Neon lehnt die Control Plane vorberechnete Passwort-Verifier ab, deshalb setzt `db:roles` dort das Passwort im Klartext über TLS (automatischer Rückfall).
+- Umgebungsvariablen im Projekt: `DATABASE_URL` (qm_app, gepoolt, `sslmode=verify-full`), `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` (Preview, stabiler Branch-Alias `https://qm-rettungsdienst-demo-git-feat-qm-abeddf-brain-byt-es-projects.vercel.app`). Auf Neon lehnt die Control Plane vorberechnete Passwort-Verifier ab, deshalb setzt `db:roles` dort das Passwort im Klartext über TLS (automatischer Rückfall).
 - Demo-Passwort: wird beim Seeden aus `QM_DEMO_PASSWORD` gesetzt und steht nicht im Repo. Seed gegen das Deployment: `DATABASE_URL`/`DATABASE_URL_DIRECT` auf die Besitzer-Direct-URL, `ALLOW_DEMO_RESET_REMOTE=1`, `pnpm seed:demo -- --yes-reset`.
 - Die Anwendung darf nur über den Alias aufgerufen werden, weil `BETTER_AUTH_URL` die erlaubte Herkunft festlegt.
 
@@ -103,3 +103,5 @@ Schutz vor Versehen: Ist der Host von `BASE_URL` nicht `localhost`, `127.0.0.1` 
 BETTER_AUTH_URL=http://localhost:3100 pnpm exec next dev -p 3100   # in einem zweiten Terminal
 python3 scripts/smoke/demo_story.py
 ```
+
+Hinweis: Das Vercel-Projekt hat `main` als Production-Branch, deshalb ist `feat/qm-foundation` ein Preview-Deployment. Der stabile Alias dieses Branches ist die Demo-URL oben; der Alias `qm-rettungsdienst-demo.vercel.app` zeigt auf ein älteres Production-Deployment und wird nicht verwendet.
