@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Search } from "lucide-react";
+import { ArrowRight, Search, X } from "lucide-react";
 import { MEASURE_STATUS_BADGE, MEASURE_STATUS_LABEL } from "@/components/criteria/status-copy";
 import { Badge, CARD } from "@/components/ui/badge";
 import { FIELD, PRIMARY_BTN, TABLE_WRAP, TD, TH } from "@/components/ui/styles";
@@ -191,6 +191,21 @@ export function MeasuresRegister({
         <SearchForm filters={filters} members={members} />
       </div>
       <div className={`${CARD} p-3 sm:p-4`}>
+        {filters.status === "active" && (
+          <div className="mb-3 flex px-1">
+            <p className="type-label inline-flex flex-wrap items-center gap-2 rounded-md border border-border bg-surface-subtle py-1 pl-3 pr-1">
+              Offen und in Bearbeitung
+              <Link
+                href={measuresFilterHref({ ...filters, status: "all" })}
+                aria-label="Filter «Offen und in Bearbeitung» aufheben"
+                className={`type-meta inline-flex h-6 items-center gap-2 rounded px-2 text-primary underline ${FOCUS}`}
+              >
+                <X aria-hidden="true" className="size-3.5 shrink-0" />
+                Filter aufheben
+              </Link>
+            </p>
+          </div>
+        )}
         <div className={TABLE_WRAP}>
           <table className="w-full border-collapse md:min-w-[860px] text-left">
             <caption className="sr-only">Massnahmen der Organisation mit Verantwortlichen, Frist und Status</caption>

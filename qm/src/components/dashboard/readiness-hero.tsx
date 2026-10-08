@@ -147,7 +147,7 @@ export function ReadinessHero({ data, asOf }: { data: DashboardData; asOf: strin
         <div>
           <h3 className="type-eyebrow text-text-muted">Massnahmen</h3>
           <dl className="mt-3 grid grid-cols-2 gap-4">
-            <MiniStat label="Offen" value={data.measures.open} href="/measures?status=open" />
+            <MiniStat label="Offen" value={data.measures.open} href="/measures?status=active" />
             <MiniStat label="Überfällig" value={data.measures.overdue} toneClass={data.measures.overdue > 0 ? "text-critical" : ""} href="/measures?status=overdue" />
           </dl>
           <Link href="/measures" className="type-label mt-3 inline-block text-primary underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">

@@ -64,6 +64,17 @@ describe("MeasuresRegister", () => {
     expect(html).toMatch(/<option value="u2" selected/);
   });
 
+  it("shows a removable chip for status=active without highlighting a tab", () => {
+    const html = render(rows, { ...ALL, status: "active", query: "x" });
+    expect(html).toContain("Offen und in Bearbeitung");
+    expect(html).toContain('aria-label="Filter «Offen und in Bearbeitung» aufheben"');
+    expect(html).toContain('href="/measures?q=x"');
+    expect(html).not.toMatch(/aria-current="true"/);
+    const plain = render(rows, { ...ALL, status: "active" });
+    expect(plain).toContain("2 von 3 Massnahmen");
+    expect(render(rows)).not.toContain("Filter aufheben");
+  });
+
   it("shows a calm no-hit state with a way back", () => {
     const html = render(rows, { status: "all", owner: "all", query: "zzz" });
     expect(text(html)).toContain("Keine Massnahmen mit dieser Auswahl");

@@ -61,7 +61,7 @@ describe("ReadinessHero render", () => {
   const html = renderToStaticMarkup(createElement(ReadinessHero, { data, asOf: "07.10.2026" }));
 
   it("links the measure stats to the register", () => {
-    for (const href of ["/measures?status=open", "/measures?status=overdue", "/measures"]) expect(html).toContain(`href="${href}"`);
+    for (const href of ["/measures?status=active", "/measures?status=overdue", "/measures"]) expect(html).toContain(`href="${href}"`);
     expect(html).toContain("Alle Massnahmen");
   });
 

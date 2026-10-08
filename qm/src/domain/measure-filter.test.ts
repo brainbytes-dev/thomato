@@ -11,8 +11,8 @@ const row = (over: Partial<Parameters<typeof filterMeasures>[0][number]> = {}) =
 
 describe("parsers", () => {
   it("falls back to all for unknown or odd status values", () => {
-    for (const v of [undefined, "", "bogus", "OPEN", "__proto__", "overdue,open"]) expect(parseMeasureStatusFilter(v)).toBe("all");
-    for (const v of ["overdue", "open", "in_progress", "done"]) expect(parseMeasureStatusFilter(v)).toBe(v);
+    for (const v of [undefined, "", "bogus", "OPEN", "ACTIVE", "active ", "__proto__", "overdue,open"]) expect(parseMeasureStatusFilter(v)).toBe("all");
+    for (const v of ["overdue", "active", "open", "in_progress", "done"]) expect(parseMeasureStatusFilter(v)).toBe(v);
     expect(parseMeasureStatusFilter(["done", "open"])).toBe("done");
     expect(parseMeasureStatusFilter([])).toBe("all");
   });
@@ -63,6 +63,7 @@ describe("filterMeasures", () => {
 
   it("combines status, owner and query", () => {
     expect(f({ status: "overdue" })).toEqual(["Lager"]);
+    expect(f({ status: "active" })).toEqual(["Büro aufräumen", "Lager"]);
     expect(f({ status: "done", owner: "u2" })).toEqual(["Schulung"]);
     expect(f({ status: "open", owner: "u2" })).toEqual([]);
     expect(f({ owner: "u2", query: "lag" })).toEqual(["Lager"]);
@@ -80,6 +81,7 @@ describe("counts and hrefs", () => {
     expect(measuresFilterHref({})).toBe("/measures");
     expect(measuresFilterHref({ status: "all", owner: "all", query: "" })).toBe("/measures");
     expect(measuresFilterHref({ status: "overdue" })).toBe("/measures?status=overdue");
+    expect(measuresFilterHref({ status: "active" })).toBe("/measures?status=active");
     expect(measuresFilterHref({ status: "open", owner: "u1", query: "a&b ü" })).toBe("/measures?status=open&owner=u1&q=a%26b+%C3%BC");
   });
 });

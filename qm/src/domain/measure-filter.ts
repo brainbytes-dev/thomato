@@ -1,6 +1,6 @@
 import { MEASURE_STATUSES, type MeasureStatus } from "@/db/schema";
 
-export type MeasureStatusFilter = MeasureStatus | "overdue" | "all";
+export type MeasureStatusFilter = MeasureStatus | "overdue" | "active" | "all";
 export type OwnerFilter = string;
 
 export const QUERY_MAX = 80;
@@ -23,7 +23,7 @@ const first = (value: RawParam): string | undefined => (Array.isArray(value) ? v
 
 export function parseMeasureStatusFilter(value: RawParam): MeasureStatusFilter {
   const v = first(value) ?? "";
-  if (v === "overdue") return "overdue";
+  if (v === "overdue" || v === "active") return v;
   return (MEASURE_STATUSES as readonly string[]).includes(v) ? (v as MeasureStatus) : "all";
 }
 
@@ -51,7 +51,10 @@ export function matchesQuery(row: FilterRow, query: string): boolean {
 
 export function matchesStatus(row: Pick<FilterRow, "status" | "overdue">, status: MeasureStatusFilter): boolean {
   if (status === "all") return true;
-  return status === "overdue" ? row.overdue : row.status === status;
+  if (status === "overdue") return row.overdue;
+  // «active» = offen und in Bearbeitung, dieselbe Menge wie die Dashboard-Zahl «Offen».
+  if (status === "active") return row.status !== "done";
+  return row.status === status;
 }
 
 export function filterMeasures<T extends FilterRow>(rows: readonly T[], filters: MeasureFilters): T[] {

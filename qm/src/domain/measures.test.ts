@@ -10,6 +10,7 @@ import {
   createMeasure, listAllMeasures, listCriterionMeasures, listOpenMeasures, listOrgMembers, setMeasureStatus, updateMeasure,
 } from "./measures";
 import { ROLES } from "./rights";
+import { filterMeasures } from "./measure-filter";
 import { ForbiddenError, ValidationError } from "./org-context";
 import { randomUUID } from "node:crypto";
 import { addMemberTo, ctxFor, makeOrg, resetDb } from "@/test/helpers";
@@ -389,6 +390,19 @@ describe("listAllMeasures", () => {
     expect(all.at(-1)).toMatchObject({ status: "done", overdue: false });
     const open = await listOpenMeasures(ctxA, NOW);
     expect(all.filter((m) => m.overdue).length).toBe(open.filter((m) => m.days < 0).length);
+  });
+
+  it("the active filter yields exactly the dashboard open count", async () => {
+    const { ctxA, a } = await setup();
+    await createMeasure(ctxA, { ...valid(a.user.id), title: "Eins" });
+    const wip = await createMeasure(ctxA, { ...valid(a.user.id), title: "Zwei" });
+    const done = await createMeasure(ctxA, { ...valid(a.user.id), title: "Drei" });
+    await setMeasureStatus(ctxA, wip.id, "in_progress", NOW);
+    await setMeasureStatus(ctxA, done.id, "done", NOW);
+    const all = await listAllMeasures(ctxA, NOW);
+    const filtered = filterMeasures(all, { status: "active", owner: "all", query: "" });
+    expect(filtered).toHaveLength((await listOpenMeasures(ctxA, NOW)).length);
+    expect(filtered).toHaveLength(2);
   });
 
   it("is empty for an organisation without measures and never leaks other organisations", async () => {
