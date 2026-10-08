@@ -1,39 +1,43 @@
+import { CARD } from "@/components/ui/badge";
 import type { ChapterProgress } from "@/domain/dashboard";
+
+/** ≥90 Prozent erfüllt, <70 Prozent Warnung, dazwischen Primärfarbe. */
+export function chapterBarTone(percent: number | null): "success" | "warning" | "primary" {
+  if (percent === null) return "primary";
+  if (percent >= 90) return "success";
+  if (percent < 70) return "warning";
+  return "primary";
+}
+
+const BAR = { success: "bg-success", warning: "bg-warning", primary: "bg-primary" } as const;
+
+export function chapterNote(c: ChapterProgress): string {
+  if (c.applicable === 0) return "Keine anwendbaren Kriterien";
+  const rest = c.applicable - c.met;
+  if (rest === 0) return "Alle erfüllt";
+  return rest === 1 ? "1 noch nicht erfüllt" : `${rest} noch nicht erfüllt`;
+}
 
 export function ChapterProgressTable({ chapters }: { chapters: ChapterProgress[] }) {
   return (
-    <section aria-labelledby="progress-heading" className="flex flex-col gap-3">
-      <h2 id="progress-heading" className="text-xs font-semibold uppercase tracking-wide text-text-muted">
-        Fortschritt nach Kapitel
-      </h2>
-      <div tabIndex={0} role="region" aria-labelledby="progress-heading" className="overflow-x-auto rounded-[var(--radius)] border border-border bg-surface">
-        <table className="w-full border-collapse text-left">
-          <caption className="sr-only">Erfüllte Kriterien je Kapitel</caption>
-          <thead className="bg-surface-subtle text-text-muted">
-            <tr>
-              <th scope="col" className="px-3 py-2">Kapitel</th>
-              <th scope="col" className="whitespace-nowrap px-3 py-2">Erfüllt</th>
-              <th scope="col" className="w-1/2 px-3 py-2">Anteil</th>
-            </tr>
-          </thead>
-          <tbody>
-            {chapters.map((c) => (
-              <tr key={c.chapter} className="border-t border-border">
-                <th scope="row" className="px-3 py-2 text-left font-normal">{c.chapter}</th>
-                <td className="whitespace-nowrap px-3 py-2">{c.met} / {c.applicable}</td>
-                <td className="px-3 py-2">
-                  <div className="flex items-center gap-3">
-                    <div aria-hidden="true" className="h-1.5 flex-1 rounded-[2px] bg-surface-subtle">
-                      <div className="h-full rounded-[2px] bg-primary" style={{ width: `${c.percent ?? 0}%` }} />
-                    </div>
-                    <span className="w-12 text-right">{c.percent === null ? "k. A." : `${c.percent} %`}</span>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+    <section aria-labelledby="progress-heading" className={`${CARD} p-5 sm:p-6`}>
+      <h2 id="progress-heading" className="type-headline-sub">Fortschritt nach Kapitel</h2>
+      <p className="type-meta mt-1 text-text-muted">Erfüllte Kriterien je Kapitel</p>
+      <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {chapters.map((c) => (
+          <li key={c.chapter} className="rounded-lg border border-border bg-surface-subtle p-4">
+            <p className="type-body-emphasis">{c.chapter}</p>
+            <p className="mt-3 flex items-baseline gap-2">
+              <span className="type-headline-section tabular-nums">{c.percent === null ? "k. A." : `${c.percent} %`}</span>
+              <span className="type-meta text-text-muted">{c.met} / {c.applicable} Kriterien</span>
+            </p>
+            <div aria-hidden="true" className="mt-3 h-1 w-full rounded-full bg-background">
+              <div className={`h-full rounded-full ${BAR[chapterBarTone(c.percent)]}`} style={{ width: `${c.percent ?? 0}%` }} />
+            </div>
+            <p className="type-meta mt-2 text-text-muted">{chapterNote(c)}</p>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }

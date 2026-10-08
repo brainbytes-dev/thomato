@@ -17,6 +17,22 @@ describe("status-copy is client-safe", () => {
   );
 });
 
+describe("dashboard client files are client-safe", () => {
+  it.each(["src/components/dashboard/action-center.tsx", "src/domain/action-filter.ts"])(
+    "%s has no value import of server modules",
+    (file) => {
+      const source = readFileSync(join(process.cwd(), file), "utf8");
+      const valueImports = source
+        .split("\n")
+        .filter((line) => /^import\s/.test(line) && !/^import\s+type\s/.test(line));
+      for (const line of valueImports) {
+        expect(line).not.toMatch(/["']@\/db(\/[\w-]+)?["']/);
+        expect(line).not.toMatch(/["'](\.\/|@\/domain\/)(dashboard|assessments|measures|documents|deadlines)["']/);
+      }
+    },
+  );
+});
+
 describe("assessment form files are client-safe", () => {
   it.each(["src/app/(app)/criteria/[number]/assessment-form.tsx", "src/app/(app)/criteria/[number]/action-input.ts"])(
     "%s has no value import of server modules",

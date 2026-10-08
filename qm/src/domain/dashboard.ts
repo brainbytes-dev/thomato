@@ -20,6 +20,12 @@ export type ActionItem = {
   priority: ActionPriority;
   criterionNumber: string | null;
   topic: string;
+  /** Kurztitel für die Tabellenzeile; `topic` bleibt der vollständige Text. */
+  title: string;
+  /** Sekundärzeile (Kriteriumsnummer, Kapitel oder Massnahmenbezug), null wenn es keinen Bezug gibt. */
+  reference: string | null;
+  /** Verantwortliche Person einer Massnahme, sonst null. */
+  ownerName: string | null;
   dueDate: string | null;
   dueInDays: number | null;
   statusLabel: string;
@@ -91,6 +97,9 @@ export function buildActionItems(
       priority: p.priority,
       criterionNumber: c.number,
       topic: `${c.number} ${c.title}`,
+      title: c.title,
+      reference: `${c.number} · ${c.chapter}`,
+      ownerName: null,
       dueDate: c.dueDate,
       dueInDays: c.dueDate ? daysUntil(c.dueDate, now) : null,
       statusLabel: p.label,
@@ -105,6 +114,9 @@ export function buildActionItems(
       priority: d.days < 0 ? "critical" : "high",
       criterionNumber: null,
       topic: d.label,
+      title: d.label,
+      reference: "Frist",
+      ownerName: null,
       dueDate: d.dueDate,
       dueInDays: d.days,
       statusLabel: deadlineLabel(d.days),
@@ -119,6 +131,9 @@ export function buildActionItems(
       priority: m.days < 0 ? "high" : "medium",
       criterionNumber: m.criterionNumber,
       topic: `${m.title} (${m.criterionNumber} ${m.criterionTitle})`,
+      title: m.title,
+      reference: `Massnahme zu ${m.criterionNumber} ${m.criterionTitle}`,
+      ownerName: m.ownerName,
       dueDate: m.dueDate,
       dueInDays: m.days,
       statusLabel: measureLabel(m.days),
@@ -132,6 +147,9 @@ export function buildActionItems(
       priority: "high",
       criterionNumber: e.number,
       topic: `${e.number} ${e.title}`,
+      title: e.title,
+      reference: `${e.number} · Nachweis`,
+      ownerName: null,
       dueDate: e.validUntil,
       dueInDays: daysUntil(e.validUntil, now),
       statusLabel: "Nachweis veraltet",
@@ -140,14 +158,18 @@ export function buildActionItems(
     });
   }
   if (evidence.missingMet > 0) {
+    const missingTopic =
+      evidence.missingMet === 1
+        ? "1 erfülltes Pflichtkriterium ohne Nachweis"
+        : `${evidence.missingMet} erfüllte Pflichtkriterien ohne Nachweis`;
     items.push({
       key: "evidence:missing",
       priority: "medium",
       criterionNumber: null,
-      topic:
-        evidence.missingMet === 1
-          ? "1 erfülltes Pflichtkriterium ohne Nachweis"
-          : `${evidence.missingMet} erfüllte Pflichtkriterien ohne Nachweis`,
+      topic: missingTopic,
+      title: missingTopic,
+      reference: "Nachweise",
+      ownerName: null,
       dueDate: null,
       dueInDays: null,
       statusLabel: "Nachweis fehlt",

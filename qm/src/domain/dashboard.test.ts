@@ -65,6 +65,20 @@ describe("buildActionItems", () => {
     expect(items[0].statusLabel).toBe("Kritisch");
   });
 
+  it("gives every item a short title, a reference line and an owner only for measures", () => {
+    const items = buildActionItems(
+      [row({ number: "c", title: "Hygiene", status: "critical" })],
+      [],
+      { stale: [{ number: "s", title: "Alt", validUntil: "2026-09-30" }], missingMet: 0 },
+      [],
+      "accreditation",
+      NOW,
+    );
+    const criterion = items.find((i) => i.source === "criterion");
+    expect(criterion).toMatchObject({ title: "Hygiene", reference: "c · Prozess", ownerName: null });
+    expect(items.find((i) => i.source === "evidence")).toMatchObject({ title: "Alt", reference: "s · Nachweis", ownerName: null });
+  });
+
   it("sorts by due date within a priority, undated last, and keeps catalog order as tie-break", () => {
     const items = buildActionItems(
       [
@@ -142,6 +156,9 @@ describe("buildActionItems with evidence", () => {
         priority: "medium",
         criterionNumber: null,
         topic: "3 erfüllte Pflichtkriterien ohne Nachweis",
+        title: "3 erfüllte Pflichtkriterien ohne Nachweis",
+        reference: "Nachweise",
+        ownerName: null,
         dueDate: null,
         dueInDays: null,
         statusLabel: "Nachweis fehlt",
@@ -196,6 +213,9 @@ describe("buildActionItems with measures", () => {
       priority: "high",
       criterionNumber: "7.3.10",
       topic: "Schulung planen (7.3.10 Hygiene)",
+      title: "Schulung planen",
+      reference: "Massnahme zu 7.3.10 Hygiene",
+      ownerName: "Anna",
       dueDate: "2026-10-01",
       dueInDays: -6,
       statusLabel: "Massnahme überfällig (seit 6 Tagen)",
@@ -507,6 +527,9 @@ describe("selectActionItems", () => {
     priority: "medium",
     criterionNumber: null,
     topic: key,
+    title: key,
+    reference: null,
+    ownerName: null,
     dueDate: null,
     dueInDays: null,
     statusLabel: "x",
