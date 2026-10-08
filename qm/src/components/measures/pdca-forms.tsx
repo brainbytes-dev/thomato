@@ -90,7 +90,7 @@ export function CriterionForm({ measureId, value }: { measureId: string; value: 
     <form onSubmit={f.onSubmit} className="flex flex-col gap-3">
       <input type="hidden" name="measureId" value={measureId} />
       <Fragment key={`${f.resetKey}|${value}`}>
-        <Field label="Wirksamkeitskriterium (3 bis 500 Zeichen)" hint="Woran erkennen Sie später, dass die Massnahme wirkt? Leer lassen, um das Kriterium zu entfernen.">
+        <Field label="Text (3 bis 500 Zeichen)" hint="Woran erkennen Sie später, dass die Massnahme wirkt? Leer lassen, um das Kriterium zu entfernen.">
           <textarea name="effectivenessCriterion" rows={3} maxLength={500} defaultValue={value} className={AREA} />
         </Field>
       </Fragment>
@@ -120,7 +120,7 @@ function SimpleActionForm({
       <input type="hidden" name="measureId" value={measureId} />
       {children}
       <Alert>{f.error}</Alert>
-      <button type="submit" disabled={f.pending} className={`${variant === "primary" ? PRIMARY_BTN : SECONDARY_BTN} inline-flex items-center gap-2 ${FOCUS}`}>
+      <button type="submit" disabled={f.pending} className={`${variant === "primary" ? PRIMARY_BTN : SECONDARY_BTN} inline-flex items-center gap-2 whitespace-nowrap ${FOCUS}`}>
         {icon}
         {f.pending ? pendingLabel : label}
       </button>
@@ -263,7 +263,7 @@ export function CompleteDoForm({ measureId, stepCount, openCount }: { measureId:
         </label>
       ) : openCount > 0 ? (
         <p className="type-meta text-text-muted">
-          {openCount === 1 ? "Ein Schritt ist" : `${openCount} Schritte sind`} noch offen. Do lässt sich abschliessen, sobald alle Schritte erledigt sind.
+          {openCount === 1 ? "Ein Schritt ist" : `${openCount} Schritte sind`} noch offen.
         </p>
       ) : null}
     </SimpleActionForm>
@@ -323,7 +323,7 @@ export function CloseForm({ measureId, reasonRequired }: { measureId: string; re
         </Field>
       </Fragment>
       <Alert>{f.error}</Alert>
-      <button type="submit" disabled={f.pending} className={`${PRIMARY_BTN} inline-flex items-center gap-2 ${FOCUS}`}>
+      <button type="submit" disabled={f.pending} className={`${PRIMARY_BTN} inline-flex items-center gap-2 whitespace-nowrap ${FOCUS}`}>
         <Check aria-hidden="true" className="size-4" />
         {f.pending ? "Speichern..." : "Massnahme abschliessen"}
       </button>

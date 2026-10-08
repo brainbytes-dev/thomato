@@ -199,7 +199,11 @@ function ReviewGroups({ detail }: { detail: MeasureDetail }) {
   // Der aktuelle Zyklus steht immer da, auch ohne Bewertung; frühere Zyklen nur, wenn sie bewertet wurden.
   const cycles = [...new Set([...byCycle.keys(), m.cycle])].sort((a, b) => b - a);
   if (byCycle.size === 0) {
-    return <p className="text-text-muted">Noch keine Wirksamkeitsprüfung. Sie folgt nach der Phase Do.</p>;
+    return (
+      <p className="text-text-muted">
+        {m.phase === "check" ? "Noch keine Wirksamkeitsprüfung. Sie findet in dieser Phase statt." : "Noch keine Wirksamkeitsprüfung. Sie folgt nach der Phase Do."}
+      </p>
+    );
   }
   return (
     <div className="flex flex-col gap-5">
@@ -266,7 +270,7 @@ function Decision({ detail }: { detail: MeasureDetail }) {
         Act schliesst nie automatisch, auch nicht bei «wirksam». Sie entscheiden bewusst, wie es weitergeht.
         {reasonRequired ? " Bei «teilweise wirksam» und «nicht wirksam» verlangt der Abschluss eine Begründung." : ""}
       </p>
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+      <div className="flex flex-col gap-4">
         <Option title="Abschliessen" text="Die Massnahme gilt als erledigt. Sie bleibt mit allen Bewertungen sichtbar und lässt sich später wiedereröffnen.">
           <CloseForm measureId={m.id} reasonRequired={reasonRequired} />
         </Option>
