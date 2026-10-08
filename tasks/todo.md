@@ -16,3 +16,4 @@
 - [x] 8.3 PDCA (Datenmodell, Services, Detailseite, Register-Kennzahlen); 694 Tests
 - [ ] Henrik: Preview durchklicken; Entscheidung, ob Plan 8 vor dem Pitch in feat/qm-foundation übernommen wird (dann db:deploy gegen Demo-DB + Seed neu)
 - Backlog: Editor darf erledigte Massnahmen (Titel/Frist) ändern; Schritt entfernen ohne Rückfrage; audit_event TRUNCATE-Schutz; Verlauf paginieren
+Backlog: document_version TRUNCATE trigger (own ticket)
