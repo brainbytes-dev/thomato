@@ -18,4 +18,4 @@
 - Backlog: Editor darf erledigte Massnahmen (Titel/Frist) ändern; Schritt entfernen ohne Rückfrage; audit_event TRUNCATE-Schutz; Verlauf paginieren
 Backlog: document_version TRUNCATE trigger (own ticket)
 - [ ] Pitch-Checkliste (Lizenzfrage an IVR u. a.): qm/docs/demo/PITCH-CHECKLIST.md
-- [ ] Plan 9 (Wissen und Quellen): Entwurf docs/superpowers/specs/2026-10-08-qm-wissen-quellen-design.md, Entscheide D1-D5 offen
+- [ ] Plan 9 (Wissen und Quellen): Spec+Plan freigegeben (docs/superpowers/plans/2026-10-08-qm-wissen-quellen.md), Start nach Plan-8-Merge auf feat/qm-plan9; D1 später nach IVR-Rückmeldung

@@ -1,6 +1,6 @@
 # Design: Wissen und Quellen (Plan 9)
 
-**Status:** Entwurf zur Abnahme durch Henrik. Erst nach Freigabe wird der Implementierungsplan geschrieben. Umsetzung nach dem Plan-8-Merge und der Generalprobe.
+**Status:** FREIGEGEBEN durch Henrik am 2026-10-08 (D1 später nach IVR-Rückmeldung, D2 bis D5 ja, plus zwei Zusatzregeln, unten eingearbeitet). Umsetzung nach dem Plan-8-Merge bzw. auf einem eigenen Branch (`feat/qm-plan9`, abgezweigt von `feat/qm-plan8`).
 **Grundlage:** `qm/docs/catalog/richtlinie-abgleich-2025-08.md` (Abgleich Katalog gegen Richtlinie 08/2025) und Henriks Auftrag vom 2026-10-08.
 
 ## Problem
@@ -8,6 +8,17 @@
 1. Die Kriterien tragen die Nummern der Richtlinie (6.x bis 8.x, dazu 5.2.x aus dem Handbuch). Es gibt kein 1 bis 5 in der App, das wirkt lückenhaft. Die Lücke ist fachlich richtig: Die Kapitel 1 bis 5 der Richtlinie beschreiben das Verfahren, die Kriterientabellen stehen in 6 bis 8, Kapitel 9 ist der Anhang.
 2. Die App sagt nicht, woher eine Anforderung kommt. Wer ein Kriterium bearbeitet, will nachlesen können: Kapitel, Seite, offizielles Dokument.
 3. Das Verfahrenswissen (Fristen, Ablauf, Rekurs, Erneuerung, Begriffe) steckt nur im PDF. Die App kennt bereits die Fristen, erklärt aber ihre Herkunft nicht.
+
+## Entscheidungen (Henrik, 2026-10-08)
+
+- D1: Auswahlkriterien 8.1, 8.2, 8.4 später, nach IVR-Rückmeldung. Keine Readiness-Regel ändern; die App erklärt im Wissensbereich transparent, dass diese Kapitel Auswahlpflichten enthalten (Pitch-Fragenliste).
+- D2: Ich schreibe die Zusammenfassungen als eigene Zusammenfassung; vor dem Pitch fachliche Prüfung gegen Richtlinie und Handbuch.
+- D3: Eigener Menüpunkt «Wissen» (Wissen: 1 bis 5, Kriterien: 6 bis 8, Wissen/Anhang: 9).
+- D4: «Dossier-Unterlagen» statt «Antrag», Quelle sichtbar als «Handbuch Kap. 5.2», fachlich eigene Kategorie, operativ weiter im Katalog.
+- D5: Links auf die offiziellen PDFs bei 144.ch mit Ausgabe, Seite und Quelle; Prüfsumme und versionierte Zuordnung, damit ein neues PDF keine alten Seitenreferenzen unbemerkt bricht.
+- Zusatzregel 1: Keine Volltextsuche über Richtlinientext, solange keine Nutzungsrechte vorliegen. Suche nur über eigene Zusammenfassungen, Kapitelbezeichnungen und Metadaten.
+- Zusatzregel 2: Jede Wissensseite trägt klein, aber klar: «Zusammenfassung. Massgebend ist die offizielle IVR-Richtlinie.»
+- Sprachregelung intern: nicht «61 IVR-Kriterien», sondern 56 Kriterien der Richtlinie + 4 Dossier-Unterlagen + 1 explizit modellierter Unterpunkt (7.4.1) = 61 operative Katalogzeilen.
 
 ## Rechtsrahmen (harte Grenze)
 
@@ -17,7 +28,7 @@ Die Richtlinien und das Handbuch sind urheberrechtlich geschützt (das Python-Re
 - Sie enthält **eigene, knappe Zusammenfassungen** des Verfahrens in unseren Worten (Fakten wie Fristen und Abläufe sind frei darstellbar), jeweils mit Quellenangabe, Ausgabe und Link auf das offizielle PDF bei 144.ch.
 - Normative Tabellen (Anhang 9: Einsatz- und Personalkategorien, Datensätze) werden nur beschrieben und verlinkt, nicht abgeschrieben.
 - Wörtliche Zitate der Kriterienvorgaben (wie im Stitch-Mock «Offizielle IVR-Vorgabe») gibt es erst nach Erlaubnis des IVR. Die Frage steht in `qm/docs/demo/PITCH-CHECKLIST.md`.
-- Jede Seite trägt den Hinweis: «Zusammenfassung, kein Richtlinientext. Massgebend ist die Richtlinie des IVR.» Keine IVR-Claims, keine Aussage, die App sei offiziell oder zertifiziert.
+- Jede Seite trägt den Hinweis: «Zusammenfassung. Massgebend ist die offizielle IVR-Richtlinie.» Keine IVR-Claims, keine Aussage, die App sei offiziell oder zertifiziert.
 
 ## Lösung in drei Teilen
 
