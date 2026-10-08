@@ -87,7 +87,7 @@ export async function seedDemo(input: { catalog: unknown; now?: Date }) {
   if (!Array.isArray(input.catalog)) throw new Error("Katalog muss ein Array sein");
   const rows: unknown[] = input.catalog;
 
-  // measure_review sperrt TRUNCATE per Trigger; nur dieser Reset hebt die Sperre transaktionslokal auf.
+  // measure_review und audit_event sperren TRUNCATE per Trigger; nur dieser Reset hebt die Sperre transaktionslokal auf.
   await db.transaction(async (tx) => {
     await tx.execute(sql`SELECT set_config('qm.allow_truncate', 'on', true)`);
     await tx.execute(

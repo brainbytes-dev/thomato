@@ -7,6 +7,12 @@ vi.mock("@/domain/criterion-lookup", () => ({
   },
 }));
 
+vi.mock("@/domain/measure-lookup", () => ({
+  measureProvablyMissing: async () => {
+    throw new Error("Datenbank nicht erreichbar");
+  },
+}));
+
 import { proxy } from "./proxy";
 
 const req = (path: string, cookie?: string) =>
@@ -18,5 +24,13 @@ describe("proxy when the catalog lookup fails", () => {
     expect(anonymous.status).toBe(307);
     const withCookie = await proxy(req("/criteria/7.3.10", "better-auth.session_token=x.y"));
     expect(withCookie.headers.get("x-middleware-next")).toBe("1");
+  });
+
+  it("passes a measure detail request with a session cookie through when the measure lookup fails", async () => {
+    const id = "3f2b8c1e-5d4a-4e6b-9a7c-1b2c3d4e5f60";
+    const res = await proxy(req(`/measures/${id}`, "better-auth.session_token=x.y"));
+    expect(res.status).toBe(200);
+    expect(res.headers.get("x-middleware-next")).toBe("1");
+    expect((await proxy(req(`/measures/${id}`))).status).toBe(307);
   });
 });

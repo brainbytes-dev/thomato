@@ -48,7 +48,7 @@ export async function resetDb() {
   const have = new Set(existing.rows.map((r) => r.tablename));
   const present = TABLES.filter((t) => have.has(t.replaceAll('"', "")));
   if (present.length === 0) return;
-  // measure_review sperrt TRUNCATE per Trigger; nur dieser Reset hebt die Sperre transaktionslokal auf.
+  // measure_review und audit_event sperren TRUNCATE per Trigger; nur dieser Reset hebt die Sperre transaktionslokal auf.
   await db.transaction(async (tx) => {
     await tx.execute(sql`SELECT set_config('qm.allow_truncate', 'on', true)`);
     await tx.execute(sql.raw(`TRUNCATE ${present.join(", ")} RESTART IDENTITY CASCADE`));

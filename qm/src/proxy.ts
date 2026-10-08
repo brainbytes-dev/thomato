@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getSessionCookie } from "better-auth/cookies";
 import { criterionExistsMemoized } from "@/domain/criterion-lookup";
+import { measureProvablyMissing } from "@/domain/measure-lookup";
 
 const CRITERION_PATH = /^\/criteria\/([^/]+)\/?$/;
 const MEASURE_PATH = /^\/measures\/([^/]+)\/?$/;
@@ -13,6 +14,14 @@ async function existsOrAssume(raw: string): Promise<boolean> {
     return await criterionExistsMemoized(raw);
   } catch {
     return true;
+  }
+}
+
+async function missingOrAssumeFound(cookie: string, id: string): Promise<boolean> {
+  try {
+    return await measureProvablyMissing(cookie, id);
+  } catch {
+    return false;
   }
 }
 
@@ -31,8 +40,16 @@ export async function proxy(request: NextRequest) {
     return NextResponse.rewrite(new URL("/_not-found", request.url), { status: 404 });
   }
   // Nur ein schneller Cookie-Check. Die eigentliche Prüfung macht requireOrgContext() serverseitig.
-  if (!getSessionCookie(request)) {
+  const sessionCookie = getSessionCookie(request);
+  if (!sessionCookie) {
     return NextResponse.redirect(new URL("/login", request.url));
+  }
+  // Echter 404 (R55) für unbekannte und fremde Massnahmen: Hinter der Suspense-Grenze der Seite wäre es ein 200.
+  // Entschieden wird nur, wenn die Datenbank beweist, dass die ID in der aktiven Organisation der Sitzung fehlt
+  // (Token aus dem Cookie, Signatur ungeprüft, siehe measure-lookup). Unbekannte oder abgelaufene Sitzung und jeder
+  // Datenbankfehler gehen normal weiter; die Seite bleibt die Instanz für Sitzung und Mandant und antwortet nie mit 500 vom Proxy.
+  if (measure && (await missingOrAssumeFound(sessionCookie, measure[1]))) {
+    return NextResponse.rewrite(new URL("/_not-found", request.url), { status: 404 });
   }
   return NextResponse.next();
 }
